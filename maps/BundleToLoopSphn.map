@@ -1,0 +1,63 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn" = "BundleToLoopSphn"
+
+conceptmap "cm-administrative-gender" {
+  prefix s = "http://hl7.org/fhir/ValueSet/administrative-gender"
+  prefix t = "http://snomed.info/id"
+  
+  s:female == t:248152002
+  s:male == t:248153007
+  s:other == t:32570681000036106
+}
+
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LoopSphn" alias LoopSphn as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataRelease" alias DataRelease as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SubjectPseudoIdentifier" alias SubjectPseudoIdentifier as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BirthDate" alias BirthDate as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeSex" alias AdministrativeSex as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
+
+imports "http://research.balgrist.ch/fhir2sphn/EncounterToAdministrativeCase"
+
+
+group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
+  // DataRelease
+  bundle -> tgt.DataRelease = create('DataRelease') as dataRelease then {
+    bundle.id as id -> dataRelease.id = id;
+    bundle.meta as meta then {
+      meta.lastUpdated as lastUpdated -> dataRelease.creationTime = lastUpdated;
+    };
+  } "DataRelease";
+
+  bundle -> tgt.content = create('Content') as content then {
+    bundle.entry as entry then {
+      // Patient -> SubjectPseudoIdentifier, Content.AdministrativeSex, Content.BirthDate
+      entry.resource as patient where $this.ofType(FHIR.Patient) -> tgt.SubjectPseudoIdentifier as subject then patient(patient, content, subject);
+
+      // Encounter -> Content.AdministrativeCase
+      entry.resource as encounter where $this.ofType(FHIR.Encounter) then adminCase(encounter, content);
+    };
+  } "Content";
+}
+
+group patient(source patient : Patient, target content: Content, target subject : SubjectPseudoIdentifier) {
+  // Content.AdministrativeSex
+  patient.gender as gender -> content.AdministrativeSex = create('AdministrativeSex') as sex,
+    sex.id = uuid(),
+    sex.hasCode as code, code.termid = translate(gender, '#cm-administrative-gender', 'code') as termid, code.iri = append('http://snomed.info/id/', termid);
+
+  // Content.BirthDate
+  patient.birthDate as birthDate -> content.BirthDate = create('BirthDate') as bd,
+    bd.id = uuid(),
+    // TODO: why can't we use yearOf(), monthOf()?
+    bd.hasYear = evaluate(birthDate, toString().substring(0, 4)),
+    bd.hasMonth = evaluate(birthDate, toString().substring(5, 2)),
+    bd.hasDay = evaluate(birthDate, toString().substring(8, 2));
+
+  // SubjectPseudoIdentifier
+  patient.id as id -> subject.id = ('Patient/' & %id);
+  patient.identifier as identifier -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
+}

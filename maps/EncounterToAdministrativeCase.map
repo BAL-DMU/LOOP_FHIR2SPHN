@@ -1,0 +1,39 @@
+map "http://research.balgrist.ch/fhir2sphn/EncounterToAdministrativeCase" = "EncounterToAdministrativeCase"
+
+conceptmap "cm-encounter-admitSource" {
+  prefix s = "http://fhir.ch/ig/ch-core/ValueSet/bfs-medstats-17-admitsource"
+  prefix t = "http://snomed.info/id"
+  
+  s:1 == t:257688003
+  s:2 == t:261770009
+}
+
+uses "http://hl7.org/fhir/StructureDefinition/Encounter" alias Encounter as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeCase" alias AdministrativeCase as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Location" alias Location as target
+
+
+// Encounter -> Content.AdministrativeCase
+group adminCase(source encounter : Encounter, target content: Content) <<types>> {
+  encounter -> content.AdministrativeCase = create('AdministrativeCase') as case then {
+    encounter.id as id -> case.id = ('Encounter/' & %id);
+    encounter.period as period then {
+      period.start as start -> case.hasAdmissionDateTime = start;
+      period.end as end -> case.hasDischargeDateTime = end;
+    };
+
+    encounter.hospitalization as hospitalization then {
+      hospitalization.admitSource as admitSource then {
+        admitSource.coding first as coding -> case.hasOriginLocation = create('Location') as location then {
+          coding -> location.id = uuid(), location.hasTypeCode as typeCode then {
+            coding.code as code -> typeCode.termid = translate(code, '#cm-encounter-admitSource', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid); 
+          } "adminSource_code";
+        };
+      };
+    };
+
+  } "AdministrativeCase";
+}
+  
