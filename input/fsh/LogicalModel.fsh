@@ -36,7 +36,7 @@ Title: "List of SPHN concepts"
 * BirthDate 0..* SU BirthDate "" ""
 * AdministrativeSex 0..* SU AdministrativeSex "" ""
 * AdministrativeCase 0..* SU AdministrativeCase "" ""
-//* BodyTemperatureMeasurement 0..* SU BodyTemperatureMeasurement "some value" "description of value"
+* BodyTemperatureMeasurement 0..* SU BodyTemperatureMeasurement "" ""
 
 Logical: Location
 Parent: Concept
@@ -72,3 +72,39 @@ Characteristics: #can-be-target
 * hasDischargeDateTime 0..1 SU dateTime "" ""
 * hasOriginLocation 0..1 SU Location "" ""
 * hasDischargeLocation 0..1 SU Location "" ""
+
+Logical: Unit
+Parent: Concept
+Title: "SPHN Unit"
+* hasCode 1..1 SU Code "" ""
+
+Logical: Quantity
+Parent: Concept
+Title: "SPHN Quantity"
+* hasValue 1..1 SU decimal "" ""
+* hasUnit 1..1 SU Unit "" ""
+
+Logical: Result
+Parent: Concept
+Title: "SPHN Result"
+// empty
+
+Logical: BodyTemperature
+Parent: Result
+Title: "SPHN Body Temperature"
+* hasDateTime 0..1 SU dateTime "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+
+Logical: Measurement
+Parent: Concept
+Title: "SPHN Measurement"
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+//* hasResult 1..* SU Result "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasMethodCode 0..1 SU Code "" ""
+
+Logical: BodyTemperatureMeasurement
+Parent: Measurement
+Title: "SPHN Body Temperature Measurement"
+* hasResult 1..* SU BodyTemperature "" ""

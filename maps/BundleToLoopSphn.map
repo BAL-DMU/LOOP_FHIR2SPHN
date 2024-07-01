@@ -21,6 +21,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias C
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
 
 imports "http://research.balgrist.ch/fhir2sphn/EncounterToAdministrativeCase"
+imports "http://research.balgrist.ch/fhir2sphn/ObservationVitalSignToMeasurement"
 
 
 group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
@@ -39,6 +40,9 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // Encounter -> Content.AdministrativeCase
       entry.resource as encounter where $this.ofType(FHIR.Encounter) then adminCase(encounter, content);
+
+      // Observation (vital-sign) -> Content.Measurement
+      entry.resource as observation where $this.ofType(FHIR.Observation) and $this.category.coding.code = 'vital-signs' then vitalSign(observation, content);
     };
   } "Content";
 }
