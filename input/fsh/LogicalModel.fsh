@@ -44,24 +44,31 @@ Title: "SPHN Location"
 * hasTypeCode 1..1 SU Code "" ""
 * hasExact 1..1 SU string "" ""
 
+Logical: CareHandling
+Parent: Concept
+Title: "SPHN Care Handling"
+* hasTypeCode 1..1 SU Code "" ""
+
 Logical: BirthDate
 Parent: Concept
-Title: "SPHN BirthDate"
+Title: "SPHN Birth Date"
 * hasYear 1..1 SU string "" ""
 * hasMonth 1..1 SU string "" ""
 * hasDay 1..1 SU string "" ""
 
 Logical: AdministrativeSex
 Parent: Concept
-Title: "SPHN AdministrativeSex"
+Title: "SPHN Administrative Sex"
 * hasCode 1..1 SU Code "" ""
 * hasRecordDateTime 1..1 SU dateTime "" ""
 
 Logical: AdministrativeCase
 Parent: Concept
-Title: "SPHN AdministrativeCase"
+Title: "SPHN Administrative Case"
 Characteristics: #can-be-target
 * Identifier 1..1 SU string "" ""
+* hasCareHandling 0..1 SU CareHandling "" ""
 * hasAdmissionDateTime 1..1 SU dateTime "" ""
-* hasDischargeDateTime 0..1 SU dateTime "" "" 
+* hasDischargeDateTime 0..1 SU dateTime "" ""
 * hasOriginLocation 0..1 SU Location "" ""
+* hasDischargeLocation 0..1 SU Location "" ""

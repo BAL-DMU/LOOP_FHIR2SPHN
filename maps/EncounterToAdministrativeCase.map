@@ -3,17 +3,53 @@ map "http://research.balgrist.ch/fhir2sphn/EncounterToAdministrativeCase" = "Enc
 conceptmap "cm-encounter-admitSource" {
   prefix s = "http://fhir.ch/ig/ch-core/ValueSet/bfs-medstats-17-admitsource"
   prefix t = "http://snomed.info/id"
-  
-  s:1 == t:257688003
-  s:2 == t:261770009
+  s:1 == t:257688003        // Zuhause
+  s:2 == t:257688003        // Zuhause mit SPITEX Versorgung
+  s:3 == t:285201006        // Krankenheim, Pflegeheim
+  s:4 == t:257652008        // Altersheim, andere sozialmed. Institutionen
+  s:5 == t:702916001        // Psychiatrische Klinik, anderer Betrieb
+  s:55 == t:702916001       // Psychiatrische Abteilung/Klinik, gleicher Betrieb
+  s:6 == t:25731000087105   // anderes Krankenhaus (Akutspital) oder Geburtshaus
+  s:66 == t:25731000087105  // Akutabteilung/-klinik, gleicher Betrieb
+  s:7 == t:257656006        // Strafvollzugsanstalt
+  s:8 == t:276339004        // *andere -> Environment
+  s:83 == t:702916001       // Rehabilitationsklinik, anderer Betrieb
+  s:84 == t:702916001       // Rehabilitations- abteilung/-klinik, gleicher Betrieb
+  s:9 == t:276339004        // *unbekannt -> Environment
 }
+
+conceptmap "cm-encounter-dischargedestination" {
+  prefix s = "http://fhir.ch/ig/ch-core/ValueSet/bfs-medstats-28-dischargedestination"
+  prefix t = "http://snomed.info/id"
+  s:1 == t:257688003        // Zuhause
+  s:2 == t:285201006        // Krankenheim, Pflegeheim
+  s:3 == t:257652008        // Altersheim, andere sozialmed. Institution
+  s:4 == t:702914003        // Psychiatrische Klinik, anderer Betrieb
+  s:44 == t:702914003       // Psychiatrische Abteilung/Klinik, gleicher Betrieb
+  s:5 == t:702916001        // Rehabilitationsklinik, anderer Betrieb
+  s:55 == t:702916001       // Rehabilitations- abteilung/-klinik, gleicher Betrieb
+  s:6 == t:25731000087105   // anderes Krankenhaus (Akutspital) oder Geburtshaus
+  s:66 == t:25731000087105  // Akutabteilung/-klinik, gleicher Betrieb
+  s:7 == t:257656006        // Strafvollzugsanstalt
+  s:8 == t:276339004        // *andere -> Environment
+  s:9 == t:276339004        // *unbekannt -> Environment
+  s:0 == t:276339004        // *Todesfall -> Environment
+}
+
+conceptmap "cm-encounter-class" {
+  prefix s = "http://terminology.hl7.org/ValueSet/encounter-class"
+  prefix t = "http://snomed.info/id"
+  s:IMP == t:394656005
+  s:AMB == t:371883000
+}
+
 
 uses "http://hl7.org/fhir/StructureDefinition/Encounter" alias Encounter as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeCase" alias AdministrativeCase as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Location" alias Location as target
-
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/CareHandling" alias CareHandling as target
 
 // Encounter -> Content.AdministrativeCase
 group adminCase(source encounter : Encounter, target content: Content) <<types>> {
@@ -24,16 +60,30 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
       period.end as end -> case.hasDischargeDateTime = end;
     };
 
+    // class -> CareHandling
+    encounter.class as class -> case.hasCareHandling = create('CareHandling') as care then {
+      class -> care.id = uuid(), care.hasTypeCode as typeCode then {
+        class.code as code ->  typeCode.termid = translate(code, '#cm-encounter-class', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid);
+      } "class";
+    };
+
     encounter.hospitalization as hospitalization then {
+      // adminSource -> hasOriginLocation
       hospitalization.admitSource as admitSource then {
         admitSource.coding first as coding -> case.hasOriginLocation = create('Location') as location then {
           coding -> location.id = uuid(), location.hasTypeCode as typeCode then {
-            coding.code as code -> typeCode.termid = translate(code, '#cm-encounter-admitSource', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid); 
+            coding.code as code -> typeCode.termid = translate(code, '#cm-encounter-admitSource', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid);
           } "adminSource_code";
         };
       };
-    };
 
+      // extension [dischargedestination] -> hasDischargeLocation
+      hospitalization.extension as ext where $this.url = 'http://fhir.ch/ig/ch-core/StructureDefinition/ch-ext-bfs-ms-dischargedestination' -> case.hasDischargeLocation = create('Location') as location then {
+        ext.valueCoding as coding -> location.id = uuid(), location.hasTypeCode as typeCode then {
+          coding.code as code -> typeCode.termid = translate(code, '#cm-encounter-dischargedestination', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid);
+        } "dischargedestination";
+      };
+    };
   } "AdministrativeCase";
 }
   
