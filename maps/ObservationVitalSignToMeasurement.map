@@ -4,11 +4,15 @@ uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as 
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyTemperatureMeasurement" alias BodyTemperatureMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyWeightMeasurement" alias BodyWeightMeasurement as target
 
 
 group vitalSign(source observation : Observation, target content: Content) <<types>> {
   // BodyTemperatureMeasurement
   observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodytemp' -> content.BodyTemperatureMeasurement as bodyTemp then measurementParent(observation, bodyTemp), bodyTemperature(observation, bodyTemp) "bodyTemperature";
+
+  // BodyWeightMeasurement
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodyweight' -> content.BodyWeightMeasurement as bodyWeight then measurementParent(observation, bodyWeight), bodyWeight(observation, bodyWeight) "bodyWeight";
 }
 
 // parent, generic for all vital-signs
@@ -17,10 +21,10 @@ group measurementParent(source observation : Observation, target measurement: Me
   observation.encounter as encounter -> measurement.hasAdministrativeCase = encounter;
   observation.effectiveDateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;
 
-  // code (Snomed CT) -> hasMethodCode
-  observation.code as code then {
-    code.coding as coding where $this.system = 'http://snomed.info/sct' -> measurement.hasMethodCode as method then {
-      coding.code as c -> method.termid = c, method.iri = append('http://snomed.info/id/', c);
+  // method (Snomed CT) -> hasMethodCode
+  observation.method as method then {
+    method.coding as coding where $this.system = 'http://snomed.info/sct' -> measurement.hasMethodCode as methodCode then {
+      coding.code as c -> methodCode.termid = c, methodCode.iri = append('http://snomed.info/id/', c);
     };
   };
 }
@@ -28,6 +32,20 @@ group measurementParent(source observation : Observation, target measurement: Me
 group bodyTemperature(source observation : Observation, target bodyTemp: BodyTemperatureMeasurement) <<types>> {
   // valueQuantity -> hasResult
   observation.value as vq -> bodyTemp.hasResult as result then {
+    vq -> result.id = uuid(), result.hasQuantity as quantity then {
+      vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then {
+        vq -> unit.id = uuid(), unit.hasCode as code then {
+          vq.code as c -> code.termid = c;
+          vq.system as s -> code.iri = s;
+        } "code";
+      } "unit";
+    } "quantity";
+  } "result";
+}
+
+group bodyWeight(source observation : Observation, target bodyWeight: BodyWeightMeasurement) <<types>> {
+  // valueQuantity -> hasResult
+  observation.value as vq -> bodyWeight.hasResult as result then {
     vq -> result.id = uuid(), result.hasQuantity as quantity then {
       vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then {
         vq -> unit.id = uuid(), unit.hasCode as code then {
