@@ -8,7 +8,9 @@ StructureDefinitions for the target LOOP schema is defined using [FHIR Shorthand
 
 ## Installation
 * Install SUSHI from https://github.com/FHIR/sushi
+* Download validator client: ```wget https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar```
 * For building the IG, jekyll is required: ```sudo apt install jekyll```
+* [VS Code FSH extension](https://marketplace.visualstudio.com/items?itemName=MITRE-Health.vscode-language-fsh)
 
 ## StructureDefinitions
 Generate StructureDefinitions (unshorten FSH):
@@ -18,17 +20,23 @@ sushi build
 
 ## Compile maps
 ```bash
-mkdir -p temp/map
+OUT_DIR="temp/map"
+mkdir -p ${OUT_DIR}
 for f in $(ls maps/*.map) ; do
     BASE=$(basename ${f} .map)
-    java -jar temp/validator_cli.jar -ig ${f} -compile http://research.balgrist.ch/fhir2sphn/StructureMap/${BASE} -version 4.0 -output temp/map/${BASE}.xml
+    java -jar validator_cli.jar -ig ${f} \
+        -compile http://research.balgrist.ch/fhir2sphn/StructureMap/${BASE} \
+        -version 4.0 -output ${OUT_DIR}/${BASE}.xml
 done
 ```
 
 ## Execute a transformation
 Transform input data ```testdata/pat.json```:
 ```bash
-java -jar temp/validator_cli.jar testdata/pat.json -transform http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn -version 4.0 -ig temp/map/ -ig ./fsh-generated/resources -output temp/result.json
+java -jar validator_cli.jar testdata/pat.json \
+    -transform http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn \
+    -version 4.0 -ig ${OUT_DIR}/ -ig ./fsh-generated/resources \
+    -output temp/result.json
 ```
 
 Postprocessing:
