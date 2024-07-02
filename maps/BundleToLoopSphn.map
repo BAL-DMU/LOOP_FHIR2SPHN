@@ -20,8 +20,8 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeSe
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
 
-imports "http://research.balgrist.ch/fhir2sphn/EncounterToAdministrativeCase"
-imports "http://research.balgrist.ch/fhir2sphn/ObservationVitalSignToMeasurement"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministrativeCase"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement"
 
 
 group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {

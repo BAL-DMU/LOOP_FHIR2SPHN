@@ -1,4 +1,4 @@
-map "http://research.balgrist.ch/fhir2sphn/ObservationVitalSignToMeasurement" = "ObservationVitalSignToMeasurement"
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement" = "ObservationVitalSignToMeasurement"
 
 uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
 
