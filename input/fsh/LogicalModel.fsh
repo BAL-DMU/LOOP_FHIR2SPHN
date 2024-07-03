@@ -9,6 +9,7 @@ Logical: Concept
 Parent: Element
 Title: "SPHN Concept"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Element"
+* ^abstract = true
 
 Logical: DataRelease
 Parent: Concept
@@ -77,8 +78,9 @@ Characteristics: #can-be-target
 Logical: Measurement
 Parent: Concept
 Title: "SPHN Measurement"
+* ^abstract = true
 * hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
-//* hasResult 1..* SU Result "" ""
+* hasResult 1..* SU Result "" ""
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasEndDateTime 0..1 SU dateTime "" ""
 * hasMethodCode 0..1 SU Code "" ""
@@ -97,6 +99,7 @@ Title: "SPHN Quantity"
 Logical: Result
 Parent: Concept
 Title: "SPHN Result"
+* ^abstract = true
 // empty
 
 Logical: BodyTemperature
@@ -108,7 +111,7 @@ Title: "SPHN Body Temperature"
 Logical: BodyTemperatureMeasurement
 Parent: Measurement
 Title: "SPHN Body Temperature Measurement"
-* hasResult 1..* SU BodyTemperature "" ""
+* hasResult[x] 1..* SU BodyTemperature "" ""
 
 Logical: BodyWeight
 Parent: Result
@@ -119,4 +122,4 @@ Title: "SPHN Body Weight"
 Logical: BodyWeightMeasurement
 Parent: Measurement
 Title: "SPHN Body Weight Measurement"
-* hasResult 1..* SU BodyWeight "" ""
+* hasResult[x] 1..* SU BodyWeight "" ""
