@@ -6,18 +6,43 @@ FHIR to SPHN mappings for LOOP BMIP using [FHIR Mapping Language (FML)](https://
 StructureDefinitions for the target LOOP schema is defined using [FHIR Shorthand (FSH)](https://build.fhir.org/ig/HL7/fhir-shorthand/)
 * FSH: [input/fsh/LogicalModel.fsh](input/fsh/LogicalModel.fsh)
 
-## Installation
+# Install
 * Install SUSHI from https://github.com/FHIR/sushi
-* Download validator client: ```wget https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar```
-* For building the IG, jekyll is required: ```sudo apt install jekyll```
-* [VS Code FSH extension](https://marketplace.visualstudio.com/items?itemName=MITRE-Health.vscode-language-fsh)
+* For building the IG, jekyll is required:
+    * `sudo apt install jekyll`
+* Optional VS Code extensions for development:
+    * [FHIR Shorthand](https://marketplace.visualstudio.com/items?itemName=MITRE-Health.vscode-language-fsh)
+    * [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
 
-## StructureDefinitions
+An FML engine is required like [HAPI-FHIR Validator Cli](https://confluence.hl7.org/pages/viewpage.action?pageId=76158820#UsingtheFHIRMappingLanguage-runtransformsjavavalidatorRunTransformsviatheJavaValidatorJar) or [Matchbox](https://ahdis.github.io/matchbox/) (recommended)
+
+## HAPI-FHIR Validator Cli
+* Download validator:
+    * `wget https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar`
+
+## Matchbox
+* Requires JDK 21 and maven
+    * `sudo apt install openjdk-21-jdk`
+    * `sudo apt install maven`
+* Clone [matchbox](https://github.com/ahdis/matchbox)
+```bash
+cd ${HOME}
+git clone https://github.com/ahdis/matchbox.git
+```
+
+# StructureDefinitions
 Generate StructureDefinitions (unshorten FSH):
 ```bash
 sushi build
 ```
 
+# Build Implementation Guide (IG)
+```bash
+./_updatePublisher.sh
+./_genonce.sh
+```
+
+# Running transformations using Validator Cli
 ## Compile maps
 ```bash
 OUT_DIR="temp/map"
@@ -39,13 +64,23 @@ java -jar validator_cli.jar testdata/pat.json \
     -output temp/result.json
 ```
 
-Postprocessing:
+# Running transformations using Matchbox
+## Run local matchbox server:
+```bash
+cd matchbox/matchbox-server
+mvn clean install -DskipTests spring-boot:run \
+	-Dspring-boot.run.directories=../../LOOP_FHIR2SPHN/output \
+	-Dspring-boot.run.arguments=--spring.config.additional-location=file:../../LOOP_FHIR2SPHN/with-preload/application.yaml 
+```
+
+## Compile maps / execute transformation
+* POST maps and execture transformation using REST against local matchbox server:
+    * See [transform.http](transform.http)
+
+
+# Postprocessing
 ```bash
 cat temp/result.json  | jq 'walk(if type == "object" then with_entries(.key = (if .key == "reference" then "id" else .key end)) else . end)' | jq 'walk(if type == "object" then with_entries(.key = (if .key != "id" and .key != "iri" and .key != "termid" and .key != "content" then "sphn:" else "" end ) + .key) else . end)'
 ```
 
-## Build Implementation Guide (IG)
-```bash
-./_updatePublisher.sh
-./_genonce.sh
-```
+
