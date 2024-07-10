@@ -35,10 +35,15 @@ Parent: Base
 Title: "List of SPHN concepts"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
 * BirthDate 0..* SU BirthDate "" ""
+* Death 0..* SU Death "" ""
+* DeathDate 0..* SU DeathDate "" ""
 * AdministrativeSex 0..* SU AdministrativeSex "" ""
 * AdministrativeCase 0..* SU AdministrativeCase "" ""
 * BodyTemperatureMeasurement 0..* SU BodyTemperatureMeasurement "" ""
 * BodyWeightMeasurement 0..* SU BodyWeightMeasurement "" ""
+* BloodPressureMeasurement 0..* SU BloodPressureMeasurement "" ""
+* HeartRateMeasurement 0..* SU HeartRateMeasurement "" ""
+* OxygenSaturationMeasurement 0..* SU OxygenSaturationMeasurement "" ""
 
 Logical: Location
 Parent: Concept
@@ -55,8 +60,26 @@ Logical: BirthDate
 Parent: Concept
 Title: "SPHN Birth Date"
 * hasYear 1..1 SU string "" ""
-* hasMonth 1..1 SU string "" ""
-* hasDay 1..1 SU string "" ""
+* hasMonth 0..1 SU string "" ""
+* hasDay 0..1 SU string "" ""
+
+Logical: DeathDate
+Parent: Concept
+Title: "SPHN Death Date"
+Characteristics: #can-be-target
+* hasYear 1..1 SU string "" ""
+* hasMonth 0..1 SU string "" ""
+* hasDay 0..1 SU string "" ""
+* hasTime 0..1 SU time "" ""
+
+Logical: Death
+Parent: Concept
+Title: "SPHN Death"
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasReportDateTime 0..1 SU dateTime "" ""
+* hasDate 0..1 SU Reference(DeathDate) "" ""
+* hasCircumstanceCode 0..1 SU Code "" ""
+* hasConditionCode 0..1 SU Code "" ""
 
 Logical: AdministrativeSex
 Parent: Concept
@@ -102,6 +125,17 @@ Title: "SPHN Result"
 * ^abstract = true
 // empty
 
+Logical: Laterality
+Parent: Concept
+Title: "SPHN Laterality"
+* hasCode 1..1 SU Code "" ""
+
+Logical: BodySite
+Parent: Concept
+Title: "SPHN Body Site"
+* hasCode 1..1 SU Code "" ""
+* hasLaterality 1..1 SU Laterality "" ""
+
 Logical: BodyTemperature
 Parent: Result
 Title: "SPHN Body Temperature"
@@ -123,3 +157,40 @@ Logical: BodyWeightMeasurement
 Parent: Measurement
 Title: "SPHN Body Weight Measurement"
 * hasResult[x] 1..* SU BodyWeight "" ""
+
+Logical: BloodPressure
+Parent: Result
+Title: "SPHN Blood Pressure"
+* hasDateTime 0..1 SU dateTime "" ""
+* hasMeanPressure 0..1 SU Quantity "" ""
+* hasSystolicPressure 0..1 SU Quantity "" ""
+* hasDiastolicPressure 0..1 SU Quantity "" ""
+
+Logical: BloodPressureMeasurement
+Parent: Measurement
+Title: "SPHN Blood Pressure Measurement"
+* hasResult[x] 1..* SU BloodPressure "" ""
+* hasBodySite 0..1 SU BodySite "" ""
+
+Logical: HeartRate
+Parent: Result
+Title: "SPHN Heart Rate"
+* hasDateTime 0..1 SU dateTime "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+* hasRegularityCode 0..1 SU Code "" ""
+
+Logical: HeartRateMeasurement
+Parent: Measurement
+Title: "SPHN Heart Rate Measurement"
+* hasResult[x] 1..* SU HeartRate "" ""
+
+Logical: OxygenSaturation
+Parent: Result
+Title: "SPHN Oxygen Saturation"
+* hasDateTime 0..1 SU dateTime "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+
+Logical: OxygenSaturationMeasurement
+Parent: Measurement
+Title: "SPHN Oxygen Saturation Measurement"
+* hasResult[x] 1..* SU OxygenSaturation "" ""

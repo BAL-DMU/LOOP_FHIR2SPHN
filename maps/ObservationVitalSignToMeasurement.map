@@ -1,18 +1,35 @@
 map "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement" = "ObservationVitalSignToMeasurement"
 
 uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
+uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyTemperatureMeasurement" alias BodyTemperatureMeasurement as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyWeightMeasurement" alias BodyWeightMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BloodPressureMeasurement" alias BloodPressureMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BloodPressure" alias BloodPressure as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRateMeasurement" alias HeartRateMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRate" alias HeartRate as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturationMeasurement" alias OxygenSaturationMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturation" alias OxygenSaturation as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
 
 
 group vitalSign(source observation : Observation, target content: Content) <<types>> {
   // BodyTemperatureMeasurement
-  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodytemp' -> content.BodyTemperatureMeasurement as bodyTemp then measurementParent(observation, bodyTemp), bodyTemperature(observation, bodyTemp) "bodyTemperature";
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodytemp' -> content.BodyTemperatureMeasurement as bodyTemp then measurementParent(observation, bodyTemp) "bodyTemperature";
 
   // BodyWeightMeasurement
-  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodyweight' -> content.BodyWeightMeasurement as bodyWeight then measurementParent(observation, bodyWeight), bodyWeight(observation, bodyWeight) "bodyWeight";
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodyweight' -> content.BodyWeightMeasurement as bodyWeight then measurementParent(observation, bodyWeight) "bodyWeight";
+
+  // HeartRateMeasurement
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/heartrate' -> content.HeartRateMeasurement as heartrate then measurementParent(observation, heartrate) "heartrate";
+
+  // OxygenSaturationMeasurement
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/oxygensat' -> content.OxygenSaturationMeasurement as oxygensat then measurementParent(observation, oxygensat) "oxygensat";
+  
+  // BloodPressureMeasurement
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bp' -> content.BloodPressureMeasurement as bloodPressure then measurementParent(observation, bloodPressure), bloodPressure(observation, bloodPressure) "bloodPressure";
 }
 
 // parent, generic for all vital-signs
@@ -27,11 +44,9 @@ group measurementParent(source observation : Observation, target measurement: Me
       coding.code as c -> methodCode.termid = c, methodCode.iri = append('http://snomed.info/id/', c);
     };
   };
-}
 
-group bodyTemperature(source observation : Observation, target bodyTemp: BodyTemperatureMeasurement) <<types>> {
-  // valueQuantity -> hasResult
-  observation.value as vq -> bodyTemp.hasResult as result then {
+  // valueQuantity -> hasResult (only for bodyTemperature, bodyWeight, oxygenSaturation, heartrate)
+  observation.value as vq -> measurement.hasResult as result then {
     vq -> result.id = uuid(), result.hasQuantity as quantity then {
       vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then {
         vq -> unit.id = uuid(), unit.hasCode as code then {
@@ -43,16 +58,38 @@ group bodyTemperature(source observation : Observation, target bodyTemp: BodyTem
   } "result";
 }
 
-group bodyWeight(source observation : Observation, target bodyWeight: BodyWeightMeasurement) <<types>> {
-  // valueQuantity -> hasResult
-  observation.value as vq -> bodyWeight.hasResult as result then {
-    vq -> result.id = uuid(), result.hasQuantity as quantity then {
-      vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then {
-        vq -> unit.id = uuid(), unit.hasCode as code then {
-          vq.code as c -> code.termid = c;
-          vq.system as s -> code.iri = s;
-        } "code";
+group bloodPressure(source observation : Observation, target bloodPressure: BloodPressureMeasurement) <<types>> {
+  // bodySite (Snomed CT) -> hasBodySite
+  observation.bodySite as bodySite then {
+    bodySite.coding as coding where $this.system = 'http://snomed.info/sct' -> bloodPressure.hasBodySite as bodySiteCode then {
+      coding.code as c -> bodySiteCode.id = uuid(), bodySiteCode.hasCode as code, code.termid = c, code.iri = append('http://snomed.info/id/', c);
+    };
+  };
+
+  observation.component as component -> bloodPressure.hasResult as result then {
+    component -> result.id = uuid() "id";
+    component.code as code where $this.coding.system = 'http://loinc.org' then {
+      component.value as v then {
+        // LOINC 8480-6 -> hasSystolicPressure
+        code.coding as coding  where $this.code = '8480-6' -> result.hasSystolicPressure = create('BloodPressure') as bp then bpResult(v, bp);
+
+        // LOINC 8462-4 -> hasDiastolicPressure
+        code.coding as coding  where $this.code = '8462-4' -> result.hasDiastolicPressure = create('BloodPressure') as bp then bpResult(v, bp);
+
+        // LOINC 8478-0 -> hasMeanPressure
+        code.coding as coding  where $this.code = '8478-0' -> result.hasMeanPressure = create('BloodPressure') as bp then bpResult(v, bp);
+      };
+    };
+  };
+}
+
+group bpResult(source value : Quantity, target bp: BloodPressure) <<types>> {
+  value.value as v -> bp.id = uuid(),
+    bp.hasValue = v,
+    bp.hasUnit as unit then {
+      value -> unit.id = uuid(), unit.hasCode as code then {
+        value.system as system -> code.iri = system;
+        value.unit as u -> code.termid = u;
       } "unit";
-    } "quantity";
-  } "result";
+    };
 }

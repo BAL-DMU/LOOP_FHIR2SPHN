@@ -68,9 +68,13 @@ java -jar validator_cli.jar testdata/pat.json \
 ## Run local matchbox server:
 ```bash
 cd matchbox/matchbox-server
-mvn clean install -DskipTests spring-boot:run \
+mvn clean install -DskipTests spring-boot:run -Dspring-boot.run.jvmArguments="-Xmx4g" \
 	-Dspring-boot.run.directories=../../LOOP_FHIR2SPHN/output \
-	-Dspring-boot.run.arguments=--spring.config.additional-location=file:../../LOOP_FHIR2SPHN/with-preload/application.yaml 
+	-Dspring-boot.run.arguments=--spring.config.additional-location=file:../../LOOP_FHIR2SPHN/with-preload/application.yaml
+```
+Note: After updating the StructureDefinitions, the database needs to be cleared to force re-loading of the IG package (output/package.tgz):
+```bash
+rm -rf matchbox/matchbox-server/database
 ```
 
 ## Compile maps / execute transformation
