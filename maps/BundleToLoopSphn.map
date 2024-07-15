@@ -14,6 +14,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LoopSphn" alias LoopSphn as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataRelease" alias DataRelease as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataProvider" alias DataProvider as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SubjectPseudoIdentifier" alias SubjectPseudoIdentifier as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BirthDate" alias BirthDate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DeathDate" alias DeathDate as target
@@ -37,8 +38,8 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
   bundle -> tgt.content = create('Content') as content then {
     bundle.entry as entry then {
-      // Patient -> SubjectPseudoIdentifier, Content.AdministrativeSex, Content.BirthDate
-      entry.resource as patient where $this.ofType(FHIR.Patient) -> tgt.SubjectPseudoIdentifier as subject then patient(patient, content, subject);
+      // Patient -> SubjectPseudoIdentifier, DataProvider, Content.AdministrativeSex, Content.BirthDate
+      entry.resource as patient where $this.ofType(FHIR.Patient) then patient(patient, tgt, content);
 
       // Encounter -> Content.AdministrativeCase
       entry.resource as encounter where $this.ofType(FHIR.Encounter) then adminCase(encounter, content);
@@ -49,7 +50,7 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
   } "Content";
 }
 
-group patient(source patient : Patient, target content: Content, target subject : SubjectPseudoIdentifier) {
+group patient(source patient : Patient, target tgt : LoopSphn, target content: Content) {
   // gender -> Content.AdministrativeSex
   patient.gender as gender -> content.AdministrativeSex = create('AdministrativeSex') as sex,
     sex.id = uuid(),
@@ -75,7 +76,19 @@ group patient(source patient : Patient, target content: Content, target subject 
       deathDate.hasDay = evaluate(deceased, toString().substring(8, 2)) "deathDate";
   };
 
+  // managingOrganization (contained) -> DataProvider
+  patient.contained as organization where $this.ofType(FHIR.Organization)  -> tgt.DataProvider = create('DataProvider') as provider then {
+    organization.id as id -> provider.id = id;
+    organization -> provider.hasInstitutionCode as code then {
+      organization.id as id -> code.id = id, code.hasCodingSystemAndVersion = "UID";
+      organization.identifier as identifier -> code.hasIdentifier = (%identifier.value);
+      organization.name as name -> code.hasName = name;
+    } "hasInstitutionCode";
+  };
+
   // SubjectPseudoIdentifier
-  patient.id as id -> subject.id = ('Patient/' & %id);
-  patient.identifier as identifier -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
+  patient -> tgt.SubjectPseudoIdentifier as subject then {
+    patient.id as id ->  subject.id = ('Patient/' & %id);
+    patient.identifier as identifier -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
+  } "SubjectPseudoIdentifier";
 }

@@ -5,6 +5,13 @@ Title: "SPHN Code Type"
 * iri 1..1 SU uri "" ""
 * termid 1..1 SU string "" ""
 
+Logical: CodeUID
+Parent: Concept
+Title: "SPHN Code Type (for UID)"
+* hasCodingSystemAndVersion 1..1 SU string "" ""
+* hasIdentifier 1..1 SU uri "" ""
+* hasName 0..1 SU string "" ""
+
 Logical: Concept
 Parent: Element
 Title: "SPHN Concept"
@@ -13,8 +20,13 @@ Title: "SPHN Concept"
 
 Logical: DataRelease
 Parent: Concept
-Title: "SPHN DataRelease"
+Title: "SPHN Data Release"
 * creationTime 0..1 SU dateTime "" ""
+
+Logical: DataProvider
+Parent: Concept
+Title: "SPHN Data Provider"
+* hasInstitutionCode 1..1 SU CodeUID "" ""
 
 Logical: SubjectPseudoIdentifier
 Parent: Concept
@@ -28,6 +40,7 @@ Title: "LOOP SPHN"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
 * content 1..1 SU Content "" "List of SPHN concepts"
 * DataRelease 1..1 SU DataRelease "" ""
+* DataProvider 1..1 SU DataProvider "" ""
 * SubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
 
 Logical: Content
