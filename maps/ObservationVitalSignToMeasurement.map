@@ -55,6 +55,14 @@ group measurementParent(source observation : Observation, target measurement: Me
         } "code";
       } "unit";
     } "quantity";
+
+    // interpretation -> hasRegularityCode (only HeartRate)
+    // Note: We have to add it here because it is part of hasResult
+    observation.interpretation as interpretation then {
+      interpretation.coding as coding where $this.system = 'http://snomed.info/sct' -> result.hasRegularityCode as regularityCode then {
+        coding.code as c -> regularityCode.termid = c, regularityCode.iri = append('http://snomed.info/id/', c);
+      };
+    };
   } "result";
 }
 
