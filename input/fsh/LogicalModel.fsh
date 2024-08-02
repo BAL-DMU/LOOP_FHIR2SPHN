@@ -57,6 +57,7 @@ Title: "List of SPHN concepts"
 * BloodPressureMeasurement 0..* SU BloodPressureMeasurement "" ""
 * HeartRateMeasurement 0..* SU HeartRateMeasurement "" ""
 * OxygenSaturationMeasurement 0..* SU OxygenSaturationMeasurement "" ""
+* LabTestEvent 0..* SU LabTestEvent "" ""
 
 Logical: Location
 Parent: Concept
@@ -207,3 +208,38 @@ Logical: OxygenSaturationMeasurement
 Parent: Measurement
 Title: "SPHN Oxygen Saturation Measurement"
 * hasResult[x] 1..* SU OxygenSaturation "" ""
+
+Logical: ReferenceValue
+Parent: Concept
+Title: "SPHN Reference Value"
+* hasQuantity 1..1 SU Quantity "" ""
+
+Logical: ReferenceRange
+Parent: Concept
+Title: "SPHN Reference Range"
+* hasLowerLimit 0..1 SU Quantity "" ""
+* hasUpperLimit 0..1 SU Quantity "" ""
+
+Logical: LabResult
+Parent: Concept
+Title: "SPHN Lab Result"
+* hasCode 0..1 SU Code "" ""
+* hasStringValue 0..1 SU string "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+* hasNumericalReference[x] 0..1 SU ReferenceRange "" ""
+// TODO: does not work with FML!
+//* hasNumericalReference[x] 0..1 SU ReferenceValue or ReferenceRange "" ""
+
+Logical: LabTest
+Parent: Concept
+Title: "SPHN Lab Test"
+* hasCode 1..1 SU Code "" ""
+* hasResult 1..* SU LabResult "" ""
+
+Logical: LabTestEvent
+Parent: Concept
+Title: "SPHN Lab Test Event"
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasReportDateTime 0..1 SU dateTime "" ""
+* hasDateTime 0..1 SU dateTime "" ""
+* hasLabTest 1..* SU LabTest "" ""
