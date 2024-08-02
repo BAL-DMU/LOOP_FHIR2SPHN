@@ -12,7 +12,7 @@ group allergy(source allergyIntolerance : AllergyIntolerance, target content : C
     allergyIntolerance.id as id -> allergy.id = ('AllergyIntolerance/' & %id);
     allergyIntolerance.recordedDate as recordedDate -> allergy.hasFirstRecordDatetime = recordedDate;
 
-    //
+    // AllergyIntolerance Code -> Allergy.Allergen
     allergyIntolerance.code as allergyCodeRoot then {
       allergyCodeRoot.coding first as srcCoding -> allergy.hasAllergen = create ('Allergen') as allergen then {
         srcCoding -> allergen.id = uuid(), 
