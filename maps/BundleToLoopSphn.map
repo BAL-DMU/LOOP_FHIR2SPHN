@@ -47,7 +47,6 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // Observation (vital-sign) -> Content.Measurement
       entry.resource as observation where $this.ofType(FHIR.Observation) and $this.category.coding.code = 'vital-signs' then vitalSign(observation, content);
-
  
       // AllergyIntolerance -> Content.Allergy
       entry.resource as allergyIntolerance where $this.ofType(FHIR.AllergyIntolerance) then allergy(allergyIntolerance, content);     
