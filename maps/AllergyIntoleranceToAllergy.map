@@ -1,0 +1,31 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceToAllergy" = "AllergyIntoleranceToAllergy"
+
+uses "http://hl7.org/fhir/StructureDefinition/AllergyIntolerance" alias AllergyIntolerance as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergy" alias Allergy as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergen" alias Allergen as target
+
+group allergy(source allergyIntolerance : AllergyIntolerance, target content : Content) <<types>> {
+
+  allergyIntolerance -> content.Allergy = create('Allergy') as allergy then {
+    allergyIntolerance.id as id -> allergy.id = ('AllergyIntolerance/' & %id);
+    allergyIntolerance.recordedDate as recordedDate -> allergy.hasFirstRecordDatetime = recordedDate;
+
+    // why does this not
+    //allergyIntolerance.recordedDate -> allergy.hasFirstRecordDatetime;
+
+    //
+    allergyIntolerance.code as allergyCodeRoot then {
+      allergyCodeRoot.coding first as srcCoding -> allergy.hasAllergen = create ('Allergen') as allergen then {
+        srcCoding -> allergen.id = uuid(), 
+
+        allergen.hasCode as trgCode then {
+          srcCoding.code as srcCode -> trgCode.termid = srcCode as termid,
+          trgCode.iri = append(srcCode.system, termid);
+        } "allergen_code";
+      }; 
+    };
+
+  } "Allergy";
+}
