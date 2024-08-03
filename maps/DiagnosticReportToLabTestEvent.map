@@ -10,7 +10,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabTestEvent" al
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabTest" alias LabTest as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabResult" alias LabResult as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ReferenceRange" alias ReferenceRange as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ReferenceRangeOrValue" alias ReferenceRangeOrValue as target
 
 
 group laboratory(source bundle : Bundle, source report : DiagnosticReport, target content: Content) <<types>> {
@@ -53,7 +53,7 @@ group labTest(source observation : Observation, target lab: LabTest) <<types>> {
     } "valueQuantity";
 
     // referenceRange -> hasNumericalReference.hasLowerLimit/hasUpperLimit
-    observation.referenceRange as range -> result.hasNumericalReference = create('ReferenceRange') as ref, ref.id = uuid() then {
+    observation.referenceRange as range -> result.hasNumericalReference = create('ReferenceRangeOrValue') as ref, ref.id = uuid(), ref.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ReferenceRange' then {
       range.low as low -> ref.hasLowerLimit as lowerLimit then limit(low, lowerLimit);
       range.high as high -> ref.hasUpperLimit as upperLimit then limit(high, upperLimit);
     };

@@ -84,7 +84,7 @@ rm -rf matchbox/matchbox-server/database
 
 # Postprocessing
 ```bash
-cat temp/result.json  | jq 'walk(if type == "object" then with_entries(.key = (if .key == "reference" then "id" else .key end)) else . end)' | jq 'walk(if type == "object" then with_entries(.key = (if .key != "id" and .key != "iri" and .key != "termid" and .key != "content" then "sphn:" else "" end ) + .key) else . end)'
+cat temp/result.json  | jq 'walk(if type == "object" then with_entries(.key = (if .key == "reference" then "id" else .key end)) else . end)' | jq 'walk(if type == "object" then with_entries(.key = (if .key != "id" and .key != "iri" and .key != "termid" and .key != "content" and .key != "target_concept" then "sphn:" else "" end ) + .key) else . end)'
 ```
 
 

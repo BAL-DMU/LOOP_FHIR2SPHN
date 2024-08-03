@@ -221,16 +221,18 @@ Title: "SPHN Allergy"
 * hasFirstRecordDatetime 0..1 SU dateTime "" ""
 * hasAllergen 0..1 SU Allergen "" ""
 
-Logical: ReferenceValue
+// Note: Combined ReferenceRange and ReferenceValue
+// Cannot use choice for two reasons:
+// 1) FML does currently not support this:
+//      * hasNumericalReference[x] 0..1 SU ReferenceValue or ReferenceRange "" ""
+// 2) the property in SPHN is always called 'hasNumericalReference' (and type specified in 'target_concept')
+Logical: ReferenceRangeOrValue
 Parent: Concept
-Title: "SPHN Reference Value"
-* hasQuantity 1..1 SU Quantity "" ""
-
-Logical: ReferenceRange
-Parent: Concept
-Title: "SPHN Reference Range"
+Title: "SPHN Reference Range / Reference Value"
+* target_concept 1..1 SU url "" ""
 * hasLowerLimit 0..1 SU Quantity "" ""
 * hasUpperLimit 0..1 SU Quantity "" ""
+* hasQuantity 0..1 SU Quantity "" ""
 
 Logical: LabResult
 Parent: Concept
@@ -238,9 +240,7 @@ Title: "SPHN Lab Result"
 * hasCode 0..1 SU Code "" ""
 * hasStringValue 0..1 SU string "" ""
 * hasQuantity 0..1 SU Quantity "" ""
-* hasNumericalReference[x] 0..1 SU ReferenceRange "" ""
-// TODO: does not work with FML!
-//* hasNumericalReference[x] 0..1 SU ReferenceValue or ReferenceRange "" ""
+* hasNumericalReference 0..1 SU ReferenceRangeOrValue "" ""
 
 Logical: LabTest
 Parent: Concept
