@@ -57,6 +57,7 @@ Title: "List of SPHN concepts"
 * BloodPressureMeasurement 0..* SU BloodPressureMeasurement "" ""
 * HeartRateMeasurement 0..* SU HeartRateMeasurement "" ""
 * OxygenSaturationMeasurement 0..* SU OxygenSaturationMeasurement "" ""
+* Allergy 0..* SU Allergy "" ""
 * LabTestEvent 0..* SU LabTestEvent "" ""
 
 Logical: Location
@@ -208,6 +209,17 @@ Logical: OxygenSaturationMeasurement
 Parent: Measurement
 Title: "SPHN Oxygen Saturation Measurement"
 * hasResult[x] 1..* SU OxygenSaturation "" ""
+
+Logical: Allergen
+Parent: Concept
+Title: "SPHN Allergen"
+* hasCode 1..* SU Code "" ""
+
+Logical: Allergy
+Parent: Concept
+Title: "SPHN Allergy"
+* hasFirstRecordDatetime 0..1 SU dateTime "" ""
+* hasAllergen 0..1 SU Allergen "" ""
 
 Logical: ReferenceValue
 Parent: Concept
