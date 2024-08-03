@@ -25,7 +25,14 @@ Content-Type: text/fhir-mapping
 < ./maps/ObservationVitalSignToMeasurement.map
 
 
-### 4. transform sample input
+### 4. Compile DiagnosticReportToLabTestEvent.map
+POST {{host}}/StructureMap HTTP/1.1
+Accept: application/fhir+json;fhirVersion=4.0
+Content-Type: text/fhir-mapping
+
+< ./maps/DiagnosticReportToLabTestEvent.map
+
+### 5. transform sample input
 POST {{host}}/StructureMap/$transform?source=http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: application/fhir+json;fhirVersion=4.0
