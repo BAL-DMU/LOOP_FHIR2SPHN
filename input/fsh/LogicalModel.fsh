@@ -34,6 +34,7 @@ Title: "SPHN SubjectPseudoIdentifier"
 Characteristics: #can-be-target
 * hasIdentifier 1..1 SU string "" ""
 
+
 Logical: LoopSphn
 Parent: Base
 Title: "LOOP SPHN"
@@ -221,6 +222,11 @@ Title: "SPHN Allergy"
 * hasFirstRecordDatetime 0..1 SU dateTime "" ""
 * hasAllergen 0..1 SU Allergen "" ""
 
+Invariant: reference-range-or-value
+Description: "Either ReferenceValue (hasQuantity) or ReferengeRange (hasLowerLimit, hasUpperLimit) but not both."
+Severity: #error
+Expression: "(hasQuantity.exists() and hasLowerLimit.exists().not() and hasUpperLimit.exists().not()) or ((hasLowerLimit.exists() or hasUpperLimit.exists) and hasQuantity.exists().not())"
+
 // Note: Combined ReferenceRange and ReferenceValue
 // Cannot use choice for two reasons:
 // 1) FML does currently not support this:
@@ -229,6 +235,7 @@ Title: "SPHN Allergy"
 Logical: ReferenceRangeOrValue
 Parent: Concept
 Title: "SPHN Reference Range / Reference Value"
+* obeys reference-range-or-value
 * target_concept 1..1 SU url "" ""
 * hasLowerLimit 0..1 SU Quantity "" ""
 * hasUpperLimit 0..1 SU Quantity "" ""
