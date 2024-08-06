@@ -6,19 +6,18 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias C
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergy" alias Allergy as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergen" alias Allergen as target
 
-group allergy(source allergyIntolerance : AllergyIntolerance, target content : Content) <<types>> {
 
+group allergy(source allergyIntolerance : AllergyIntolerance, target content : Content) <<types>> {
   allergyIntolerance -> content.Allergy = create('Allergy') as allergy then {
     allergyIntolerance.id as id -> allergy.id = ('AllergyIntolerance/' & %id);
     allergyIntolerance.recordedDate as recordedDate -> allergy.hasFirstRecordDatetime = recordedDate;
 
     // AllergyIntolerance Code -> Allergy.Allergen
     allergyIntolerance.code as allergyCodeRoot then {
-      allergyCodeRoot.coding first as srcCoding -> allergy.hasAllergen = create ('Allergen') as allergen then {
-        srcCoding -> allergen.id = uuid(), 
-        allergen.hasCode as trgCode then {
+      allergyCodeRoot.coding first as srcCoding -> allergy.hasAllergen = create('Allergen') as allergen then {
+        srcCoding -> allergen.id = uuid(), allergen.hasCode as trgCode then {
           srcCoding.code as srcCode -> trgCode.termid = srcCode as termid,
-          trgCode.iri = append(srcCode.system, termid);
+          trgCode.iri = (%srcCoding.system & '/' & termid);
         } "allergen_code";
       }; 
     };
