@@ -12,23 +12,26 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabResult" alias
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ReferenceRangeOrValue" alias ReferenceRangeOrValue as target
 
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+
 
 group laboratory(source bundle : Bundle, source report : DiagnosticReport, target content: Content) <<types>> {
-    report -> content.LabTestEvent = create('LabTestEvent') as event then {
-        report.id as id -> event.id = ('DiagnosticReport/' & %id);
-        report.encounter as encounter -> event.hasAdministrativeCase = encounter;
-        report.effectiveDateTime as effectiveDateTime -> event.hasDateTime = effectiveDateTime;
+  report -> content.LabTestEvent = create('LabTestEvent') as event then {
+    report.meta as m then refSourceSystem(m, event);
+    report.id as id -> event.id = ('DiagnosticReport/' & %id);
+    report.encounter as encounter -> event.hasAdministrativeCase = encounter;
+    report.effectiveDateTime as effectiveDateTime -> event.hasDateTime = effectiveDateTime;
 
-        // result (Observation [laboratory]) -> hasLabTest
-        report.result as result then {
-          // TODO: Unfortunately, 'resolve()' references does not work!
-          //    result -> evaluate(result, resolve()) as observation -> event.hasLabTest = create('LabTest') as lab then labTest(observation, lab);
-          // Therefore, we have to find the reference by looping over all bundle.entry to find the corresponding Observation
-          bundle.entry as entry where $this.resource.ofType(FHIR.Observation) and $this.resource.category.coding.code = 'laboratory' and result.reference = ('Observation/' & $this.resource.id) then {
-            entry.resource as observation -> event.hasLabTest = create('LabTest') as lab then labTest(observation, lab);
-          };
-        };
-    } "event";
+    // result (Observation [laboratory]) -> hasLabTest
+    report.result as result then {
+      // TODO: Unfortunately, 'resolve()' references does not work!
+      //    result -> evaluate(result, resolve()) as observation -> event.hasLabTest = create('LabTest') as lab then labTest(observation, lab);
+      // Therefore, we have to find the reference by looping over all bundle.entry to find the corresponding Observation
+      bundle.entry as entry where $this.resource.ofType(FHIR.Observation) and $this.resource.category.coding.code = 'laboratory' and result.reference = ('Observation/' & $this.resource.id) then {
+        entry.resource as observation -> event.hasLabTest = create('LabTest') as lab then labTest(observation, lab);
+      };
+    };
+  } "event";
 }
 
 group labTest(source observation : Observation, target lab: LabTest) <<types>> {

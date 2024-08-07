@@ -1,7 +1,16 @@
 
 @host = http://localhost:8080/matchboxv3/fhir
 
-### 1. Compile BundleToLoopSphn.map
+
+### Compile MetaToSourceSystem.map
+POST {{host}}/StructureMap HTTP/1.1
+Accept: application/fhir+json;fhirVersion=4.0
+Content-Type: text/fhir-mapping
+
+< ./maps/MetaSourceToSourceSystem.map
+
+
+### Compile BundleToLoopSphn.map
 POST {{host}}/StructureMap HTTP/1.1
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: text/fhir-mapping
@@ -9,7 +18,7 @@ Content-Type: text/fhir-mapping
 < ./maps/BundleToLoopSphn.map
 
 
-### 2. Compile EncounterToAdministrativeCase.map
+### Compile EncounterToAdministrativeCase.map
 POST {{host}}/StructureMap HTTP/1.1
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: text/fhir-mapping
@@ -17,7 +26,7 @@ Content-Type: text/fhir-mapping
 < ./maps/EncounterToAdministrativeCase.map
 
 
-### 3. Compile ObservationVitalSignToMeasurement.map
+### Compile ObservationVitalSignToMeasurement.map
 POST {{host}}/StructureMap HTTP/1.1
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: text/fhir-mapping
@@ -25,14 +34,23 @@ Content-Type: text/fhir-mapping
 < ./maps/ObservationVitalSignToMeasurement.map
 
 
-### 4. Compile DiagnosticReportToLabTestEvent.map
+### Compile AllergyIntoleranceToAllergy.map
+POST {{host}}/StructureMap HTTP/1.1
+Accept: application/fhir+json;fhirVersion=4.0
+Content-Type: text/fhir-mapping
+
+< ./maps/AllergyIntoleranceToAllergy.map
+
+
+### Compile DiagnosticReportToLabTestEvent.map
 POST {{host}}/StructureMap HTTP/1.1
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: text/fhir-mapping
 
 < ./maps/DiagnosticReportToLabTestEvent.map
 
-### 5. transform sample input
+
+### transform sample input
 POST {{host}}/StructureMap/$transform?source=http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: application/fhir+json;fhirVersion=4.0
@@ -40,7 +58,7 @@ Content-Type: application/fhir+json;fhirVersion=4.0
 < ./testdata/pat.json
 
 
-### Optional update individual SD (already loaded with IG)
+### Optional: Update individual SD (already loaded with IG)
 POST {{host}}/StructureDefinition HTTP/1.1
 Accept: application/fhir+json;fhirVersion=4.0
 Content-Type: application/fhir+json;fhirVersion=4.0
@@ -48,6 +66,14 @@ Content-Type: application/fhir+json;fhirVersion=4.0
 < ./fsh-generated/resources//StructureDefinition-LoopSphn.json
 
 
-### Check installed IGs
+### Optional: Check installed IGs
 GET {{host}}/ImplementationGuide HTTP/1.1
 Accept: application/fhir+json
+
+
+### Optional: Validate
+POST {{host}}/$validate?profile=http://hl7.org/fhir/StructureDefinition/Bundle
+Accept: application/fhir+json;fhirVersion=4.0
+Content-Type: application/fhir+json;fhirVersion=4.0
+
+< ./testdata/pat.json

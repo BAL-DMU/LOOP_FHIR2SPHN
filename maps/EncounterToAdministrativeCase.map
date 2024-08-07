@@ -50,11 +50,18 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias C
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeCase" alias AdministrativeCase as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Location" alias Location as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/CareHandling" alias CareHandling as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Concept" alias Concept as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+
 
 // Encounter -> Content.AdministrativeCase
 group adminCase(source encounter : Encounter, target content: Content) <<types>> {
   encounter -> content.AdministrativeCase = create('AdministrativeCase') as case then {
     encounter.id as id -> case.id = ('Encounter/' & %id);
+    encounter.meta as m then refSourceSystem(m, case);
+    
+    // period -> hasAdmissionDateTime / hasDischargeDateTime
     encounter.period as period then {
       period.start as start -> case.hasAdmissionDateTime = start;
       period.end as end -> case.hasDischargeDateTime = end;
@@ -86,4 +93,3 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
     };
   } "AdministrativeCase";
 }
-  

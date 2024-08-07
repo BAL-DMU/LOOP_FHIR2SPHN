@@ -16,6 +16,7 @@ uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias Diagnostic
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LoopSphn" alias LoopSphn as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataRelease" alias DataRelease as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataProvider" alias DataProvider as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SourceSystem" alias SourceSystem as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SubjectPseudoIdentifier" alias SubjectPseudoIdentifier as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BirthDate" alias BirthDate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DeathDate" alias DeathDate as target
@@ -25,6 +26,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias C
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabTestEvent" alias LabTestEvent as target
 
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministrativeCase"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceToAllergy"
@@ -42,6 +44,10 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
   bundle -> tgt.content = create('Content') as content then {
     bundle.entry as entry then {
+      // Resource.meta.source -> SourceSystem
+      // Conditionally create a SourceSytem for each unique meta.source (url without optional '#...' suffix)
+      entry.resource as resource where (content.SourceSystem.id.supersetOf($this.meta.source.split('#')[0]).not()) then sourceSystem(resource, content);
+
       // Patient -> SubjectPseudoIdentifier, DataProvider, Content.AdministrativeSex, Content.BirthDate
       entry.resource as patient where $this.ofType(FHIR.Patient) then patient(patient, tgt, content);
 
@@ -52,7 +58,7 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
       entry.resource as observation where $this.ofType(FHIR.Observation) and $this.category.coding.code = 'vital-signs' then vitalSign(observation, content);
  
       // AllergyIntolerance -> Content.Allergy
-      entry.resource as allergyIntolerance where $this.ofType(FHIR.AllergyIntolerance) then allergy(allergyIntolerance, content);     
+      entry.resource as allergyIntolerance where $this.ofType(FHIR.AllergyIntolerance) then allergy(allergyIntolerance, content);
 
       // DiagnosticReport + corresponding Observations (laboratory) -> Conent.LabTestEvent
       entry.resource as report where $this.ofType(FHIR.DiagnosticReport) then laboratory(bundle, report, content);
@@ -62,20 +68,25 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
 group patient(source patient : Patient, target tgt : LoopSphn, target content: Content) {
   // gender -> Content.AdministrativeSex
-  patient.gender as gender -> content.AdministrativeSex = create('AdministrativeSex') as sex,
-    sex.id = uuid(),
-    sex.hasCode as code, code.termid = translate(gender, '#cm-administrative-gender', 'code') as termid, code.iri = append('http://snomed.info/id/', termid);
+  patient.gender as gender -> content.AdministrativeSex = create('AdministrativeSex') as sex then {
+    patient.meta as m then refSourceSystem(m, sex);
+    gender -> sex.id = uuid(), sex.hasCode as code,
+      code.termid = translate(gender, '#cm-administrative-gender', 'code') as termid, code.iri = append('http://snomed.info/id/', termid) "code";
+  };
 
   // birthDate -> Content.BirthDate
-  patient.birthDate as birthDate -> content.BirthDate = create('BirthDate') as bd,
-    bd.id = uuid(),
-    // TODO: why can't we use yearOf(), monthOf()?
-    bd.hasYear = evaluate(birthDate, toString().substring(0, 4)),
-    bd.hasMonth = evaluate(birthDate, toString().substring(5, 2)),
-    bd.hasDay = evaluate(birthDate, toString().substring(8, 2));
+  patient.birthDate as birthDate -> content.BirthDate = create('BirthDate') as bd then {
+    patient.meta as m then refSourceSystem(m, bd);
+    birthDate -> bd.id = uuid(),
+      // TODO: why can't we use yearOf(), monthOf()?
+      bd.hasYear = evaluate(birthDate, toString().substring(0, 4)),
+      bd.hasMonth = evaluate(birthDate, toString().substring(5, 2)),
+      bd.hasDay = evaluate(birthDate, toString().substring(8, 2)) "birthdate";
+  };
 
   // deceased[Boolean|DateTime] -> Content.Death / Content.DeathDate
   patient.deceased as deceased where $this = true or $this is DateTime -> content.Death = create('Death') as death then {
+    patient.meta as m then refSourceSystem(m, death);
     deceased -> death.id = uuid() "id";
     // deceasedDateTime -> DeathDate
     deceased where $this is DateTime -> content.DeathDate = create('DeathDate') as deathDate,

@@ -1,0 +1,20 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem" = "MetaSourceToSourceSystem"
+
+uses "http://hl7.org/fhir/StructureDefinition/Resource" alias Resource as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SourceSystem" alias SourceSystem as target
+
+
+// Meta.Source -> SourceSystem
+group sourceSystem(source resource: Resource, target tgt: Content) {
+    resource.meta as meta -> tgt.SourceSystem = create('SourceSystem') as sourcesystem then {
+      meta.source as source -> sourcesystem.id = (source.split('#')[0]);
+    };
+}
+
+// Meta.Source -> reference to SourceSystem
+group refSourceSystem(source meta : Meta, target tgt : Concept) {
+  meta.source as s -> tgt.hasSourceSystem = create('Reference') as ref, ref.id = (s.split('#')[0]);
+}
+

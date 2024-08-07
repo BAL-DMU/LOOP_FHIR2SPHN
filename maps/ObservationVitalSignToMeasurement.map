@@ -14,6 +14,8 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturation
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturation" alias OxygenSaturation as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
 
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+
 
 group vitalSign(source observation : Observation, target content: Content) <<types>> {
   // BodyTemperatureMeasurement
@@ -34,6 +36,7 @@ group vitalSign(source observation : Observation, target content: Content) <<typ
 
 // parent, generic for all vital-signs
 group measurementParent(source observation : Observation, target measurement: Measurement) <<types>> {
+  observation.meta as m then refSourceSystem(m, measurement);
   observation.id as id  -> measurement.id = ('Observation/' & %id);
   observation.encounter as encounter -> measurement.hasAdministrativeCase = encounter;
   observation.effectiveDateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;

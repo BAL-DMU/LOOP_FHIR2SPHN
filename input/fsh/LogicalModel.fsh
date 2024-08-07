@@ -34,6 +34,10 @@ Title: "SPHN SubjectPseudoIdentifier"
 Characteristics: #can-be-target
 * hasIdentifier 1..1 SU string "" ""
 
+Logical: SourceSystem
+Parent: Concept
+Title: "SPHN Source System"
+Characteristics: #can-be-target
 
 Logical: LoopSphn
 Parent: Base
@@ -60,6 +64,7 @@ Title: "List of SPHN concepts"
 * OxygenSaturationMeasurement 0..* SU OxygenSaturationMeasurement "" ""
 * Allergy 0..* SU Allergy "" ""
 * LabTestEvent 0..* SU LabTestEvent "" ""
+* SourceSystem 0..* SU SourceSystem "" ""
 
 Logical: Location
 Parent: Concept
@@ -75,6 +80,7 @@ Title: "SPHN Care Handling"
 Logical: BirthDate
 Parent: Concept
 Title: "SPHN Birth Date"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasYear 1..1 SU string "" ""
 * hasMonth 0..1 SU string "" ""
 * hasDay 0..1 SU string "" ""
@@ -91,6 +97,7 @@ Characteristics: #can-be-target
 Logical: Death
 Parent: Concept
 Title: "SPHN Death"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
 * hasReportDateTime 0..1 SU dateTime "" ""
 * hasDate 0..1 SU Reference(DeathDate) "" ""
@@ -100,6 +107,7 @@ Title: "SPHN Death"
 Logical: AdministrativeSex
 Parent: Concept
 Title: "SPHN Administrative Sex"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasCode 1..1 SU Code "" ""
 * hasRecordDateTime 1..1 SU dateTime "" ""
 
@@ -107,7 +115,7 @@ Logical: AdministrativeCase
 Parent: Concept
 Title: "SPHN Administrative Case"
 Characteristics: #can-be-target
-* Identifier 1..1 SU string "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasCareHandling 0..1 SU CareHandling "" ""
 * hasAdmissionDateTime 1..1 SU dateTime "" ""
 * hasDischargeDateTime 0..1 SU dateTime "" ""
@@ -118,6 +126,7 @@ Logical: Measurement
 Parent: Concept
 Title: "SPHN Measurement"
 * ^abstract = true
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
 * hasResult 1..* SU Result "" ""
 * hasStartDateTime 1..1 SU dateTime "" ""
@@ -219,6 +228,7 @@ Title: "SPHN Allergen"
 Logical: Allergy
 Parent: Concept
 Title: "SPHN Allergy"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasFirstRecordDatetime 0..1 SU dateTime "" ""
 * hasAllergen 0..1 SU Allergen "" ""
 
@@ -258,6 +268,7 @@ Title: "SPHN Lab Test"
 Logical: LabTestEvent
 Parent: Concept
 Title: "SPHN Lab Test Event"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
 * hasReportDateTime 0..1 SU dateTime "" ""
 * hasDateTime 0..1 SU dateTime "" ""
