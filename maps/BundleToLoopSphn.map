@@ -24,12 +24,12 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Death" alias Dea
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeSex" alias AdministrativeSex as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabTestEvent" alias LabTestEvent as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministrativeCase"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceToAllergy"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToProblemCondition"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/DiagnosticReportToLabTestEvent"
 
 
@@ -62,6 +62,9 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // DiagnosticReport + corresponding Observations (laboratory) -> Conent.LabTestEvent
       entry.resource as report where $this.ofType(FHIR.DiagnosticReport) then laboratory(bundle, report, content);
+
+      // Condition (problem-list-item) -> Content.ProblemCondition
+      entry.resource as condition where $this.ofType(FHIR.Condition) and $this.category.coding.code = 'problem-list-item' then problemCondition(condition, content);
     };
   } "Content";
 }

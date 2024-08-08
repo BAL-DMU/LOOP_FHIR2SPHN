@@ -1,0 +1,30 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToProblemCondition" = "ConditionToProblemCondition"
+
+uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ProblemCondition" alias ProblemCondition as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+
+
+group problemCondition(source condition : Condition, target content: Content) <<types>> {
+  condition -> content.ProblemCondition = create('ProblemCondition') as problem then {
+    condition.meta as m then refSourceSystem(m, problem);
+    condition.id as id -> event.id = ('Condition/' & %id);
+    condition.encounter as encounter -> problem.hasAdministrativeCase = encounter;
+    condition.recordedDate as recordedDate -> problem.hasRecordDateTime = recordedDate;
+
+    // code -> hasCode
+    condition.code as code then {
+      code.coding as coding where $this.system = 'http://hl7.org/fhir/sid/icd-10'-> problem.hasCode as tgtCode then {
+        coding.code as c -> tgtCode.termid = c, tgtCode.iri = append('https://biomedit.ch/rdf/sphn-resource/icd-10-gm/', c);
+      };
+    };
+
+    // note.text -> hasStringValue
+    condition.note as note then {
+      note.text first as text -> problem.hasStringValue = text;
+    };
+  } "problemCondition";
+}

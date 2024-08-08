@@ -64,6 +64,7 @@ Title: "List of SPHN concepts"
 * OxygenSaturationMeasurement 0..* SU OxygenSaturationMeasurement "" ""
 * Allergy 0..* SU Allergy "" ""
 * LabTestEvent 0..* SU LabTestEvent "" ""
+* ProblemCondition 0..* SU ProblemCondition "" ""
 * SourceSystem 0..* SU SourceSystem "" ""
 
 Logical: Location
@@ -273,3 +274,13 @@ Title: "SPHN Lab Test Event"
 * hasReportDateTime 0..1 SU dateTime "" ""
 * hasDateTime 0..1 SU dateTime "" ""
 * hasLabTest 1..* SU LabTest "" ""
+
+Logical: ProblemCondition
+Parent: Concept
+Title: "SPHN Problem Condition"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasStringValue 0..1 SU string "" ""
+* hasCode 0..1 SU Code "" ""
+* hasOnsetDateTime 0..1 SU dateTime "" ""
+* hasRecordDateTime 0..1 SU dateTime "" ""

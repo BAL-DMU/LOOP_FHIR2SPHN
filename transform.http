@@ -42,6 +42,14 @@ Content-Type: text/fhir-mapping
 < ./maps/AllergyIntoleranceToAllergy.map
 
 
+### Compile ConditionToProblemCondition.map
+POST {{host}}/StructureMap HTTP/1.1
+Accept: application/fhir+json;fhirVersion=4.0
+Content-Type: text/fhir-mapping
+
+< ./maps/ConditionToProblemCondition.map
+
+
 ### Compile DiagnosticReportToLabTestEvent.map
 POST {{host}}/StructureMap HTTP/1.1
 Accept: application/fhir+json;fhirVersion=4.0
