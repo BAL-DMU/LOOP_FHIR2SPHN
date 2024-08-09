@@ -69,26 +69,25 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
 
     // class -> CareHandling
     encounter.class as class -> case.hasCareHandling = create('CareHandling') as care then {
-      class -> care.id = uuid(), care.hasTypeCode as typeCode then {
-        class.code as code ->  typeCode.termid = translate(code, '#cm-encounter-class', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid);
-      } "class";
+      class.code as code -> care.id = uuid(), translate(code, '#cm-encounter-class') as cm,
+        care.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "class";
     };
 
     encounter.hospitalization as hospitalization then {
       // adminSource -> hasOriginLocation
       hospitalization.admitSource as admitSource then {
         admitSource.coding first as coding -> case.hasOriginLocation = create('Location') as location then {
-          coding -> location.id = uuid(), location.hasTypeCode as typeCode then {
-            coding.code as code -> typeCode.termid = translate(code, '#cm-encounter-admitSource', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid);
-          } "adminSource_code";
+          coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-admitSource') as cm,
+            location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "adminSource_code";
         };
       };
 
       // extension [dischargedestination] -> hasDischargeLocation
       hospitalization.extension as ext where $this.url = 'http://fhir.ch/ig/ch-core/StructureDefinition/ch-ext-bfs-ms-dischargedestination' -> case.hasDischargeLocation = create('Location') as location then {
-        ext.valueCoding as coding -> location.id = uuid(), location.hasTypeCode as typeCode then {
-          coding.code as code -> typeCode.termid = translate(code, '#cm-encounter-dischargedestination', 'code') as termid, typeCode.iri = append('http://snomed.info/id/', termid);
-        } "dischargedestination";
+        ext.valueCoding as coding then {
+          coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-dischargedestination') as cm,
+            location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "dischargedestination";
+        };
       };
     };
   } "AdministrativeCase";

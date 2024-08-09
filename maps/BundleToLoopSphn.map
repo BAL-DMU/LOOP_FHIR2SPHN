@@ -73,8 +73,8 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
   // gender -> Content.AdministrativeSex
   patient.gender as gender -> content.AdministrativeSex = create('AdministrativeSex') as sex then {
     patient.meta as m then refSourceSystem(m, sex);
-    gender -> sex.id = uuid(), sex.hasCode as code,
-      code.termid = translate(gender, '#cm-administrative-gender', 'code') as termid, code.iri = append('http://snomed.info/id/', termid) "code";
+    gender -> sex.id = uuid(), translate(gender, '#cm-administrative-gender') as cm,
+      sex.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "code";
   };
 
   // birthDate -> Content.BirthDate
