@@ -15,6 +15,6 @@ group sourceSystem(source resource: Resource, target tgt: Content) {
 
 // Meta.Source -> reference to SourceSystem
 group refSourceSystem(source meta : Meta, target tgt : Concept) {
-  meta.source as s -> tgt.hasSourceSystem = create('Reference') as ref, ref.id = (s.split('#')[0]);
+  meta.source as s -> tgt.hasSourceSystem = create('Reference') as ref, ref.reference = (s.split('#')[0]);
 }
 

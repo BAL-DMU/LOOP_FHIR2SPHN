@@ -64,6 +64,13 @@ java -jar validator_cli.jar testdata/pat.json \
     -output temp/result.json
 ```
 
+## Validate the result
+Validate the resulting  ```temp/result.json``` against the LogicalModel:
+```bash
+java -jar validator_cli.jar temp/result.json \
+    -version 4.0 -ig ./fsh-generated/resources
+```
+
 # Running transformations using Matchbox
 ## Run local matchbox server:
 ```bash

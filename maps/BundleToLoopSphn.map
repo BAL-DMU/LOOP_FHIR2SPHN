@@ -93,8 +93,8 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
     deceased -> death.id = uuid() "id";
     // deceasedDateTime -> DeathDate
     deceased where $this is DateTime -> content.DeathDate = create('DeathDate') as deathDate,
-      deathDate.id = uuid(),
-      death.hasDate = deathDate,
+      deathDate.id = uuid() as duuid,
+      death.hasDate = create('Reference') as ref, ref.reference = duuid,
       deathDate.hasYear = evaluate(deceased, toString().substring(0, 4)),
       deathDate.hasMonth = evaluate(deceased, toString().substring(5, 2)),
       deathDate.hasDay = evaluate(deceased, toString().substring(8, 2)) "deathDate";
@@ -104,7 +104,7 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
   patient.contained as organization where $this.ofType(FHIR.Organization)  -> tgt.DataProvider = create('DataProvider') as provider then {
     organization.id as id -> provider.id = id;
     organization -> provider.hasInstitutionCode as code then {
-      organization.id as id -> code.id = id, code.hasCodingSystemAndVersion = "UID";
+      organization.id as id -> code.id = uuid(), code.hasCodingSystemAndVersion = "UID";
       organization.identifier as identifier -> code.hasIdentifier = (%identifier.value);
       organization.name as name -> code.hasName = name;
     } "hasInstitutionCode";
