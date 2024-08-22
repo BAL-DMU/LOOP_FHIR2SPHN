@@ -71,7 +71,7 @@ Logical: Location
 Parent: Concept
 Title: "SPHN Location"
 * hasTypeCode 1..1 SU Code "" ""
-* hasExact 1..1 SU string "" ""
+* hasExact 0..1 SU string "" ""
 
 Logical: CareHandling
 Parent: Concept
@@ -110,7 +110,7 @@ Parent: Concept
 Title: "SPHN Administrative Sex"
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasCode 1..1 SU Code "" ""
-* hasRecordDateTime 1..1 SU dateTime "" ""
+* hasRecordDateTime 0..1 SU dateTime "" ""
 
 Logical: AdministrativeCase
 Parent: Concept
@@ -160,7 +160,7 @@ Logical: BodySite
 Parent: Concept
 Title: "SPHN Body Site"
 * hasCode 1..1 SU Code "" ""
-* hasLaterality 1..1 SU Laterality "" ""
+* hasLaterality 0..1 SU Laterality "" ""
 
 Logical: BodyTemperature
 Parent: Result
@@ -236,7 +236,7 @@ Title: "SPHN Allergy"
 Invariant: reference-range-or-value
 Description: "Either ReferenceValue (hasQuantity) or ReferengeRange (hasLowerLimit, hasUpperLimit) but not both."
 Severity: #error
-Expression: "(hasQuantity.exists() and hasLowerLimit.exists().not() and hasUpperLimit.exists().not()) or ((hasLowerLimit.exists() or hasUpperLimit.exists) and hasQuantity.exists().not())"
+Expression: "hasQuantity.exists() xor (hasLowerLimit.exists() or hasUpperLimit.exists())"
 
 // Note: Combined ReferenceRange and ReferenceValue
 // Cannot use choice for two reasons:
