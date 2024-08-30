@@ -9,15 +9,25 @@ conceptmap "cm-administrative-gender" {
   s:other == t:32570681000036106
 }
 
+conceptmap "cm-consent-policy" {
+  prefix s = "http://hl7.org/fhir/ValueSet/consent-policy"
+  prefix t = "http://snomed.info/id"
+  
+  s:OPTIN == t:385645004
+  s:OPTOUT == t:443390004
+}
+
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
 uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as source
 uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias DiagnosticReport as source
+uses "http://hl7.org/fhir/StructureDefinition/Consent" alias Consent as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LoopSphn" alias LoopSphn as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataRelease" alias DataRelease as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataProvider" alias DataProvider as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SourceSystem" alias SourceSystem as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SubjectPseudoIdentifier" alias SubjectPseudoIdentifier as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Consent" alias Consent as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BirthDate" alias BirthDate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DeathDate" alias DeathDate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Death" alias Death as target
@@ -50,6 +60,9 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // Patient -> SubjectPseudoIdentifier, DataProvider, Content.AdministrativeSex, Content.BirthDate
       entry.resource as patient where $this.ofType(FHIR.Patient) then patient(patient, tgt, content);
+
+      // Consent -> Content.Consent
+      entry.resource as consent where $this.ofType(FHIR.Consent) then consent(consent, content);
 
       // Encounter -> Content.AdministrativeCase
       entry.resource as encounter where $this.ofType(FHIR.Encounter) then adminCase(encounter, content);
@@ -115,4 +128,27 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
     patient.id as id ->  subject.id = ('Patient/' & %id);
     patient.identifier as identifier -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
   } "SubjectPseudoIdentifier";
+}
+
+group consent(source consent : Consent, target content: Content) {
+  consent -> content.Consent = create('Consent') as tgt then {
+    consent.meta as m then refSourceSystem(m, tgt);
+    consent.id as id -> tgt.id = id;
+    consent.dateTime as date -> tgt.hasDateTime = date;
+
+    // policyRule -> hasStatusCode
+    consent.policyRule as policy then {
+      policy.coding as coding then {
+        coding.code as c -> translate(c, '#cm-consent-policy') as cm,
+          tgt.hasStatusCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "code";
+      };
+    };
+
+    // category -> hasTypeCode
+    consent.category as category then {
+      category.coding as coding where $this.system = 'http://snomed.info/sct' -> tgt.hasTypeCode as typeCode then {
+        coding.code as c -> typeCode.termid = c, typeCode.iri = append('http://snomed.info/id/', c);
+      };
+    };
+  } "consent";
 }

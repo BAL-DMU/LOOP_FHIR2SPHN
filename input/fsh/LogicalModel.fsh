@@ -39,6 +39,14 @@ Parent: Concept
 Title: "SPHN Source System"
 Characteristics: #can-be-target
 
+Logical: Consent
+Parent: Concept
+Title: "SPHN Consent"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasTypeCode 1..1 SU Code "" ""
+* hasStatusCode 0..1 SU Code "" ""
+* hasDateTime 1..1 SU dateTime "" ""
+
 Logical: LoopSphn
 Parent: Base
 Title: "LOOP SPHN"
@@ -66,6 +74,7 @@ Title: "List of SPHN concepts"
 * LabTestEvent 0..* SU LabTestEvent "" ""
 * ProblemCondition 0..* SU ProblemCondition "" ""
 * SourceSystem 0..* SU SourceSystem "" ""
+* Consent 0..* SU Consent "" ""
 
 Logical: Location
 Parent: Concept
