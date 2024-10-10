@@ -69,6 +69,7 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
 
     // class -> CareHandling
     encounter.class as class -> case.hasCareHandling = create('CareHandling') as care then {
+      encounter.meta as m then refSourceSystem(m, care);
       class.code as code -> care.id = uuid(), translate(code, '#cm-encounter-class') as cm,
         care.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "class";
     };
