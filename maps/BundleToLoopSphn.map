@@ -48,7 +48,7 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
   bundle -> tgt.DataRelease = create('DataRelease') as dataRelease then {
     bundle.id as id -> dataRelease.id = id;
     bundle.meta as meta then {
-      meta.lastUpdated as lastUpdated -> dataRelease.creationTime = lastUpdated;
+      meta.lastUpdated as lastUpdated -> dataRelease.hasExtractionDatetime = lastUpdated;
     };
   } "DataRelease";
 
