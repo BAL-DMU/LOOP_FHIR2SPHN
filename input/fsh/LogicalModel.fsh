@@ -85,6 +85,7 @@ Title: "SPHN Location"
 Logical: CareHandling
 Parent: Concept
 Title: "SPHN Care Handling"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasTypeCode 1..1 SU Code "" ""
 
 Logical: BirthDate
