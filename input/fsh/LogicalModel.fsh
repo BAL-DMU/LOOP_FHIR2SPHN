@@ -21,7 +21,7 @@ Title: "SPHN Concept"
 Logical: DataRelease
 Parent: Concept
 Title: "SPHN Data Release"
-* hasExtractionDatetime 1..1 SU dateTime "" ""
+* hasExtractionDateTime 1..1 SU dateTime "" ""
 
 Logical: DataProvider
 Parent: Concept
