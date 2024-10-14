@@ -96,8 +96,8 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
     birthDate -> bd.id = uuid(),
       // TODO: why can't we use yearOf(), monthOf()?
       bd.hasYear = evaluate(birthDate, toString().substring(0, 4)),
-      bd.hasMonth = evaluate(birthDate, toString().substring(5, 2)),
-      bd.hasDay = evaluate(birthDate, toString().substring(8, 2)) "birthdate";
+      bd.hasMonth = evaluate(birthDate, '--' & toString().substring(5, 2)),
+      bd.hasDay = evaluate(birthDate, '---' & toString().substring(8, 2)) "birthdate";
   };
 
   // deceased[Boolean|DateTime] -> Content.Death / Content.DeathDate
