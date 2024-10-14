@@ -105,8 +105,8 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
     patient.meta as m then refSourceSystem(m, death);
     deceased -> death.id = uuid() "id";
     // deceasedDateTime -> DeathDate
-    deceased where $this is DateTime -> content.DeathDate = create('DeathDate') as deathDate then {
-      patient.meta as m then refSourceSystem(m, deathDate);
+    deceased where $this is DateTime -> content.DeathDate = create('DeathDate') as deathDate,
+      //patient.meta as m then refSourceSystem(m, deathDate);
       deathDate.id = uuid() as duuid,
       death.hasDate = create('Reference') as ref, ref.reference = duuid,
       deathDate.hasYear = evaluate(deceased, toString().substring(0, 4)),
@@ -114,7 +114,7 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
       deathDate.hasDay = evaluate(deceased, '---' & toString().substring(8, 2)) "deathDate";
 //      
       //
-    }
+    
   };
 
   // managingOrganization (contained) -> DataProvider
