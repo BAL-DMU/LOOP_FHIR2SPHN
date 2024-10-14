@@ -104,6 +104,7 @@ Characteristics: #can-be-target
 * hasMonth 0..1 SU string "" ""
 * hasDay 0..1 SU string "" ""
 * hasTime 0..1 SU time "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 
 Logical: Death
 Parent: Concept
