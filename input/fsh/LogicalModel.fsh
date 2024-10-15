@@ -295,3 +295,52 @@ Title: "SPHN Problem Condition"
 * hasCode 0..1 SU Code "" ""
 * hasOnsetDateTime 0..1 SU dateTime "" ""
 * hasRecordDateTime 0..1 SU dateTime "" ""
+
+Logical: Substance
+Parent: Concept
+Title: "SPHN Substance"
+* hasGenericName 0..1 SU string "" ""
+* hasCode 0..1 SU Code "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+
+Logical: PharmaceuticalDoseForm
+Parent: Concept
+Title: "SPHN Pharmaceutical Dose Form"
+* hasCode 1..1 SU Code "" ""
+
+Logical: DrugArticle
+Parent: Concept
+Title: "SPHN Drug Article"
+* hasManufacturedDoseForm 0..1 SU PharmaceuticalDoseForm "" ""
+* hasCode 0..1 SU Code "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasName 0..1 SU string "" ""
+
+Logical: Drug
+Parent: Concept
+Title: "SPHN Drug"
+* hasActiveIngredient 0..* SU Substance "" ""
+* hasArticle 0..1 SU DrugArticle "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+* hasInactiveIngredient 0..* SU Substance "" ""
+
+Logical: TimePattern
+Parent: Concept
+Title: "SPHN Time Pattern"
+* hasTypeCode 1..1 SU Code "" ""
+
+Logical: DrugAdministrationEvent
+Parent: Concept
+Title: "SPHN Drug Administration Event"
+* SubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
+* hasAdministrationRouteCode 0..1 SU Code "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasDuration 0..1 SU dateTime "" ""
+* hasDrug 1..1 SU Drug "" ""
+* hasTimePattern 0..1 SU TimePattern "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasReasonToStopCode 0..1 SU Code "" ""
