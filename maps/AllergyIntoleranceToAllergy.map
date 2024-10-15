@@ -17,10 +17,10 @@ group allergy(source allergyIntolerance : AllergyIntolerance, target content : C
 
     // AllergyIntolerance Code -> Allergy.Allergen
     allergyIntolerance.code as allergyCodeRoot then {
-      allergyCodeRoot.coding first as srcCoding -> allergy.hasAllergen = create('Allergen') as allergen then {
+      allergyCodeRoot.coding first as srcCoding where $this.system = 'http://snomed.info/sct' -> allergy.hasAllergen = create('Allergen') as allergen then {
         srcCoding -> allergen.id = uuid(), allergen.hasCode as trgCode then {
           srcCoding.code as srcCode -> trgCode.termid = srcCode as termid,
-          trgCode.iri = (%srcCoding.system & '/' & termid);
+          trgCode.iri = append('http://snomed.info/id/', termid);
         } "allergen_code";
       }; 
     };
