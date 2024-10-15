@@ -11,7 +11,7 @@ imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSy
 group problemCondition(source condition : Condition, target content: Content) <<types>> {
   condition -> content.ProblemCondition = create('ProblemCondition') as problem then {
     condition.meta as m then refSourceSystem(m, problem);
-    condition.id as id -> event.id = ('Condition/' & %id);
+    condition.id as id -> problem.id = ('Condition/' & %id);
     condition.encounter as encounter -> problem.hasAdministrativeCase = encounter;
     condition.recordedDate as recordedDate -> problem.hasRecordDateTime = recordedDate;
 
