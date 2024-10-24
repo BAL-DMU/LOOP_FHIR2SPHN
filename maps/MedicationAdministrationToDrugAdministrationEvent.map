@@ -1,3 +1,6 @@
+// Does not manage
+// - hasTimePattern
+// - hasReasonToStopCode
 map "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministrationToDrugAdministrationEvent" = "MedicationAdministrationToDrugAdministrationEvent"
 
 // Source definitions
@@ -37,6 +40,8 @@ group medication_administration(source medicationAdministration : MedicationAdmi
 
             medication.ingredient as ingredient where $this.isActive = true then {
                 ingredient -> drug.hasActiveIngredient = create('Substance') as substance then {
+                    medicationAdministration.meta as m then refSourceSystem(m, substance);
+                    ingredient -> substance.id = uuid() "substance_id";
 
                     // Medication/ingredient/coding -> Drug/hasActiveIngredient/code
                     ingredient.itemCodeableConcept as code then {
@@ -44,6 +49,10 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                             coding.code as c -> substanceCode.termid = c as termid,
                             substanceCode.iri = append("http://www.cas.org/", termid);
                         };
+
+                    // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
+                    code.text as text -> substance.hasGenericName = text;
+
                     };
 
                     // Medication/ingredient/strength/numerator -> Drug/hasActiveIngredient/hasQuantity
@@ -52,6 +61,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                             value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
                         } "valueQuantity";
                     };
+
 
                 } "Substance";
             };
