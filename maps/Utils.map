@@ -1,0 +1,13 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils" = "Utils"
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
+
+
+group unit(source vq : Quantity, target unit: Unit) {
+  vq -> unit.id = uuid(), unit.hasCode as code then {
+    vq.code as c -> code.termid = c;
+    vq.system as s -> code.iri = s;
+  } "code";
+}
