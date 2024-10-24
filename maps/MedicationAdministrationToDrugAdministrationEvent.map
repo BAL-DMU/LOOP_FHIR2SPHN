@@ -50,9 +50,8 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                             substanceCode.iri = append("http://www.cas.org/", termid);
                         };
 
-                    // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
-                    code.text as text -> substance.hasGenericName = text;
-
+                        // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
+                        code.text as text -> substance.hasGenericName = text;
                     };
 
                     // Medication/ingredient/strength/numerator -> Drug/hasActiveIngredient/hasQuantity
@@ -61,8 +60,6 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                             value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
                         } "valueQuantity";
                     };
-
-
                 } "Substance";
             };
 
@@ -105,9 +102,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                         } "doseForm_code";
                     } "doseForm";
                 };
-
             };
-            //
         };
     } "DrugAdministrationEvent";
   }
