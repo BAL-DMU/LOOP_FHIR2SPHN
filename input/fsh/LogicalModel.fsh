@@ -75,6 +75,7 @@ Title: "List of SPHN concepts"
 * ProblemCondition 0..* SU ProblemCondition "" ""
 * SourceSystem 0..* SU SourceSystem "" ""
 * Consent 0..* SU Consent "" ""
+* DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
 
 Logical: Location
 Parent: Concept
