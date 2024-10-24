@@ -11,6 +11,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Substance" alias
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugArticle" alias DrugArticle as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
@@ -51,7 +52,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                             value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
                         } "valueQuantity";
                     };
-                    
+
                 } "Substance";
             };
 
@@ -70,7 +71,36 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                 } "valueQuantity";
 
             };
+
+            medication.code as code  -> drug.hasArticle = create('DrugArticle') as article then {
+                medicationAdministration.meta as m then refSourceSystem(m, article);
+                code -> article.id = uuid() "article_id";
+            
+                // Medication/code//coding -> Drug/hasArticle/hasCode
+                code.coding as coding where $this.system = 'https://wwww.gs1.org/standards/id-keys/gtin' -> article.hasCode as articleCode then {
+                    coding.code as c -> articleCode.termid = c as termid,
+                    articleCode.iri = append('https://wwww.gs1.org/standards/id-keys/gtin/', termid);
+                };
+
+                //  Medication/code/text -> Drug/hasArticle/hasName
+                code.text as text -> article.hasName = text;
+
+                // Medication/form -> Drug/hasArticle/hasManufacturedDoseForm
+                medication.form as form then {
+                    form.coding first as coding where $this.system = 'http://snomed.info/sct' -> article.hasManufacturedDoseForm = create('PharmaceuticalDoseForm') as doseForm then {
+                        coding -> doseForm.id = uuid(),// "doseForm_id"
+                        doseForm.hasCode as DoseFormCode then {
+                            coding.code as c -> DoseFormCode.termid = c as termid,
+                            DoseFormCode.iri = append('http://snomed.info/id/', termid);
+                        } "doseForm_code";
+                    } "doseForm";
+                };
+
+            };
+            //
         };
     } "DrugAdministrationEvent";
   }
 
+
+        
