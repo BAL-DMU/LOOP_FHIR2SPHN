@@ -30,8 +30,21 @@ group medication_administration(source medicationAdministration : MedicationAdmi
 
         // Medication -> Drug
         medicationAdministration.contained as medication where $this.ofType(FHIR.Medication) -> event.hasDrug = create('Drug') as drug then {
-        medicationAdministration.meta as m then refSourceSystem(m, drug);
-        medication.id as id -> drug.id = ('Medication/' & %id);
+            medicationAdministration.meta as m then refSourceSystem(m, drug);
+            medication.id as id -> drug.id = ('Medication/' & %id);
+
+
+            // medication.ingredient as ingredient where $this.isActive = true then {
+            //     ingredient -> drug.hasActiveIngredient = create('Substance') as substance then {
+            //         // Map ingredient code
+            //         ingredient.itemCodeableConcept as code then {
+            //             code.coding first as coding -> substance.hasCode as substanceCode then {
+            //                 coding.code as c -> substanceCode.termid = c as termid;
+            //                 coding.system as s -> substanceCode.iri = append(s, "/", termid);
+            //             };
+            //         };
+            //     };
+            // };
 
             medicationAdministration.dosage as dosage then {
                 // Dosage/route -> DrugAdministrationEvent/hasAdministrationRouteCode
@@ -45,11 +58,10 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                 // Dosage/dose -> DrugAdministrationEvent/Drug/hasQuantity
                 dosage.dose as value -> drug.hasQuantity as quantity then {
                     value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
-                  } "valueQuantity";
+                } "valueQuantity";
 
             };
         };
     } "DrugAdministrationEvent";
   }
-
 
