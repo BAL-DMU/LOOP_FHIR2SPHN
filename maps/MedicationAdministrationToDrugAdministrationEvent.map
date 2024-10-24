@@ -1,0 +1,55 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministrationToDrugAdministrationEvent" = "MedicationAdministrationToDrugAdministrationEvent"
+
+// Source definitions
+uses "http://hl7.org/fhir/StructureDefinition/MedicationAdministration" alias MedicationAdministration as source
+
+// Target definitions (SPHN)
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugAdministrationEvent" alias DrugAdministrationEvent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Drug" alias Drug as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Substance" alias Substance as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+group medication_administration(source medicationAdministration : MedicationAdministration, target content: Content)  <<types>> {
+    medicationAdministration -> content.DrugAdministrationEvent = create('DrugAdministrationEvent') as event then {
+        medicationAdministration.meta as m then refSourceSystem(m, event);
+        medicationAdministration.id as id -> event.id = ('MedicationAdministration/' & %id);
+        medicationAdministration.context as context -> event.hasAdministrativeCase = context;
+
+        // Start/end dates
+        medicationAdministration.effectiveDateTime as dateTime -> event.hasStartDateTime = dateTime;
+        medicationAdministration.effectivePeriod as period then {
+            period.start as start -> event.hasStartDateTime = start;
+            period.end as end -> event.hasEndDateTime = end;
+        };
+
+        // Medication -> Drug
+        medicationAdministration.contained as medication where $this.ofType(FHIR.Medication) -> event.hasDrug = create('Drug') as drug then {
+        medicationAdministration.meta as m then refSourceSystem(m, drug);
+        medication.id as id -> drug.id = ('Medication/' & %id);
+
+            medicationAdministration.dosage as dosage then {
+                // Dosage/route -> DrugAdministrationEvent/hasAdministrationRouteCode
+                dosage.route as route then {
+                    route.coding first as coding where $this.system = 'http://snomed.info/sct'-> event.hasAdministrationRouteCode as routeCode then {
+                        coding.code as code -> routeCode.termid = code as termid,
+                        routeCode.iri = append('http://snomed.info/id/', termid);
+                    };
+                };
+
+                // Dosage/dose -> DrugAdministrationEvent/Drug/hasQuantity
+                dosage.dose as value -> drug.hasQuantity as quantity then {
+                    value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
+                  } "valueQuantity";
+
+            };
+        };
+    } "DrugAdministrationEvent";
+  }
+
+
