@@ -4,6 +4,7 @@ Title: "SPHN Code Type"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
 * iri 1..1 SU uri "" ""
 * termid 1..1 SU string "" ""
+* hasName 0..1 SU string "" ""
 
 Logical: CodeUID
 Parent: Concept
