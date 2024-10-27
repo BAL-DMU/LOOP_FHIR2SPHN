@@ -4,11 +4,10 @@ Title: "SPHN Code Type"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
 * iri 1..1 SU uri "" ""
 * termid 1..1 SU string "" ""
-* hasName 0..1 SU string "" ""
 
-Logical: CodeUID
+Logical: CodeSystem
 Parent: Concept
-Title: "SPHN Code Type (for UID)"
+Title: "SPHN Code Type (for non-sphn systems)"
 * hasCodingSystemAndVersion 1..1 SU string "" ""
 * hasIdentifier 1..1 SU uri "" ""
 * hasName 0..1 SU string "" ""
@@ -27,7 +26,7 @@ Title: "SPHN Data Release"
 Logical: DataProvider
 Parent: Concept
 Title: "SPHN Data Provider"
-* hasInstitutionCode 1..1 SU CodeUID "" ""
+* hasInstitutionCode 1..1 SU CodeSystem "" ""
 
 Logical: SubjectPseudoIdentifier
 Parent: Concept
@@ -309,7 +308,7 @@ Title: "SPHN Substance"
 Logical: PharmaceuticalDoseForm
 Parent: Concept
 Title: "SPHN Pharmaceutical Dose Form"
-* hasCode 1..1 SU Code "" ""
+* hasCode 1..1 SU CodeSystem "" ""
 
 Logical: DrugArticle
 Parent: Concept
