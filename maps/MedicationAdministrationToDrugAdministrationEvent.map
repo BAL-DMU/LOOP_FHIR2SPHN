@@ -35,7 +35,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
         // Medication -> Drug
         medicationAdministration.contained as medication where $this.ofType(FHIR.Medication) -> event.hasDrug = create('Drug') as drug then {
             medicationAdministration.meta as m then refSourceSystem(m, drug);
-            medication.id as id -> drug.id = ('Medication/' & %id);
+            medication.id as id -> drug.id = uuid();
 
 
             medication.ingredient as ingredient where $this.isActive = true then {
@@ -46,8 +46,8 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                     // Medication/ingredient/coding -> Drug/hasActiveIngredient/code
                     ingredient.itemCodeableConcept as code then {
                         code.coding first as coding where $this.system = "http://www.cas.org" -> substance.hasCode as substanceCode then {
-                            coding.code as c -> substanceCode.termid = c as termid,
-                            substanceCode.iri = append("http://www.cas.org/", termid);
+                            coding.code as c -> substanceCode.hasIdentifier = c;
+                            coding.system as s -> substanceCode.hasCodingSystemAndVersion = s;
                         };
 
                         // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
@@ -94,11 +94,12 @@ group medication_administration(source medicationAdministration : MedicationAdmi
 
                 // Medication/form -> Drug/hasArticle/hasManufacturedDoseForm
                 medication.form as form then {
-                    form.coding first as coding where $this.system = 'http://snomed.info/sct' -> article.hasManufacturedDoseForm = create('PharmaceuticalDoseForm') as doseForm then {
-                        coding -> doseForm.id = uuid(),// "doseForm_id"
+                    form.coding first as coding -> article.hasManufacturedDoseForm = create('PharmaceuticalDoseForm') as doseForm then {
+                        coding -> doseForm.id = uuid(),
                         doseForm.hasCode as DoseFormCode then {
-                            coding.code as c -> DoseFormCode.termid = c as termid,
-                            DoseFormCode.iri = append('http://snomed.info/id/', termid);
+                            coding.code as c -> DoseFormCode.id = uuid(), DoseFormCode.hasIdentifier = c;
+                            coding.system as s ->  DoseFormCode.hasCodingSystemAndVersion = s;
+                            coding.display as d -> DoseFormCode.hasName = d;
                         } "doseForm_code";
                     } "doseForm";
                 };
