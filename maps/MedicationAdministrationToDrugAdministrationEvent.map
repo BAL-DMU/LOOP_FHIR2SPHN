@@ -16,7 +16,6 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugArticle" alias DrugArticle as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 group medication_administration(source medicationAdministration : MedicationAdministration, target content: Content)  <<types>> {
