@@ -12,9 +12,8 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRateMeasure
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRate" alias HeartRate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturationMeasurement" alias OxygenSaturationMeasurement as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturation" alias OxygenSaturation as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 
 group vitalSign(source observation : Observation, target content: Content) <<types>> {
@@ -51,12 +50,7 @@ group measurementParent(source observation : Observation, target measurement: Me
   // valueQuantity -> hasResult (only for bodyTemperature, bodyWeight, oxygenSaturation, heartrate)
   observation.value as vq -> measurement.hasResult as result then {
     vq -> result.id = uuid(), result.hasQuantity as quantity then {
-      vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then {
-        vq -> unit.id = uuid(), unit.hasCode as code then {
-          vq.code as c -> code.termid = c;
-          vq.system as s -> code.iri = s;
-        } "code";
-      } "unit";
+      vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
     } "quantity";
 
     // interpretation -> hasRegularityCode (only HeartRate)
@@ -97,10 +91,5 @@ group bloodPressure(source observation : Observation, target bloodPressure: Bloo
 group bpResult(source value : Quantity, target bp: BloodPressure) <<types>> {
   value.value as v -> bp.id = uuid(),
     bp.hasValue = v,
-    bp.hasUnit as unit then {
-      value -> unit.id = uuid(), unit.hasCode as code then {
-        value.system as system -> code.iri = system;
-        value.unit as u -> code.termid = u;
-      } "unit";
-    };
+    bp.hasUnit as unit then unit(value, unit);
 }

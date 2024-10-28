@@ -52,7 +52,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Location" alias 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/CareHandling" alias CareHandling as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Concept" alias Concept as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 
 // Encounter -> Content.AdministrativeCase

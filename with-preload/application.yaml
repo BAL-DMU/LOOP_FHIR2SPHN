@@ -89,6 +89,7 @@ logging:
   level:
     root: INFO
     #ch.ahdis.matchbox: DEBUG
-    ca.uhn.fhir.jpa.packages.JpaPackageCache: ERROR
+    ca.uhn.fhir.jpa: WARN
+    ch.ahdis.matchbox.mappinglanguage.TransformSupportServices: WARN
     fhirtest.access: ERROR
     fhirtest.request: ERROR

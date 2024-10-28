@@ -6,7 +6,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias C
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergy" alias Allergy as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergen" alias Allergen as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 
 group allergy(source allergyIntolerance : AllergyIntolerance, target content : Content) <<types>> {
