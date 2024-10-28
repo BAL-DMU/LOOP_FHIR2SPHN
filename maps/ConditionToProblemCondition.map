@@ -5,7 +5,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as sour
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ProblemCondition" alias ProblemCondition as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 
 group problemCondition(source condition : Condition, target content: Content) <<types>> {

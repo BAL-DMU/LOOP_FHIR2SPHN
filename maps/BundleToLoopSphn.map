@@ -21,6 +21,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
 uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as source
 uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias DiagnosticReport as source
 uses "http://hl7.org/fhir/StructureDefinition/Consent" alias Consent as source
+uses "http://hl7.org/fhir/StructureDefinition/Resource" alias Resource as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LoopSphn" alias LoopSphn as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataRelease" alias DataRelease as target
@@ -35,7 +36,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeSe
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministrativeCase"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceToAllergy"
@@ -158,4 +159,11 @@ group consent(source consent : Consent, target content: Content) {
       };
     };
   } "consent";
+}
+
+// Meta.Source -> SourceSystem
+group sourceSystem(source resource: Resource, target tgt: Content) {
+  resource.meta as meta -> tgt.SourceSystem = create('SourceSystem') as sourcesystem then {
+    meta.source as source -> sourcesystem.id = (source.split('#')[0]);
+  };
 }

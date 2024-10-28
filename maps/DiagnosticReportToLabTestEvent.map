@@ -12,7 +12,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabResult" alias
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ReferenceRangeOrValue" alias ReferenceRangeOrValue as target
 
-imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MetaSourceToSourceSystem"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 
 group laboratory(source bundle : Bundle, source report : DiagnosticReport, target content: Content) <<types>> {
@@ -35,7 +35,7 @@ group laboratory(source bundle : Bundle, source report : DiagnosticReport, targe
 }
 
 group labTest(source observation : Observation, target lab: LabTest) <<types>> {
-  observation.id as id log('ID: ' & %observation.id) -> lab.id = ('Observation/' & %id);
+  observation.id as id -> lab.id = ('Observation/' & %id);
   
   // code.coding -> hasCode
   observation.code as code then {
@@ -65,11 +65,4 @@ group labTest(source observation : Observation, target lab: LabTest) <<types>> {
 
 group limit(source vq : Quantity, target limit: Quantity) {
   vq.value as v -> limit.id = uuid(), limit.hasValue = v, limit.hasUnit as unit then unit(vq, unit);
-}
-
-group unit(source vq : Quantity, target unit: Unit) {
-  vq -> unit.id = uuid(), unit.hasCode as code then {
-    vq.code as c -> code.termid = c;
-    vq.system as s -> code.iri = s;
-  } "code";
 }
