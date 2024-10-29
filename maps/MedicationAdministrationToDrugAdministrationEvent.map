@@ -72,9 +72,15 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                 };
 
                 // Dosage/dose -> DrugAdministrationEvent/Drug/hasQuantity
-                dosage.dose as value -> drug.hasQuantity as quantity then {
+                dosage.dose as value where $this.system = 'http://unitsofmeasure.org' -> drug.hasQuantity as quantity then {
                     value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
-                } "valueQuantity";
+                } "valueQuantity_ucum";
+
+                // orderableDrugForm coding has been used for medis that come in tablet or capsule form. 
+                // these cases can be translated to ucum:cblnbcbr ("{#}", "number")
+                dosage.dose as value where $this.system = 'http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm' -> drug.hasQuantity as quantity then {
+                    value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit_number(value, unit);
+                } "valueQuantity_orderableDrugForm";
 
             };
 
