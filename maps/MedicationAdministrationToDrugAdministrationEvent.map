@@ -83,7 +83,6 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                 dosage.dose as value where $this.system = 'http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm' -> drug.hasQuantity as quantity then {
                     value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit_number(value, unit);
                 } "valueQuantity_orderableDrugForm";
-
             };
 
             medication.code as code  -> drug.hasArticle = create('DrugArticle') as article then {
