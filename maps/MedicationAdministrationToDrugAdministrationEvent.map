@@ -53,10 +53,12 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                         code.text as text -> substance.hasGenericName = text;
                     };
 
-                    // Medication/ingredient/strength/numerator -> Drug/hasActiveIngredient/hasQuantity
+                    // Medication/ingredient/strength/extension/sphn#Substance_hasQuantity -> Drug/hasActiveIngredient/hasQuantity
                     ingredient.strength as strength then {
-                        strength.numerator as value -> substance.hasQuantity as quantity then {
-                            value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
+                        strength.extension first as e where $this.url = "https://www.biomedit.ch/rdf/sphn-schema/sphn#Substance_hasQuantity" then {
+                            e.valueQuantity as value -> substance.hasQuantity as quantity then {
+                                value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
+                            };
                         } "valueQuantity";
                     };
                 } "Substance";
@@ -73,13 +75,13 @@ group medication_administration(source medicationAdministration : MedicationAdmi
 
                 // Dosage/dose -> DrugAdministrationEvent/Drug/hasQuantity
                 dosage.dose as value where $this.system = 'http://unitsofmeasure.org' -> drug.hasQuantity as quantity then {
-                    value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
+                    value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
                 } "valueQuantity_ucum";
 
                 // orderableDrugForm coding has been used for medis that come in tablet or capsule form. 
                 // these cases can be translated to ucum:cblnbcbr ("{#}", "number")
                 dosage.dose as value where $this.system = 'http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm' -> drug.hasQuantity as quantity then {
-                    value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit_number(value, unit);
+                    value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit_number(value, unit);
                 } "valueQuantity_orderableDrugForm";
 
             };
