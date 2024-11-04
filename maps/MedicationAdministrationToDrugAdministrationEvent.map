@@ -48,7 +48,11 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                             coding.code as c -> substanceCode.hasIdentifier = c;
                             coding.system as s -> substanceCode.hasCodingSystemAndVersion = s;
                         };
-
+                        code.coding first as coding where $this.system = "http://snomed.info/sct" -> substance.hasCode as substanceCode then {
+                            coding.code as code -> substanceCode.termid = code as termid,
+                            substanceCode.iri = append('http://snomed.info/id/', termid);
+                        };
+                        
                         // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
                         code.text as text -> substance.hasGenericName = text;
                     };
@@ -67,7 +71,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
             medicationAdministration.dosage as dosage then {
                 // Dosage/route -> DrugAdministrationEvent/hasAdministrationRouteCode
                 dosage.route as route then {
-                    route.coding first as coding where $this.system = 'http://snomed.info/sct'-> event.hasAdministrationRouteCode as routeCode then {
+                    route.coding first as coding where $this.system = 'http://snomed.info/sct' -> event.hasAdministrationRouteCode as routeCode then {
                         coding.code as code -> routeCode.termid = code as termid,
                         routeCode.iri = append('http://snomed.info/id/', termid);
                     };
