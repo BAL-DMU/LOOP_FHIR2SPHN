@@ -6,7 +6,7 @@ Expression: "(iri.exists() and termid.exists()) xor(hasCodingSystemAndVersion.ex
 Logical: Code
 Parent: Base
 Title: "SPHN Code Type"
-* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
+//* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
 * obeys code-iri-or-codingSystem
 * iri 0..1 SU uri "" ""
 * termid 0..1 SU string "" ""
