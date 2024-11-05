@@ -304,7 +304,7 @@ Logical: Substance
 Parent: Concept
 Title: "SPHN Substance"
 * hasGenericName 0..1 SU string "" ""
-* hasCode[x] 0..1 SU Code or Code "" ""
+* hasCode[x] 0..1 SU Code "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasQuantity 0..1 SU Quantity "" ""
 
