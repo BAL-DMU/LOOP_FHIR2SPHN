@@ -1,15 +1,18 @@
+Invariant: code-iri-or-codingSystem
+Description: "SPHN Codes can be given either via iri & termid OR via hasCodingSystemAndVersion & hasIdentifier, but not both."
+Severity: #error
+Expression: "(iri.exists() and termid.exists()) xor(hasCodingSystemAndVersion.exists() and hasIdentifier.exists())"
+
 Logical: Code
 Parent: Base
 Title: "SPHN Code Type"
-* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
-* iri 1..1 SU uri "" ""
-* termid 1..1 SU string "" ""
-
-Logical: CodeUID
-Parent: Concept
-Title: "SPHN Code Type (for UID)"
-* hasCodingSystemAndVersion 1..1 SU string "" ""
-* hasIdentifier 1..1 SU uri "" ""
+//* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
+* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Element"
+* obeys code-iri-or-codingSystem
+* iri 0..1 SU uri "" ""
+* termid 0..1 SU string "" ""
+* hasCodingSystemAndVersion 0..1 SU string "" ""
+* hasIdentifier 0..1 SU uri "" ""
 * hasName 0..1 SU string "" ""
 
 Logical: Concept
@@ -26,7 +29,7 @@ Title: "SPHN Data Release"
 Logical: DataProvider
 Parent: Concept
 Title: "SPHN Data Provider"
-* hasInstitutionCode 1..1 SU CodeUID "" ""
+* hasInstitutionCode 1..1 SU Code "" ""
 
 Logical: SubjectPseudoIdentifier
 Parent: Concept
@@ -75,6 +78,7 @@ Title: "List of SPHN concepts"
 * ProblemCondition 0..* SU ProblemCondition "" ""
 * SourceSystem 0..* SU SourceSystem "" ""
 * Consent 0..* SU Consent "" ""
+* DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
 
 Logical: Location
 Parent: Concept
@@ -295,3 +299,52 @@ Title: "SPHN Problem Condition"
 * hasCode 0..1 SU Code "" ""
 * hasOnsetDateTime 0..1 SU dateTime "" ""
 * hasRecordDateTime 0..1 SU dateTime "" ""
+
+Logical: Substance
+Parent: Concept
+Title: "SPHN Substance"
+* hasGenericName 0..1 SU string "" ""
+* hasCode[x] 0..1 SU Code "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+
+Logical: PharmaceuticalDoseForm
+Parent: Concept
+Title: "SPHN Pharmaceutical Dose Form"
+* hasCode 1..1 SU Code "" ""
+
+Logical: DrugArticle
+Parent: Concept
+Title: "SPHN Drug Article"
+* hasManufacturedDoseForm 0..1 SU PharmaceuticalDoseForm "" ""
+* hasCode 0..1 SU Code "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasName 0..1 SU string "" ""
+
+Logical: Drug
+Parent: Concept
+Title: "SPHN Drug"
+* hasActiveIngredient 0..* SU Substance "" ""
+* hasArticle 0..1 SU DrugArticle "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+* hasInactiveIngredient 0..* SU Substance "" ""
+
+Logical: TimePattern
+Parent: Concept
+Title: "SPHN Time Pattern"
+* hasTypeCode 1..1 SU Code "" ""
+
+Logical: DrugAdministrationEvent
+Parent: Concept
+Title: "SPHN Drug Administration Event"
+* SubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
+* hasAdministrationRouteCode 0..1 SU Code "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasDuration 0..1 SU dateTime "" ""
+* hasDrug 1..1 SU Drug "" ""
+* hasTimePattern 0..1 SU TimePattern "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasReasonToStopCode 0..1 SU Code "" ""

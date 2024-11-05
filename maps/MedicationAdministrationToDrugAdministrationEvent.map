@@ -1,0 +1,122 @@
+// Does not manage
+// - hasTimePattern
+// - hasReasonToStopCode
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministrationToDrugAdministrationEvent" = "MedicationAdministrationToDrugAdministrationEvent"
+
+// Source definitions
+uses "http://hl7.org/fhir/StructureDefinition/MedicationAdministration" alias MedicationAdministration as source
+
+// Target definitions (SPHN)
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugAdministrationEvent" alias DrugAdministrationEvent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Drug" alias Drug as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Substance" alias Substance as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugArticle" alias DrugArticle as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+group medication_administration(source medicationAdministration : MedicationAdministration, target content: Content)  <<types>> {
+    medicationAdministration -> content.DrugAdministrationEvent = create('DrugAdministrationEvent') as event then {
+        medicationAdministration.meta as m then refSourceSystem(m, event);
+        medicationAdministration.id as id -> event.id = ('MedicationAdministration/' & %id);
+        medicationAdministration.context as context -> event.hasAdministrativeCase = context;
+
+        // Start/end dates
+        medicationAdministration.effectiveDateTime as dateTime -> event.hasStartDateTime = dateTime;
+        medicationAdministration.effectivePeriod as period then {
+            period.start as start -> event.hasStartDateTime = start;
+            period.end as end -> event.hasEndDateTime = end;
+        };
+
+        // Medication -> Drug
+        medicationAdministration.contained as medication where $this.ofType(FHIR.Medication) -> event.hasDrug = create('Drug') as drug then {
+            medicationAdministration.meta as m then refSourceSystem(m, drug);
+            medication.id as id -> drug.id = uuid();
+
+
+            medication.ingredient as ingredient where $this.isActive = true then {
+                ingredient -> drug.hasActiveIngredient = create('Substance') as substance then {
+                    medicationAdministration.meta as m then refSourceSystem(m, substance);
+                    ingredient -> substance.id = uuid() "substance_id";
+
+                    // Medication/ingredient/coding -> Drug/hasActiveIngredient/code
+                    ingredient.itemCodeableConcept as code then {
+                        code.coding first as coding where $this.system = "http://www.cas.org" -> substance.hasCode as substanceCode then {
+                            coding.code as c -> substanceCode.hasIdentifier = c;
+                            coding.system as s -> substanceCode.hasCodingSystemAndVersion = s;
+                        };
+                        code.coding first as coding where $this.system = "http://snomed.info/sct" -> substance.hasCode as substanceCode then {
+                            coding.code as code -> substanceCode.termid = code as termid,
+                            substanceCode.iri = append('http://snomed.info/id/', termid);
+                        };
+                        
+                        // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
+                        code.text as text -> substance.hasGenericName = text;
+                    };
+
+                    // Medication/ingredient/strength/extension/sphn#Substance_hasQuantity -> Drug/hasActiveIngredient/hasQuantity
+                    ingredient.strength as strength then {
+                        strength.extension first as e where $this.url = "https://www.biomedit.ch/rdf/sphn-schema/sphn#Substance_hasQuantity" then {
+                            e.valueQuantity as value -> substance.hasQuantity as quantity then {
+                                value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
+                            };
+                        } "valueQuantity";
+                    };
+                } "Substance";
+            };
+
+            medicationAdministration.dosage as dosage then {
+                // Dosage/route -> DrugAdministrationEvent/hasAdministrationRouteCode
+                dosage.route as route then {
+                    route.coding first as coding where $this.system = 'http://snomed.info/sct' -> event.hasAdministrationRouteCode as routeCode then {
+                        coding.code as code -> routeCode.termid = code as termid,
+                        routeCode.iri = append('http://snomed.info/id/', termid);
+                    };
+                };
+
+                // Dosage/dose -> DrugAdministrationEvent/Drug/hasQuantity
+                dosage.dose as value where $this.system = 'http://unitsofmeasure.org' -> drug.hasQuantity as quantity then {
+                    value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
+                } "valueQuantity_ucum";
+
+                // orderableDrugForm coding has been used for medis that come in tablet or capsule form. 
+                // these cases can be translated to ucum:cblnbcbr ("{#}", "number")
+                dosage.dose as value where $this.system = 'http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm' -> drug.hasQuantity as quantity then {
+                    value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit_number(value, unit);
+                } "valueQuantity_orderableDrugForm";
+            };
+
+            medication.code as code  -> drug.hasArticle = create('DrugArticle') as article then {
+                medicationAdministration.meta as m then refSourceSystem(m, article);
+                code -> article.id = uuid() "article_id";
+            
+                // Medication/code//coding -> Drug/hasArticle/hasCode
+                code.coding as coding where $this.system = 'https://wwww.gs1.org/standards/id-keys/gtin' -> article.hasCode as articleCode then {
+                    coding.code as c -> articleCode.termid = c as termid,
+                    articleCode.iri = append('https://wwww.gs1.org/standards/id-keys/gtin/', termid);
+                };
+
+                //  Medication/code/text -> Drug/hasArticle/hasName
+                code.text as text -> article.hasName = text;
+
+                // Medication/form -> Drug/hasArticle/hasManufacturedDoseForm
+                medication.form as form then {
+                    form.coding first as coding -> article.hasManufacturedDoseForm = create('PharmaceuticalDoseForm') as doseForm then {
+                        coding -> doseForm.id = uuid(),
+                        doseForm.hasCode as DoseFormCode then {
+                            coding.code as c -> DoseFormCode.id = uuid(), DoseFormCode.hasIdentifier = c;
+                            coding.system as s ->  DoseFormCode.hasCodingSystemAndVersion = s;
+                            coding.display as d -> DoseFormCode.hasName = d;
+                        } "doseForm_code";
+                    } "doseForm";
+                };
+            };
+        };
+    } "DrugAdministrationEvent";
+  }
+
+
+        
