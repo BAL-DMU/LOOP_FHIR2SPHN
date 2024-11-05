@@ -1,15 +1,17 @@
+Invariant: code-iri-or-codingSystem
+Description: "SPHN Codes can be given either via iri & termid OR via hasCodingSystemAndVersion & hasIdentifier, but not both."
+Severity: #error
+Expression: "(iri.exists() and termid.exists()) xor(hasCodingSystemAndVersion.exists() and hasIdentifier.exists())"
+
 Logical: Code
 Parent: Base
 Title: "SPHN Code Type"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
-* iri 1..1 SU uri "" ""
-* termid 1..1 SU string "" ""
-
-Logical: CodeSystem
-Parent: Concept
-Title: "SPHN Code Type (for non-sphn systems)"
-* hasCodingSystemAndVersion 1..1 SU string "" ""
-* hasIdentifier 1..1 SU uri "" ""
+* obeys code-iri-or-codingSystem
+* iri 0..1 SU uri "" ""
+* termid 0..1 SU string "" ""
+* hasCodingSystemAndVersion 0..1 SU string "" ""
+* hasIdentifier 0..1 SU uri "" ""
 * hasName 0..1 SU string "" ""
 
 Logical: Concept
@@ -26,7 +28,7 @@ Title: "SPHN Data Release"
 Logical: DataProvider
 Parent: Concept
 Title: "SPHN Data Provider"
-* hasInstitutionCode 1..1 SU CodeSystem "" ""
+* hasInstitutionCode 1..1 SU Code "" ""
 
 Logical: SubjectPseudoIdentifier
 Parent: Concept
@@ -301,14 +303,14 @@ Logical: Substance
 Parent: Concept
 Title: "SPHN Substance"
 * hasGenericName 0..1 SU string "" ""
-* hasCode[x] 0..1 SU Code or CodeSystem "" ""
+* hasCode[x] 0..1 SU Code or Code "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasQuantity 0..1 SU Quantity "" ""
 
 Logical: PharmaceuticalDoseForm
 Parent: Concept
 Title: "SPHN Pharmaceutical Dose Form"
-* hasCode 1..1 SU CodeSystem "" ""
+* hasCode 1..1 SU Code "" ""
 
 Logical: DrugArticle
 Parent: Concept
