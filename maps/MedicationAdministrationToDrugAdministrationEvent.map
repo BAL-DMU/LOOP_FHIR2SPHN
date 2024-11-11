@@ -45,7 +45,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                     // Medication/ingredient/coding -> Drug/hasActiveIngredient/code
                     ingredient.itemCodeableConcept as code then {
                         code.coding first as coding where $this.system = "http://www.cas.org" -> substance.hasCode as substanceCode then {
-                            coding.code as c -> substanceCode.hasIdentifier = c;
+                            coding.code as c -> substanceCode.id = uuid(), substanceCode.hasIdentifier = c;
                             coding.system as s -> substanceCode.hasCodingSystemAndVersion = s;
                         };
                         code.coding first as coding where $this.system = "http://snomed.info/sct" -> substance.hasCode as substanceCode then {
@@ -95,8 +95,8 @@ group medication_administration(source medicationAdministration : MedicationAdmi
             
                 // Medication/code//coding -> Drug/hasArticle/hasCode
                 code.coding as coding where $this.system = 'https://wwww.gs1.org/standards/id-keys/gtin' -> article.hasCode as articleCode then {
-                    coding.code as c -> articleCode.termid = c as termid,
-                    articleCode.iri = append('https://wwww.gs1.org/standards/id-keys/gtin/', termid);
+                    coding.code as c -> articleCode.id = uuid(), articleCode.hasIdentifier = c;
+                    coding.system as s -> articleCode.hasCodingSystemAndVersion = s;
                 };
 
                 //  Medication/code/text -> Drug/hasArticle/hasName
