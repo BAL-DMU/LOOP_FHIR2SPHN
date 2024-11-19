@@ -26,6 +26,24 @@ group assessmentEvent(source observation : Observation target content : Content)
         srcCoding.display as d -> assessment.hasName = d;
       } "assessment_code";
 
-    };
+      observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result then {
+        vcc.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> result.id = uuid(), result.hasCode as trgCode then {
+          srcCoding.code as c -> trgCode.termid = c as termid,
+          trgCode.iri = append('http://snomed.info/id/', termid);
+        } "assessmentResult_code";
+      } "valueCodeableConcept";
+      // TODO value quantity
+
+      // Components
+      observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
+        comp.code as srcCode then {
+          srcCode.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> component.hasCode as trgCode then {
+            srcCoding.code as c -> trgCode.termid = c as termid,
+            trgCode.iri = append('http://snomed.info/id/', termid);
+          };
+        };
+        
+      } "AssessmentComponent";
+    } "Assessment";
   } "AssessmentEvent";
 }
