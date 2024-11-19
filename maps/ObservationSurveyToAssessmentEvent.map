@@ -38,11 +38,16 @@ group assessmentEvent(source observation : Observation target content : Content)
       observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
         comp.code as srcCode then {
           srcCode.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> component.hasCode as trgCode then {
-            srcCoding.code as c -> trgCode.termid = c as termid,
+            srcCoding.code as c -> component.id = uuid(), 
+            trgCode.termid = c as termid,
             trgCode.iri = append('http://snomed.info/id/', termid);
+            srcCoding.display as d -> component.hasName = d;
+          };
+          //
+          srcCode.coding as srcCoding where $this.system = 'https://www.biomedit.ch/rdf/sphn-schema/sphn#AssessmentComponent' then {
+            srcCoding.display as d -> component.hasName = d;
           };
         };
-        
       } "AssessmentComponent";
     } "Assessment";
   } "AssessmentEvent";
