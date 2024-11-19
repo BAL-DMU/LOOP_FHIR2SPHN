@@ -79,6 +79,7 @@ Title: "List of SPHN concepts"
 * SourceSystem 0..* SU SourceSystem "" ""
 * Consent 0..* SU Consent "" ""
 * DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
+* AssessmentEvent 0..* SU AssessmentEvent "" ""
 
 Logical: Location
 Parent: Concept
