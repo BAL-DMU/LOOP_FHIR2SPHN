@@ -1,0 +1,31 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationSurveyToAssessmentEvent" = "ObservationSurveyToAssessmentEvent"
+
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
+uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentResult" alias AssessmentResult as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentComponent" alias AssessmentComponent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Assessment" alias Assessment as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentEvent" alias AssessmentEvent as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+
+group assessmentEvent(source observation : Observation target content : Content) <<types>> {
+  observation -> content.AssessmentEvent = create('AssessmentEvent') as assessmentEvent then {
+    observation.meta as m then refSourceSystem(m, assessmentEvent);
+    observation.id as id -> assessmentEvent.id = ('AssessmentEvent/' & %id);
+    observation.effectiveDateTime as t -> assessmentEvent.hasDateTime = t;
+    observation.encounter as encounter -> assessmentEvent.hasAdministrativeCase = encounter;
+
+    observation.code as observation_code -> assessmentEvent.hasAssessment = create('Assessment') as assessment then {
+      observation_code.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> assessment.id = uuid(), assessment.hasCode as trgCode then {
+        srcCoding.code as c -> trgCode.termid = c as termid,
+        trgCode.iri = append('http://snomed.info/id/', termid);
+        srcCoding.display as d -> assessment.hasName = d;
+      } "assessment_code";
+
+    };
+  } "AssessmentEvent";
+}

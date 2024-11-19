@@ -43,6 +43,7 @@ imports "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceTo
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToProblemCondition"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/DiagnosticReportToLabTestEvent"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministrationToDrugAdministrationEvent"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationSurveyToAssessmentEvent"
 
 
 
@@ -84,6 +85,9 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // MedicationAdministration -> Conent.DrugAdministration
       entry.resource as medicationAdministration where $this.ofType(FHIR.MedicationAdministration) then medication_administration(medicationAdministration, content);
+
+      // Observation (survey) -> Content.AssessmentEvent
+      entry.resource as observation where $this.ofType(FHIR.Observation) and $this.category.coding.code = 'survey' then assessmentEvent(observation, content);
     };
   } "Content";
 }
