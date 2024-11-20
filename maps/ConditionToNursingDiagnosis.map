@@ -1,0 +1,37 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToNursingDiagnosis" = "ConditionToNursingDiagnosis"
+
+uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/NursingDiagnosis" alias NursingDiagnosis as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Age" alias Age as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+
+group nursingDiagnosis(source condition : Condition, target content: Content) <<types>> {
+  condition -> content.NursingDiagnosis = create('NursingDiagnosis') as diagnosis then {
+    condition.meta as m then refSourceSystem(m, diagnosis);
+    condition.id as id -> diagnosis.id = ('Condition/' & %id);
+    condition.encounter as encounter -> diagnosis.hasAdministrativeCase = encounter;
+    condition.recordedDate as recordedDate -> diagnosis.hasRecordDateTime = recordedDate;
+
+    // code -> hasCode
+    condition.code as code then {
+      code.coding as coding where $this.system = 'http://terminology.hl7.org/CodeSystem/nanda' -> diagnosis.hasCode as tgtCode then {
+        coding.code as c -> tgtCode.termid = c, tgtCode.iri = append('https://biomedit.ch/rdf/sphn-resource/nanda/', c);
+      };
+    };
+
+    // onsetAge -> Content.Age
+    condition.onsetAge as onsetAge -> content.Age = create('Age') as age then {
+      condition.meta as m then refSourceSystem(m, age);
+      onsetAge -> age.id = uuid() as id,
+        diagnosis.hasSubjectAge = create('Reference') as ref, ref.reference = id,
+        age.hasQuantity as quantity then {
+          onsetAge.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(onsetAge, unit);
+        } "quantity";
+      condition.recordedDate as recordedDate -> age.hasDeterminationDateTime = recordedDate;
+    } "age";
+  } "nursingDiagnosis";
+}
