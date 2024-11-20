@@ -1,12 +1,11 @@
 Invariant: code-iri-or-codingSystem
 Description: "SPHN Codes can be given either via iri & termid OR via hasCodingSystemAndVersion & hasIdentifier, but not both."
 Severity: #error
-Expression: "(iri.exists() and termid.exists()) xor(hasCodingSystemAndVersion.exists() and hasIdentifier.exists())"
+Expression: "(iri.exists() and termid.exists()) xor (hasCodingSystemAndVersion.exists() and hasIdentifier.exists())"
 
 Logical: Code
 Parent: Base
 Title: "SPHN Code Type"
-//* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Element"
 * obeys code-iri-or-codingSystem
 * iri 0..1 SU uri "" ""
@@ -79,6 +78,8 @@ Title: "List of SPHN concepts"
 * SourceSystem 0..* SU SourceSystem "" ""
 * Consent 0..* SU Consent "" ""
 * DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
+* NursingDiagnosis 0..* SU NursingDiagnosis "" ""
+* Age 0..* SU Age "" ""
 
 Logical: Location
 Parent: Concept
@@ -304,7 +305,7 @@ Logical: Substance
 Parent: Concept
 Title: "SPHN Substance"
 * hasGenericName 0..1 SU string "" ""
-* hasCode[x] 0..1 SU Code "" ""
+* hasCode 0..1 SU Code "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasQuantity 0..1 SU Quantity "" ""
 
@@ -348,3 +349,25 @@ Title: "SPHN Drug Administration Event"
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasReasonToStopCode 0..1 SU Code "" ""
+
+Logical: Age
+Parent: Concept
+Title: "SPHN Age"
+Characteristics: #can-be-target
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasDeterminationDateTime 1..1 SU dateTime "" ""
+* hasQuantity 1..1 SU Quantity "" ""
+
+Logical: Diagnosis
+Parent: Concept
+Title: "SPHN Diagnosis"
+* ^abstract = true
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasRecordDateTime 0..1 SU dateTime "" ""
+* hasCode 1..1 SU Code "" ""
+* hasSubjectAge 0..1 SU Reference(Age) "" ""
+
+Logical: NursingDiagnosis
+Parent: Diagnosis
+Title: "SPHN Nursing Diagnosis"

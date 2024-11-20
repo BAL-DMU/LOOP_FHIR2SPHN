@@ -6,7 +6,7 @@ conceptmap "cm-ucum-sphn" {
   prefix s = "http://unitsofmeasure.org"
   prefix t = "https://biomedit.ch/rdf/sphn-resource/ucum"
   
-    s:"10.L/min" == t:"10dotLpermin"
+  s:"10.L/min" == t:"10dotLpermin"
   s:"10.L/(min.m2)" == t:"10dotLperrblmindotm2rbr"
   s:"10.uN.s/(cm5.m2)" == t:"10dotuNdotsperrblcm5dotm2rbr"
   s:"10*12/L" == t:"10exp12perL"

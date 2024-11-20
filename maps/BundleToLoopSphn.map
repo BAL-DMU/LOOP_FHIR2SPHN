@@ -41,6 +41,7 @@ imports "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministr
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMeasurement"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceToAllergy"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToProblemCondition"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToNursingDiagnosis"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/DiagnosticReportToLabTestEvent"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministrationToDrugAdministrationEvent"
 
@@ -81,6 +82,9 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // Condition (problem-list-item) -> Content.ProblemCondition
       entry.resource as condition where $this.ofType(FHIR.Condition) and $this.category.coding.code = 'problem-list-item' then problemCondition(condition, content);
+
+      // Condition (nanda-nursing-diagnosis) -> Content.NursingDiagnosis
+      entry.resource as nanda where $this.ofType(FHIR.Condition) and $this.category.coding.code = 'nanda-nursing-diagnosis' then nursingDiagnosis(nanda, content);
 
       // MedicationAdministration -> Conent.DrugAdministration
       entry.resource as medicationAdministration where $this.ofType(FHIR.MedicationAdministration) then medication_administration(medicationAdministration, content);
