@@ -25,7 +25,7 @@ group assessmentEvent(source observation : Observation target content : Content)
         trgCode.iri = append('http://snomed.info/id/', termid);
         srcCoding.display as d -> assessment.hasName = d;
       } "assessment_code";
-
+/*
       observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result then {
         vcc.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> result.id = uuid(), result.hasCode as trgCode then {
           srcCoding.code as c -> trgCode.termid = c as termid,
@@ -33,6 +33,15 @@ group assessmentEvent(source observation : Observation target content : Content)
         } "assessmentResult_code";
       } "valueCodeableConcept";
       // TODO value quantity
+*/
+      // valueQuantity -> hasResult (only for bodyTemperature, bodyWeight, oxygenSaturation, heartrate)
+      observation.valueCodeableConcept as vcc then {
+          vcc.extension as vq -> assessment.hasResult = create('AssessmentResult') as result then {
+          vq -> result.id = uuid(), result.hasQuantity as quantity then {
+            vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
+          } "valueQuantity";
+        };
+      };
 
       // Components
       observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
@@ -48,6 +57,7 @@ group assessmentEvent(source observation : Observation target content : Content)
             srcCoding.display as d -> component.hasName = d;
           };
         };
+        // Results
       } "AssessmentComponent";
     } "Assessment";
   } "AssessmentEvent";
