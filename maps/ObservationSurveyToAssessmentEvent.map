@@ -12,6 +12,15 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentEvent"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 
+group resultValueQuantitytoAssessmentResult(source vq: Quantity, target assessment: Assessment){
+  // valueQuantity when only valueQuantity is available (not valueCodeableConcept)
+  vq -> assessment.hasResult = create('AssessmentResult') as result then {
+    vq -> result.id = uuid(), result.hasQuantity as quantity then {
+    vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
+    } "ValueQuantity";
+  } "AssessmentResult";
+}
+
 group assessmentEvent(source observation : Observation target content : Content) <<types>> {
   observation -> content.AssessmentEvent = create('AssessmentEvent') as assessmentEvent then {
     observation.meta as m then refSourceSystem(m, assessmentEvent);
@@ -32,21 +41,15 @@ group assessmentEvent(source observation : Observation target content : Content)
           srcCoding.code as c -> trgCode.termid = c as termid,
           trgCode.iri = append('http://snomed.info/id/', termid);
         } "assessmentResult_code";
-      
+
         // valueQuantity as extension (coding and quantity available)
-        vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" -> assessment.hasResult = create('AssessmentResult') as result then {
-          ext.valueQuantity as vq -> result.id = uuid(), result.hasQuantity as quantity then {
-            vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
-          } "extensionValueQuantity";
+        vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
+          ext.valueQuantity as vq -> assessment then resultValueQuantitytoAssessmentResult(vq, assessment);
         };
       } "valueCodeableConcept";
 
-      // valueQuantity when only valueQuantity is available (not valueCodeableConcept)
-      observation.valueQuantity as vq -> assessment.hasResult = create('AssessmentResult') as result then {
-        vq -> result.id = uuid(), result.hasQuantity as quantity then {
-        vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
-        } "valueQuantity";
-      };
+      observation.valueQuantity as vq -> assessment then resultValueQuantitytoAssessmentResult(vq, assessment);
+
       
       // Components
       observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
