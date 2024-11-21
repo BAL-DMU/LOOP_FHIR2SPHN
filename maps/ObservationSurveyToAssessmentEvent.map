@@ -14,7 +14,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentEvent"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 // Utils
-group resultValueQuantitytoAssessmentResult(source vq: Quantity, target assessment: Assessment){
+group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment){
  vq -> assessment.hasResult = create('AssessmentResult') as result then {
    vq -> result.id = uuid(), result.hasQuantity as quantity then {
      vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
@@ -54,12 +54,12 @@ group assessmentEvent(source observation : Observation, target content : Content
        // valueCodeableConcept/extension/ValueQuantity  -> Assessment/hasQuantity
        // present if result is available as code and value
        vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
-         ext.valueQuantity as vq -> assessment then resultValueQuantitytoAssessmentResult(vq, assessment);
+         ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
        };
      } "valueCodeableConcept";
 
      // valueQuantity -> AssessmentResult/hasQuantity
-     observation.valueQuantity as vq -> assessment then resultValueQuantitytoAssessmentResult(vq, assessment);
+     observation.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
  
      // Component -> Assessment/Component
      observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
@@ -83,12 +83,12 @@ group assessmentEvent(source observation : Observation, target content : Content
        
          // valueQuantity extension
          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
-           ext.valueQuantity as vq -> component then resultValueQuantitytoAssessmentResult(vq, assescomponentsment);
+           ext.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
          };
        } "compValueCodeableConcept";
        
        // Standalone valueQuantity
-       comp.valueQuantity as vq -> component then resultValueQuantitytoAssessmentResult(vq, component);
+       comp.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
 
      } "AssessmentComponent";
    } "Assessment";
