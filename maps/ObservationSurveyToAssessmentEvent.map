@@ -73,8 +73,8 @@ group assessmentEvent(source observation : Observation, target content : Content
 
         // Results
         // Component/valueCodeableConcept
-        comp.valueCodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result then {
-          vcc.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> result.id = uuid(), result.hasCode as trgCode then {
+        comp.valueCodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
+          vcc.coding as srcCoding where $this.system = 'http://snomed.info/sct' ->  result.hasCode as trgCode then {
             srcCoding.code as c -> trgCode.termid = c as termid,
             trgCode.iri = append('http://snomed.info/id/', termid);
           } "compAssessmentResult_code";
