@@ -77,10 +77,8 @@ group assessmentEvent(source observation : Observation target content : Content)
           } "compAssessmentResult_code";
         
           // Component/valueQuantity as extension (coding and quantity available)
-          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" -> component.hasResult = create('AssessmentResult') as result then {
-            ext.valueQuantity as vq -> result.id = uuid(), result.hasQuantity as quantity then {
-              vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
-            } "compExtensionValueQuantity";
+          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
+            ext.valueQuantity as vq -> component then resultValueQuantitytoAssessmentResult(vq, assescomponentsment);
           };
         } "compValueCodeableConcept";
         
