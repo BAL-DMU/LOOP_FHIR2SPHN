@@ -46,7 +46,7 @@ group assessmentEvent(source observation : Observation, target content : Content
       // valueCodeableConcept
       observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
         vcc.coding as coding -> result then codingToCode(coding, result);
-        
+
         // valueQuantity as extension (coding and quantity available)
         vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
           ext.valueQuantity as vq -> assessment then resultValueQuantitytoAssessmentResult(vq, assessment);
@@ -55,18 +55,16 @@ group assessmentEvent(source observation : Observation, target content : Content
 
       // valueQuantity
       observation.valueQuantity as vq -> assessment then resultValueQuantitytoAssessmentResult(vq, assessment);
-
-      
+  
       // Components
       observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
         // Component code
         comp.code as srcCode then {
-          srcCode.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> component.hasCode as trgCode then {
-            srcCoding.code as c -> component.id = uuid(), 
-            trgCode.termid = c as termid,
-            trgCode.iri = append('http://snomed.info/id/', termid);
-            srcCoding.display as d -> component.hasName = d;
+          srcCode.coding as coding -> component then codingToCode(coding, component);
+          srcCode.coding as coding then {
+            coding.display as d -> component.hasName = d;
           };
+
           // Assessment components without code
           srcCode.coding as srcCoding where $this.system = 'https://www.biomedit.ch/rdf/sphn-schema/sphn#AssessmentComponent' then {
             srcCoding.display as d -> component.hasName = d;
