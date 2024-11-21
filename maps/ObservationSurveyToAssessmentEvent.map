@@ -25,26 +25,32 @@ group assessmentEvent(source observation : Observation target content : Content)
         trgCode.iri = append('http://snomed.info/id/', termid);
         srcCoding.display as d -> assessment.hasName = d;
       } "assessment_code";
-/*
+
+      // valueCodeableConcept
       observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result then {
         vcc.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> result.id = uuid(), result.hasCode as trgCode then {
           srcCoding.code as c -> trgCode.termid = c as termid,
           trgCode.iri = append('http://snomed.info/id/', termid);
         } "assessmentResult_code";
-      } "valueCodeableConcept";
-      // TODO value quantity
-*/
-      // valueQuantity -> hasResult (only for bodyTemperature, bodyWeight, oxygenSaturation, heartrate)
-      observation.valueCodeableConcept as vcc then {
-          vcc.extension as vq where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" -> assessment.hasResult = create('AssessmentResult') as result then {
-          vq -> result.id = uuid(), result.hasQuantity as quantity then {
+      
+        // valueQuantity as extension (coding and quantity available)
+        vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" -> assessment.hasResult = create('AssessmentResult') as result then {
+          ext.valueQuantity as vq -> result.id = uuid(), result.hasQuantity as quantity then {
             vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
-          } "valueQuantity";
+          } "extensionValueQuantity";
         };
-      };
+      } "valueCodeableConcept";
 
+      // valueQuantity when only valueQuantity is available (not valueCodeableConcept)
+      observation.valueQuantity as vq -> assessment.hasResult = create('AssessmentResult') as result then {
+        vq -> result.id = uuid(), result.hasQuantity as quantity then {
+        vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
+        } "valueQuantity";
+      };
+      
       // Components
       observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
+        // Component code
         comp.code as srcCode then {
           srcCode.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> component.hasCode as trgCode then {
             srcCoding.code as c -> component.id = uuid(), 
@@ -52,12 +58,35 @@ group assessmentEvent(source observation : Observation target content : Content)
             trgCode.iri = append('http://snomed.info/id/', termid);
             srcCoding.display as d -> component.hasName = d;
           };
-          //
+          // Assessment components without code
           srcCode.coding as srcCoding where $this.system = 'https://www.biomedit.ch/rdf/sphn-schema/sphn#AssessmentComponent' then {
             srcCoding.display as d -> component.hasName = d;
           };
         };
+
         // Results
+        // Component valueCodeableConcept
+        comp.valueCodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result then {
+          vcc.coding as srcCoding where $this.system = 'http://snomed.info/sct' -> result.id = uuid(), result.hasCode as trgCode then {
+            srcCoding.code as c -> trgCode.termid = c as termid,
+            trgCode.iri = append('http://snomed.info/id/', termid);
+          } "compAssessmentResult_code";
+        
+          // Component valueQuantity as extension (coding and quantity available)
+          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" -> component.hasResult = create('AssessmentResult') as result then {
+            ext.valueQuantity as vq -> result.id = uuid(), result.hasQuantity as quantity then {
+              vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
+            } "compExtensionValueQuantity";
+          };
+        } "compValueCodeableConcept";
+        
+        // Component valueQuantity when only valueQuantity is available (not valueCodeableConcept)
+        comp.valueQuantity as vq -> component.hasResult = create('AssessmentResult') as result then {
+          vq -> result.id = uuid(), result.hasQuantity as quantity then {
+          vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
+          } "compValueQuantity";
+        };
+
       } "AssessmentComponent";
     } "Assessment";
   } "AssessmentEvent";
