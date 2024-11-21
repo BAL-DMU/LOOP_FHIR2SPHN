@@ -29,7 +29,7 @@ group codingToCode(source coding, target trg){
 }
 
 
-group assessmentEvent(source observation : Observation target content : Content) <<types>> {
+group assessmentEvent(source observation : Observation, target content : Content) <<types>> {
   observation -> content.AssessmentEvent = create('AssessmentEvent') as assessmentEvent then {
     observation.meta as m then refSourceSystem(m, assessmentEvent);
     observation.id as id -> assessmentEvent.id = ('AssessmentEvent/' & %id);
@@ -42,8 +42,6 @@ group assessmentEvent(source observation : Observation target content : Content)
       observation_code.coding as coding then {
         coding.display as d -> assessment.hasName = d;
       };
-
-
 
       // valueCodeableConcept
       observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result then {
