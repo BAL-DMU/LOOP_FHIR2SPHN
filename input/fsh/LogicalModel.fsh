@@ -369,6 +369,7 @@ Title: "SPHN Assessment Component"
 Logical: Assessment
 Parent: Concept
 Title: "SPHN Assessment"
+* target_concept 1..1 SU url "" ""
 * hasComponent 0..* SU AssessmentComponent "" ""
 * hasCode 0..1 SU Code "" ""
 * hasName 0..1 SU string "" ""
