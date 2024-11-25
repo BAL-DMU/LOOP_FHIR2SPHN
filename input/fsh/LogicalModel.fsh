@@ -78,8 +78,10 @@ Title: "List of SPHN concepts"
 * SourceSystem 0..* SU SourceSystem "" ""
 * Consent 0..* SU Consent "" ""
 * DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
+* AssessmentEvent 0..* SU AssessmentEvent "" ""
 * NursingDiagnosis 0..* SU NursingDiagnosis "" ""
 * Age 0..* SU Age "" ""
+
 
 Logical: Location
 Parent: Concept
@@ -349,6 +351,38 @@ Title: "SPHN Drug Administration Event"
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasReasonToStopCode 0..1 SU Code "" ""
+
+Logical: AssessmentResult
+Parent: Result
+Title: "SPHN Assessment Result"
+* hasQuantity 0..1 SU Quantity "" ""
+* hasCode 0..1 SU Code "" ""
+* hasStringValue 0..1 SU string "" ""
+
+Logical: AssessmentComponent
+Parent: Concept
+Title: "SPHN Assessment Component"
+* hasResult 0..1 SU AssessmentResult "" ""
+* hasCode 0..1 SU Code "" ""
+* hasName 0..1 SU string "" ""
+
+Logical: Assessment
+Parent: Concept
+Title: "SPHN Assessment"
+* target_concept 1..1 SU url "" ""
+* hasComponent 0..* SU AssessmentComponent "" ""
+* hasCode 0..1 SU Code "" ""
+* hasName 0..1 SU string "" ""
+* hasResult 0..1 SU AssessmentResult "" ""
+
+Logical: AssessmentEvent
+Parent: Concept
+Title: "SPHN Assessment Event"
+// skipping Performer
+* hasAssessment 1..1 SU Assessment "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasDateTime 1..1 SU dateTime "" ""
 
 Logical: Age
 Parent: Concept
