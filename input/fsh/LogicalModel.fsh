@@ -246,7 +246,7 @@ Logical: Allergy
 Parent: Concept
 Title: "SPHN Allergy"
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
-* hasFirstRecordDatetime 0..1 SU dateTime "" ""
+* hasFirstRecordDateTime 0..1 SU dateTime "" ""
 * hasAllergen 0..1 SU Allergen "" ""
 
 Invariant: reference-range-or-value
