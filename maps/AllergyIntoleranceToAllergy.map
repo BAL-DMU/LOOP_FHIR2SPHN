@@ -13,7 +13,7 @@ group allergy(source allergyIntolerance : AllergyIntolerance, target content : C
   allergyIntolerance -> content.Allergy = create('Allergy') as allergy then {
     allergyIntolerance.meta as m then refSourceSystem(m, allergy);
     allergyIntolerance.id as id -> allergy.id = ('AllergyIntolerance/' & %id);
-    allergyIntolerance.recordedDate as recordedDate -> allergy.hasFirstRecordDatetime = recordedDate;
+    allergyIntolerance.recordedDate as recordedDate -> allergy.hasFirstRecordDateTime = recordedDate;
 
     // AllergyIntolerance Code -> Allergy.Allergen
     allergyIntolerance.code as allergyCodeRoot then {
