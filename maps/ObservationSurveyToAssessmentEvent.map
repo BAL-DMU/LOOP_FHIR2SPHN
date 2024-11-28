@@ -62,7 +62,7 @@ group assessmentEvent(source observation : Observation, target content : Content
      observation.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
  
      // Component -> Assessment/Component
-     observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component then {
+     observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component, component.id = uuid() then {
        // coding -> Components/hasCode
        comp.code as srcCode then {
          srcCode.coding as coding -> component then codingToCode(coding, component);
