@@ -69,6 +69,7 @@ Title: "List of SPHN concepts"
 * AdministrativeCase 0..* SU AdministrativeCase "" ""
 * BodyTemperatureMeasurement 0..* SU BodyTemperatureMeasurement "" ""
 * BodyWeightMeasurement 0..* SU BodyWeightMeasurement "" ""
+* BodyHeightMeasurement 0..* SU BodyHeightMeasurement "" ""
 * BloodPressureMeasurement 0..* SU BloodPressureMeasurement "" ""
 * HeartRateMeasurement 0..* SU HeartRateMeasurement "" ""
 * OxygenSaturationMeasurement 0..* SU OxygenSaturationMeasurement "" ""
@@ -152,6 +153,21 @@ Title: "SPHN Measurement"
 * hasEndDateTime 0..1 SU dateTime "" ""
 * hasMethodCode 0..1 SU Code "" ""
 
+// Note: BodyWeight and BodyHeight have a hasResult with cardinality 1..1 whereas the others have 1..*.
+// Even if the cardinality is overwritten (restricted to 1..1) in the child,
+// it is still an array (see https://build.fhir.org/profiling.html#cardinality).
+// Therefore, we need a dedicated MeasurementOneResult with 'hasResult 1..1'
+Logical: MeasurementOneResult
+Parent: Concept
+Title: "SPHN Measurement (with only one hasResult)"
+* ^abstract = true
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasResult 1..1 SU Result "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasMethodCode 0..1 SU Code "" ""
+
 Logical: Unit
 Parent: Concept
 Title: "SPHN Unit"
@@ -198,9 +214,20 @@ Title: "SPHN Body Weight"
 * hasQuantity 0..1 SU Quantity "" ""
 
 Logical: BodyWeightMeasurement
-Parent: Measurement
+Parent: MeasurementOneResult
 Title: "SPHN Body Weight Measurement"
-* hasResult[x] 1..* SU BodyWeight "" ""
+* hasResult[x] 1..1 SU BodyWeight "" ""
+
+Logical: BodyHeight
+Parent: Result
+Title: "SPHN Body Height"
+* hasDateTime 0..1 SU dateTime "" ""
+* hasQuantity 0..1 SU Quantity "" ""
+
+Logical: BodyHeightMeasurement
+Parent: MeasurementOneResult
+Title: "SPHN Body Height Measurement"
+* hasResult[x] 1..1 SU BodyHeight "" ""
 
 Logical: BloodPressure
 Parent: Result

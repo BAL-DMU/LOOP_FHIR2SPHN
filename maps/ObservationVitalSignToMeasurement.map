@@ -6,6 +6,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyTemperatureMeasurement" alias BodyTemperatureMeasurement as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyWeightMeasurement" alias BodyWeightMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyHeightMeasurement" alias BodyHeightMeasurement as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BloodPressureMeasurement" alias BloodPressureMeasurement as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BloodPressure" alias BloodPressure as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRateMeasurement" alias HeartRateMeasurement as target
@@ -21,7 +22,10 @@ group vitalSign(source observation : Observation, target content: Content) <<typ
   observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodytemp' -> content.BodyTemperatureMeasurement as bodyTemp then measurementParent(observation, bodyTemp) "bodyTemperature";
 
   // BodyWeightMeasurement
-  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodyweight' -> content.BodyWeightMeasurement as bodyWeight then measurementParent(observation, bodyWeight) "bodyWeight";
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodyweight' -> content.BodyWeightMeasurement as bodyWeight then measurementOneResult(observation, bodyWeight) "bodyWeight";
+
+  // BodyHeightMeasurement
+  observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bodyheight' -> content.BodyHeightMeasurement as bodyHeight then measurementOneResult(observation, bodyHeight) "bodyHeight";
 
   // HeartRateMeasurement
   observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/heartrate' -> content.HeartRateMeasurement as heartrate then measurementParent(observation, heartrate) "heartrate";
@@ -33,7 +37,7 @@ group vitalSign(source observation : Observation, target content: Content) <<typ
   observation where $this.meta.profile='http://hl7.org/fhir/StructureDefinition/bp' -> content.BloodPressureMeasurement as bloodPressure then measurementParent(observation, bloodPressure), bloodPressure(observation, bloodPressure) "bloodPressure";
 }
 
-// parent, generic for all vital-signs
+// parent, generic for all vital-signs (except body weight/height)
 group measurementParent(source observation : Observation, target measurement: Measurement) <<types>> {
   observation.meta as m then refSourceSystem(m, measurement);
   observation.id as id  -> measurement.id = ('Observation/' & %id);
@@ -47,7 +51,7 @@ group measurementParent(source observation : Observation, target measurement: Me
     };
   };
 
-  // valueQuantity -> hasResult (only for bodyTemperature, bodyWeight, oxygenSaturation, heartrate)
+  // valueQuantity -> hasResult (only for bodyTemperature, oxygenSaturation, heartrate)
   observation.value as vq -> measurement.hasResult as result then {
     vq -> result.id = uuid(), result.hasQuantity as quantity then {
       vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
@@ -60,6 +64,28 @@ group measurementParent(source observation : Observation, target measurement: Me
         coding.code as c -> regularityCode.termid = c, regularityCode.iri = append('http://snomed.info/id/', c);
       };
     };
+  } "result";
+}
+
+// for body weight/height (hasResult has cardinality 1 instead of *)
+group measurementOneResult(source observation : Observation, target measurement: MeasurementOneResult) <<types>> {
+  observation.meta as m then refSourceSystem(m, measurement);
+  observation.id as id  -> measurement.id = ('Observation/' & %id);
+  observation.encounter as encounter -> measurement.hasAdministrativeCase = encounter;
+  observation.effectiveDateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;
+
+  // method (Snomed CT) -> hasMethodCode
+  observation.method as method then {
+    method.coding as coding where $this.system = 'http://snomed.info/sct' -> measurement.hasMethodCode as methodCode then {
+      coding.code as c -> methodCode.termid = c, methodCode.iri = append('http://snomed.info/id/', c);
+    };
+  };
+
+  // valueQuantity -> hasResult
+  observation.value as vq -> measurement.hasResult as result then {
+    vq -> result.id = uuid(), result.hasQuantity as quantity then {
+      vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
+    } "quantity";
   } "result";
 }
 
