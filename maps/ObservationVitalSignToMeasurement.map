@@ -13,6 +13,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRateMeasure
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRate" alias HeartRate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturationMeasurement" alias OxygenSaturationMeasurement as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturation" alias OxygenSaturation as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/MedicalDevice" alias MedicalDevice as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
@@ -51,6 +52,15 @@ group measurementParent(source observation : Observation, target measurement: Me
     };
   };
 
+  // device (contained) -> hasMedicalDevice
+  observation.contained as dev where $this.ofType(FHIR.Device)  -> measurement.hasMedicalDevice = create('MedicalDevice') as device, device.id = uuid() then {
+    dev.type as type then {
+      type.coding as coding where $this.system = 'http://snomed.info/sct' -> device.hasTypeCode as typeCode then {
+        coding.code as c -> typeCode.termid = c, typeCode.iri = append('http://snomed.info/id/', c);
+      };
+    };
+  };
+
   // valueQuantity -> hasResult (only for bodyTemperature, oxygenSaturation, heartrate)
   observation.value as vq -> measurement.hasResult as result then {
     vq -> result.id = uuid(), result.hasQuantity as quantity then {
@@ -78,6 +88,15 @@ group measurementOneResult(source observation : Observation, target measurement:
   observation.method as method then {
     method.coding as coding where $this.system = 'http://snomed.info/sct' -> measurement.hasMethodCode as methodCode then {
       coding.code as c -> methodCode.termid = c, methodCode.iri = append('http://snomed.info/id/', c);
+    };
+  };
+
+  // device (contained) -> hasMedicalDevice
+  observation.contained as dev where $this.ofType(FHIR.Device)  -> measurement.hasMedicalDevice = create('MedicalDevice') as device, device.id = uuid() then {
+    dev.type as type then {
+      type.coding as coding where $this.system = 'http://snomed.info/sct' -> device.hasTypeCode as typeCode then {
+        coding.code as c -> typeCode.termid = c, typeCode.iri = append('http://snomed.info/id/', c);
+      };
     };
   };
 

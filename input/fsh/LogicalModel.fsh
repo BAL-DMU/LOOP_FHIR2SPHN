@@ -142,6 +142,12 @@ Characteristics: #can-be-target
 * hasOriginLocation 0..1 SU Location "" ""
 * hasDischargeLocation 0..1 SU Location "" ""
 
+Logical: MedicalDevice
+Parent: Concept
+Title: "SPHN Medical Device"
+* hasTypeCode 0..1 SU Code "" ""
+* hasProductCode 0..1 SU Code "" ""
+
 Logical: Measurement
 Parent: Concept
 Title: "SPHN Measurement"
@@ -152,6 +158,7 @@ Title: "SPHN Measurement"
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasEndDateTime 0..1 SU dateTime "" ""
 * hasMethodCode 0..1 SU Code "" ""
+* hasMedicalDevice 0..1 SU MedicalDevice "" ""
 
 // Note: BodyWeight and BodyHeight have a hasResult with cardinality 1..1 whereas the others have 1..*.
 // Even if the cardinality is overwritten (restricted to 1..1) in the child,
@@ -167,6 +174,7 @@ Title: "SPHN Measurement (with only one hasResult)"
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasEndDateTime 0..1 SU dateTime "" ""
 * hasMethodCode 0..1 SU Code "" ""
+* hasMedicalDevice 0..1 SU MedicalDevice "" ""
 
 Logical: Unit
 Parent: Concept
