@@ -40,7 +40,7 @@ group labTest(source observation : Observation, target lab: LabTest) <<types>> {
   // code.coding -> hasCode
   observation.code as code then {
     code.coding as coding where $this.system = 'https://loinc.org' -> lab.hasCode as hasCoding then {
-      coding.code as c -> hasCoding.termid = c, hasCoding.iri = append('https://loinc.org/', c);
+      coding.code as c -> hasCoding.termid = c, hasCoding.iri = append('https://loinc.org/rdf/', c);
     };
   };
 
