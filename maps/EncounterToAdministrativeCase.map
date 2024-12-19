@@ -3,12 +3,12 @@ map "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministrativ
 conceptmap "cm-encounter-admitSource" {
   prefix s = "http://fhir.ch/ig/ch-core/ValueSet/bfs-medstats-17-admitsource"
   prefix t = "http://snomed.info/id"
-  s:1 == t:257688003        // Zuhause
-  s:2 == t:257688003        // Zuhause mit SPITEX Versorgung
+  s:1 == t:264362003        // Zuhause
+  s:2 == t:264362003        // Zuhause mit SPITEX Versorgung
   s:3 == t:285201006        // Krankenheim, Pflegeheim
   s:4 == t:257652008        // Altersheim, andere sozialmed. Institutionen
-  s:5 == t:702916001        // Psychiatrische Klinik, anderer Betrieb
-  s:55 == t:702916001       // Psychiatrische Abteilung/Klinik, gleicher Betrieb
+  s:5 == t:702914003        // Psychiatrische Klinik, anderer Betrieb
+  s:55 == t:702914003       // Psychiatrische Abteilung/Klinik, gleicher Betrieb
   s:6 == t:25731000087105   // anderes Krankenhaus (Akutspital) oder Geburtshaus
   s:66 == t:25731000087105  // Akutabteilung/-klinik, gleicher Betrieb
   s:7 == t:257656006        // Strafvollzugsanstalt
@@ -21,7 +21,7 @@ conceptmap "cm-encounter-admitSource" {
 conceptmap "cm-encounter-dischargedestination" {
   prefix s = "http://fhir.ch/ig/ch-core/ValueSet/bfs-medstats-28-dischargedestination"
   prefix t = "http://snomed.info/id"
-  s:1 == t:257688003        // Zuhause
+  s:1 == t:264362003        // Zuhause
   s:2 == t:285201006        // Krankenheim, Pflegeheim
   s:3 == t:257652008        // Altersheim, andere sozialmed. Institution
   s:4 == t:702914003        // Psychiatrische Klinik, anderer Betrieb
