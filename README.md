@@ -16,6 +16,8 @@ StructureDefinitions for the target LOOP schema is defined using [FHIR Shorthand
 
 An FML engine is required like [HAPI-FHIR Validator Cli](https://confluence.hl7.org/pages/viewpage.action?pageId=76158820#UsingtheFHIRMappingLanguage-runtransformsjavavalidatorRunTransformsviatheJavaValidatorJar) or [Matchbox](https://ahdis.github.io/matchbox/) (recommended)
 
+**Recommended versions:** Use at least 6.5.0 for HAPI-FHIR Validator Cli and 3.9.1 for Matchbox or later. These releases contain critical performance improvements required to transform large amount of data (see https://github.com/hapifhir/org.hl7.fhir.core/pull/1704) and corresponding issues [#1703](https://github.com/hapifhir/org.hl7.fhir.core/issues/1703) / [#1699](https://github.com/hapifhir/org.hl7.fhir.core/issues/1699))
+
 ## HAPI-FHIR Validator Cli
 * Download validator:
     * `wget https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar`
