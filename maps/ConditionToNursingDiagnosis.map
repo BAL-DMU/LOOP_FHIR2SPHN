@@ -19,7 +19,9 @@ group nursingDiagnosis(source condition : Condition, target content: Content) <<
     // code -> hasCode
     condition.code as code then {
       code.coding as coding where $this.system = 'http://terminology.hl7.org/CodeSystem/nanda' -> diagnosis.hasCode as tgtCode then {
-        coding.code as c -> tgtCode.termid = c, tgtCode.iri = append('https://biomedit.ch/rdf/sphn-resource/nanda/', c);
+        coding.code as c -> tgtCode.id = uuid(), tgtCode.hasIdentifier = c;
+        coding.system as s -> tgtCode.hasCodingSystemAndVersion = s;
+        coding.display as d -> tgtCode.hasName = d;
       };
     };
 
