@@ -53,7 +53,7 @@ Logical: LoopSphn
 Parent: Base
 Title: "LOOP SPHN"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
-//* ^extension[http://hl7.org/fhir/tools/StructureDefinition/json-suppress-resourcetype].valueBoolean = true
+* ^extension[http://hl7.org/fhir/tools/StructureDefinition/json-suppress-resourcetype].valueBoolean = true
 * content 1..1 SU Content "" "List of SPHN concepts"
 * DataRelease 1..1 SU DataRelease "" ""
 * DataProvider 1..1 SU DataProvider "" ""
