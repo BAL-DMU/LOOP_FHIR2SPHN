@@ -51,18 +51,13 @@ group labTest(source observation : Observation, target lab: LabTest) <<types>> {
     // valueString -> hasStringValue
     observation.value : string as value -> result.hasStringValue = value "valueString";
     // valueQuantity -> hasQuantity
-    observation.value : Quantity as value -> result.hasQuantity as quantity then {
-      value.value as v ->  quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(value, unit);
-    } "valueQuantity";
+    observation.value : Quantity as v -> result.hasQuantity as q then quantity(v, q);
 
     // referenceRange -> hasNumericalReference.hasLowerLimit/hasUpperLimit
     observation.referenceRange as range -> result.hasNumericalReference = create('ReferenceRangeOrValue') as ref, ref.id = uuid(), ref.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ReferenceRange' then {
-      range.low as low -> ref.hasLowerLimit as lowerLimit then limit(low, lowerLimit);
-      range.high as high -> ref.hasUpperLimit as upperLimit then limit(high, upperLimit);
+      range.low as low -> ref.hasLowerLimit as lowerLimit then quantity(low, lowerLimit);
+      range.high as high -> ref.hasUpperLimit as upperLimit then quantity(high, upperLimit);
     };
   } "hasResult";
 }
 
-group limit(source vq : Quantity, target limit: Quantity) {
-  vq.value as v -> limit.id = uuid(), limit.hasValue = v, limit.hasUnit as unit then unit(vq, unit);
-}

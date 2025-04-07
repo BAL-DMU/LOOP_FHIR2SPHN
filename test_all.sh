@@ -4,7 +4,7 @@
 # transform all data in testdata
 # 
 # Compare out-ref to out-new:
-# 	diff --ignore-matching-lines='"id"\s:' -r temp/out-ref temp/out-new
+# 	diff --ignore-matching-lines='"id"\s:' --ignore-matching-lines='"reference"\s:' -r temp/out-ref temp/out-new
 
 URL="http://localhost:8080/matchboxv3/fhir"
 

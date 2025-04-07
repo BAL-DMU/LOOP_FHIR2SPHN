@@ -15,13 +15,8 @@ imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 // Utils
 group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment){
- vq -> assessment.hasResult = create('AssessmentResult') as result then {
-   vq -> result.id = uuid(), result.hasQuantity as quantity then {
-     vq.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit(vq, unit);
-   } "ValueQuantity";
- } "AssessmentResult";
+ vq -> assessment.hasResult = create('AssessmentResult') as result, result.hasQuantity as q then quantity(vq, q) "AssessmentResult";
 }
-
 
 group codingToCode(source coding, target trg){
  coding as srcCoding where $this.system = 'http://snomed.info/sct' -> trg.hasCode as trgCode then {
@@ -29,7 +24,6 @@ group codingToCode(source coding, target trg){
    trgCode.iri = append('http://snomed.info/id/', termid);
  } "codingToCode";
 }
-//
 
 // Main mapping Observation -> AssessmentEvent
 group assessmentEvent(source observation : Observation, target content : Content) <<types>> {
