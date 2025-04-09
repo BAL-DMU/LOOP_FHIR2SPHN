@@ -1,24 +1,23 @@
+Logical: Concept
+Parent: Element
+Title: "SPHN Concept"
+* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Element"
+* ^abstract = true
+
 Invariant: code-iri-or-codingSystem
 Description: "SPHN Codes can be given either via iri & termid OR via hasCodingSystemAndVersion & hasIdentifier, but not both."
 Severity: #error
 Expression: "(iri.exists() and termid.exists()) xor (hasCodingSystemAndVersion.exists() and hasIdentifier.exists())"
 
 Logical: Code
-Parent: Base
+Parent: Concept
 Title: "SPHN Code Type"
-* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Element"
 * obeys code-iri-or-codingSystem
 * iri 0..1 SU uri "" ""
 * termid 0..1 SU string "" ""
 * hasCodingSystemAndVersion 0..1 SU string "" ""
 * hasIdentifier 0..1 SU uri "" ""
 * hasName 0..1 SU string "" ""
-
-Logical: Concept
-Parent: Element
-Title: "SPHN Concept"
-* ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Element"
-* ^abstract = true
 
 Logical: DataRelease
 Parent: Concept
@@ -182,11 +181,17 @@ Parent: Concept
 Title: "SPHN Unit"
 * hasCode 1..1 SU Code "" ""
 
+Logical: Comparator
+Parent: Concept
+Title: "SPHN Comparator ValueSet"
+* iri 1..1 SU string "" ""
+
 Logical: Quantity
 Parent: Concept
 Title: "SPHN Quantity"
 * hasValue 1..1 SU decimal "" ""
 * hasUnit 1..1 SU Unit "" ""
+* hasComparator 0..1 SU Comparator "" ""
 
 Logical: Result
 Parent: Concept

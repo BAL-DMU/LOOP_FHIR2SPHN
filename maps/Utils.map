@@ -1,5 +1,15 @@
 map "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils" = "Utils"
 
+conceptmap "cm-comparator-sphn" {
+  prefix s = "http://hl7.org/fhir/ValueSet/quantity-comparator"
+  prefix t = "https://biomedit.ch/rdf/sphn-schema/sphn/individual"
+  
+  s:"<" == t:"LessThan"
+  s:"<=" == t:"LessThanOrEqual"
+  s:">=" == t:"GreaterThanOrEqual"
+  s:">" == t:"GreaterThan"
+}
+
 // Map UCUM to SPHN proprietary units
 // generated from ucum.xlsx
 conceptmap "cm-ucum-sphn" {
@@ -997,6 +1007,11 @@ group refSourceSystem(source meta : Meta, target tgt : Concept) {
 group quantity(source qSrc : Quantity, target qTgt: Quantity) {
   qSrc.value as v ->  qTgt.id = uuid(), qTgt.hasValue = v;
   
+  // comparator -> hasComparator
+  qSrc.comparator as c -> qTgt.hasComparator as comp,
+    translate(c, '#cm-comparator-sphn') as cm,
+    comp.iri = (%cm.system & '#' & %cm.code);
+
   // code -> Unit
   qSrc.code as c -> qTgt.hasUnit as unit,
     unit.hasCode as code,
