@@ -63,7 +63,7 @@ group measurementParent(source observation : Observation, target measurement: Me
 
   // valueQuantity -> hasResult (only for bodyTemperature, oxygenSaturation, heartrate)
   observation.value as vq -> measurement.hasResult as result then {
-    vq -> result.hasQuantity as q then quantity(vq, q) "quantity";
+    vq -> result.id = uuid(), result.hasQuantity as q then quantity(vq, q) "quantity";
 
     // interpretation -> hasRegularityCode (only HeartRate)
     // Note: We have to add it here because it is part of hasResult
@@ -99,7 +99,7 @@ group measurementOneResult(source observation : Observation, target measurement:
   };
 
   // valueQuantity -> hasResult
-  observation.value as vq -> measurement.hasResult as result, result.hasQuantity as q then quantity(vq, q); 
+  observation.value as vq -> measurement.hasResult as result, result.id = uuid(), result.hasQuantity as q then quantity(vq, q);
 }
 
 group bloodPressure(source observation : Observation, target bloodPressure: BloodPressureMeasurement) <<types>> {
@@ -115,13 +115,13 @@ group bloodPressure(source observation : Observation, target bloodPressure: Bloo
     component.code as code where $this.coding.system = 'http://loinc.org' then {
       component.value as v then {
         // LOINC 8480-6 -> hasSystolicPressure
-        code.coding as coding  where $this.code = '8480-6' -> result.hasSystolicPressure as bp then quantity(v, bp);
+        code.coding as coding  where $this.code = '8480-6' -> result.hasSystolicPressure as bp, bp.id = uuid() then quantity(v, bp);
 
         // LOINC 8462-4 -> hasDiastolicPressure
-        code.coding as coding  where $this.code = '8462-4' -> result.hasDiastolicPressure as bp then quantity(v, bp);
+        code.coding as coding  where $this.code = '8462-4' -> result.hasDiastolicPressure as bp, bp.id = uuid() then quantity(v, bp);
 
         // LOINC 8478-0 -> hasMeanPressure
-        code.coding as coding  where $this.code = '8478-0' -> result.hasMeanPressure as bp then quantity(v, bp);
+        code.coding as coding  where $this.code = '8478-0' -> result.hasMeanPressure as bp, bp.id = uuid() then quantity(v, bp);
       };
     };
   };

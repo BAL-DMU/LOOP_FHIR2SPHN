@@ -1014,6 +1014,7 @@ group quantity(source qSrc : Quantity, target qTgt: Quantity) {
 
   // code -> Unit
   qSrc.code as c -> qTgt.hasUnit as unit,
+    unit.id = uuid(),
     unit.hasCode as code,
     translate(c, '#cm-ucum-sphn') as cm,
     code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code);

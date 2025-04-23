@@ -15,7 +15,7 @@ imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 // Utils
 group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment){
- vq -> assessment.hasResult = create('AssessmentResult') as result, result.hasQuantity as q then quantity(vq, q) "AssessmentResult";
+ vq -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasQuantity as q then quantity(vq, q) "AssessmentResult";
 }
 
 group codingToCode(source coding, target trg){
