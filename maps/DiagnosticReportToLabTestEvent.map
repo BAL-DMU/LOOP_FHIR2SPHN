@@ -48,9 +48,10 @@ group labTest(source observation : Observation, target lab: LabTest) <<types>> {
     observation.value : Quantity as v -> result.hasQuantity as q then quantity(v, q);
 
     // referenceRange -> hasNumericalReference.hasLowerLimit/hasUpperLimit
-    observation.referenceRange as range -> result.hasNumericalReference = create('ReferenceRangeOrValue') as ref, ref.id = uuid(), ref.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ReferenceRange' then {
-      range.low as low -> ref.hasLowerLimit as lowerLimit then quantity(low, lowerLimit);
-      range.high as high -> ref.hasUpperLimit as upperLimit then quantity(high, upperLimit);
+    // Note: only create limit if we have a unit (code)
+    observation.referenceRange as range where (range.low.code or range.high.code) -> result.hasNumericalReference = create('ReferenceRangeOrValue') as ref, ref.id = uuid(), ref.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ReferenceRange' then {
+      range.low as low where low.code -> ref.hasLowerLimit as lowerLimit then quantity(low, lowerLimit);
+      range.high as high where high.code -> ref.hasUpperLimit as upperLimit then quantity(high, upperLimit);
     };
   } "hasResult";
 }
