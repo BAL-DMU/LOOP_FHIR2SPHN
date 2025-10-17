@@ -81,6 +81,7 @@ Title: "List of SPHN concepts"
 * DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
 * AssessmentEvent 0..* SU AssessmentEvent "" ""
 * NursingDiagnosis 0..* SU NursingDiagnosis "" ""
+* BilledDiagnosis 0..* SU BilledDiagnosis "" ""
 * Age 0..* SU Age "" ""
 
 
@@ -446,3 +447,8 @@ Title: "SPHN Diagnosis"
 Logical: NursingDiagnosis
 Parent: Diagnosis
 Title: "SPHN Nursing Diagnosis"
+
+Logical: BilledDiagnosis
+Parent: Diagnosis
+Title: "SPHN Billed Diagnosis"
+* hasRankCode 0..1 SU Code "" ""
