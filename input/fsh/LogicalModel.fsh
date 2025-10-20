@@ -82,6 +82,7 @@ Title: "List of SPHN concepts"
 * AssessmentEvent 0..* SU AssessmentEvent "" ""
 * NursingDiagnosis 0..* SU NursingDiagnosis "" ""
 * BilledDiagnosis 0..* SU BilledDiagnosis "" ""
+* BilledProcedure 0..* SU BilledProcedure "" ""
 * Age 0..* SU Age "" ""
 
 
@@ -210,6 +211,11 @@ Parent: Concept
 Title: "SPHN Body Site"
 * hasCode 1..1 SU Code "" ""
 * hasLaterality 0..1 SU Laterality "" ""
+
+Logical: Intent
+Parent: Concept
+Title: "SPHN Intent"
+* hasCode 1..1 SU Code "" ""
 
 Logical: BodyTemperature
 Parent: Result
@@ -451,4 +457,21 @@ Title: "SPHN Nursing Diagnosis"
 Logical: BilledDiagnosis
 Parent: Diagnosis
 Title: "SPHN Billed Diagnosis"
+* hasRankCode 0..1 SU Code "" ""
+
+Logical: MedicalProcedure
+Parent: Concept
+Title: "SPHN Medical Procedure"
+* ^abstract = true
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasCode 1..1 SU Code "" ""
+* hasBodySite 0..1 SU BodySite "" ""
+* hasIntent 0..1 SU Intent "" ""
+
+Logical: BilledProcedure
+Parent: MedicalProcedure
+Title: "SPHN Billed Procedure"
 * hasRankCode 0..1 SU Code "" ""

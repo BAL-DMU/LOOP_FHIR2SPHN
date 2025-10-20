@@ -4,6 +4,8 @@ uses "http://hl7.org/fhir/StructureDefinition/Claim" alias Claim as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BilledDiagnosis" alias BilledDiagnosis as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BilledProcedure" alias BilledProcedure as target
+
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
@@ -34,4 +36,30 @@ group claimBilled(source claim : Claim, target content: Content) <<types>> {
     diagnosis.sequence as sequence where $this = 1 -> diag.hasRankCode as code, code.termid = '63161005', code.iri = 'http://snomed.info/id/63161005';
     diagnosis.sequence as sequence where $this != 1 -> diag.hasRankCode as code, code.termid = '1354479004', code.iri = 'http://snomed.info/id/1354479004';
   } "billed diagnosis";
+
+  // Claim.procedure -> BilledProcedure
+  claim.procedure as procedure -> content.BilledProcedure = create('BilledProcedure') as proc then {
+    // Claim.Meta -> SourceSytem
+    claim.meta as m then refSourceSystem(m, proc);
+
+    // Claim.id & procedure.sequence -> id
+    procedure.sequence as sequence -> proc.id = ('Claim/' & %claim.id & '-' & %sequence.toString()) ;
+
+    // Claim.encounter -> hasAdministrativeCase
+    claim.encounter as encounter -> proc.hasAdministrativeCase = encounter;
+
+    // Claim.created -> hasStartDateTime
+    claim.created as created -> proc.hasStartDateTime = created;
+
+    // procedureCodeableConcept -> hasCode
+    procedure.procedureCodeableConcept as code then {
+      code.coding as coding -> proc.hasCode as tgtCode then {
+        coding.code as c -> tgtCode.termid = c, tgtCode.iri = ('https://biomedit.ch/rdf/sphn-resource/chop/' & c) "i";
+      };
+    };
+
+    // sequence -> hasRankCode [1 = Principal, else Complementary]
+    procedure.sequence as sequence where $this = 1 -> proc.hasRankCode as code, code.termid = '63161005', code.iri = 'http://snomed.info/id/63161005';
+    procedure.sequence as sequence where $this != 1 -> proc.hasRankCode as code, code.termid = '1354479004', code.iri = 'http://snomed.info/id/1354479004';
+  } "billed procedure";
 }
