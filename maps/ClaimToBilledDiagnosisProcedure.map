@@ -19,8 +19,10 @@ group claimBilled(source claim : Claim, target content: Content) <<types>> {
     // Claim.id & diagnosis.sequence -> id
     diagnosis.sequence as sequence -> diag.id = ('Claim/' & %claim.id & '-' & %sequence.toString()) ;
 
-    // Claim.encounter -> hasAdministrativeCase
-    claim.encounter as encounter -> diag.hasAdministrativeCase = encounter;
+    // Claim.extension[encounter-id] -> hasAdministrativeCase
+    claim.extension as ext where $this.url = 'http://research.balgrist.ch/fhir/StructureDefinition/encounter-id' then {
+      ext.valueReference as encounter -> diag.hasAdministrativeCase = encounter;
+    };
 
     // Claim.created -> hasRecordDateTime
     claim.created as created -> diag.hasRecordDateTime = created;
@@ -45,8 +47,10 @@ group claimBilled(source claim : Claim, target content: Content) <<types>> {
     // Claim.id & procedure.sequence -> id
     procedure.sequence as sequence -> proc.id = ('Claim/' & %claim.id & '-' & %sequence.toString()) ;
 
-    // Claim.encounter -> hasAdministrativeCase
-    claim.encounter as encounter -> proc.hasAdministrativeCase = encounter;
+    // Claim.extension[encounter-id] -> hasAdministrativeCase
+    claim.extension as ext where $this.url = 'http://research.balgrist.ch/fhir/StructureDefinition/encounter-id' then {
+      ext.valueReference as encounter -> proc.hasAdministrativeCase = encounter;
+    };
 
     // Claim.created -> hasStartDateTime
     claim.created as created -> proc.hasStartDateTime = created;
