@@ -75,7 +75,6 @@ hapi:
 matchbox:
   fhir:
     context:
-      fhirVersion: 4.0.1
       txServer: n/a
       onlyOneEngine: true
 #      igsPreloaded: ch.fhir.ig.ch-core#4.0.0-ballot

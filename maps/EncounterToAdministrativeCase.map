@@ -49,6 +49,8 @@ uses "http://hl7.org/fhir/StructureDefinition/Encounter" alias Encounter as sour
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeCase" alias AdministrativeCase as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Location" alias Location as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Admission" alias Admission as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Discharge" alias Discharge as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/CareHandling" alias CareHandling as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Concept" alias Concept as target
 
@@ -61,10 +63,19 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
     encounter.id as id -> case.id = ('Encounter/' & %id);
     encounter.meta as m then refSourceSystem(m, case);
     
-    // period -> hasAdmissionDateTime / hasDischargeDateTime
-    encounter.period as period then {
-      period.start as start -> case.hasAdmissionDateTime = start;
-      period.end as end -> case.hasDischargeDateTime = end;
+    // period -> hasAdmission
+    encounter.period as period -> case.hasAdmission = create('Admission') as admission, admission.id = uuid() then {
+      period.start as start -> admission.hasDateTime = start;
+      
+      encounter.hospitalization as hospitalization then {
+        // admitSource -> hasOriginLocation
+        hospitalization.admitSource as admitSource then {
+          admitSource.coding first as coding -> admission.hasOriginLocation = create('Location') as location then {
+            coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-admitSource') as cm,
+              location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "adminSource_code";
+          };
+        };
+      };
     };
 
     // class -> CareHandling
@@ -74,20 +85,19 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
         care.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "class";
     };
 
-    encounter.hospitalization as hospitalization then {
-      // adminSource -> hasOriginLocation
-      hospitalization.admitSource as admitSource then {
-        admitSource.coding first as coding -> case.hasOriginLocation = create('Location') as location then {
-          coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-admitSource') as cm,
-            location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "adminSource_code";
-        };
-      };
+    // period.stop -> hasDischarge
+    encounter.period as period then {
+      period.end as end -> case.hasDischarge = create('Discharge') as discharge, discharge.id = uuid() then {
+        end -> discharge.hasDateTime = end "period.end";
 
-      // extension [dischargedestination] -> hasDischargeLocation
-      hospitalization.extension as ext where $this.url = 'http://fhir.ch/ig/ch-core/StructureDefinition/ch-ext-bfs-ms-dischargedestination' -> case.hasDischargeLocation = create('Location') as location then {
-        ext.valueCoding as coding then {
-          coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-dischargedestination') as cm,
-            location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "dischargedestination";
+        encounter.hospitalization as hospitalization then {
+          // extension [dischargedestination] -> hasDischargeLocation
+          hospitalization.extension as ext where $this.url = 'http://fhir.ch/ig/ch-core/StructureDefinition/ch-ext-bfs-ms-dischargedestination' -> discharge.hasTargetLocation = create('Location') as location then {
+            ext.valueCoding as coding then {
+              coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-dischargedestination') as cm,
+                location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "dischargedestination";
+            };
+          };
         };
       };
     };

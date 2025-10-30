@@ -34,6 +34,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Consent" alias C
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BirthDate" alias BirthDate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DeathDate" alias DeathDate as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Death" alias Death as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Birth" alias Birth as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeSex" alias AdministrativeSex as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
@@ -110,25 +111,26 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
       sex.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "code";
   };
 
-  // birthDate -> Content.BirthDate
-  patient.birthDate as birthDate -> content.BirthDate = create('BirthDate') as bd then {
-    patient.meta as m then refSourceSystem(m, bd);
-    birthDate -> bd.id = uuid(),
-      // TODO: why can't we use yearOf(), monthOf()?
-      bd.hasYear = evaluate(birthDate, toString().substring(0, 4)),
-      bd.hasMonth = evaluate(birthDate, '--' & toString().substring(5, 2)),
-      bd.hasDay = evaluate(birthDate, '---' & toString().substring(8, 2)) "birthdate";
+  // birthDate -> Content.Birth
+  patient.birthDate as birthDate -> content.Birth = create('Birth') as birth then {
+    patient.meta as m then refSourceSystem(m, birth);
+    birthDate -> birth.id = uuid() "id";
+    birthDate -> birth.hasDate = create('BirthDate') as bd then {
+      birthDate -> bd.id = uuid() as duuid,
+        // TODO: why can't we use yearOf(), monthOf()?
+        bd.hasYear = evaluate(birthDate, toString().substring(0, 4)),
+        bd.hasMonth = evaluate(birthDate, '--' & toString().substring(5, 2)),
+        bd.hasDay = evaluate(birthDate, '---' & toString().substring(8, 2)) "birthdate";
+    } "birthDate";
   };
 
-  // deceased[Boolean|DateTime] -> Content.Death / Content.DeathDate
+  // deceased[Boolean|DateTime] -> Content.Death
   patient.deceased as deceased where $this = true or $this is DateTime -> content.Death = create('Death') as death then {
     patient.meta as m then refSourceSystem(m, death);
     deceased -> death.id = uuid() "id";
-    // deceasedDateTime -> DeathDate
-    deceased where $this is DateTime -> content.DeathDate = create('DeathDate') as deathDate then {
-      patient.meta as m then refSourceSystem(m, deathDate);
+    // deceasedDateTime -> hasDate
+    deceased where $this is DateTime -> death.hasDate = create('DeathDate') as deathDate then {
       deceased -> deathDate.id = uuid() as duuid,
-        death.hasDate = create('Reference') as ref, ref.reference = duuid,
         deathDate.hasYear = evaluate(deceased, toString().substring(0, 4)),
         deathDate.hasMonth = evaluate(deceased, '--' & toString().substring(5, 2)),
         deathDate.hasDay = evaluate(deceased, '---' & toString().substring(8, 2)) "deceased";

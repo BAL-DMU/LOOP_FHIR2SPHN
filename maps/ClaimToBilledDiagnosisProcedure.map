@@ -62,8 +62,8 @@ group claimBilled(source claim : Claim, target content: Content) <<types>> {
       };
     };
 
-    // sequence -> hasRankCode [1 = Principal, else Complementary]
+    // sequence -> hasRankCode [1 = Principal, else Supplementary]
     procedure.sequence as sequence where $this = 1 -> proc.hasRankCode as code, code.termid = '63161005', code.iri = 'http://snomed.info/id/63161005';
-    procedure.sequence as sequence where $this != 1 -> proc.hasRankCode as code, code.termid = '1354479004', code.iri = 'http://snomed.info/id/1354479004';
+    procedure.sequence as sequence where $this != 1 -> proc.hasRankCode as code, code.termid = '1354474009', code.iri = 'http://snomed.info/id/1354474009';
   } "billed procedure";
 }

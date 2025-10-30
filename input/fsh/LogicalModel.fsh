@@ -62,9 +62,8 @@ Logical: Content
 Parent: Base
 Title: "List of SPHN concepts"
 * ^baseDefinition = "http://hl7.org/fhir/StructureDefinition/Base"
-* BirthDate 0..* SU BirthDate "" ""
+* Birth 0..* SU Birth "" ""
 * Death 0..* SU Death "" ""
-* DeathDate 0..* SU DeathDate "" ""
 * AdministrativeSex 0..* SU AdministrativeSex "" ""
 * AdministrativeCase 0..* SU AdministrativeCase "" ""
 * BodyTemperatureMeasurement 0..* SU BodyTemperatureMeasurement "" ""
@@ -98,13 +97,31 @@ Title: "SPHN Care Handling"
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasTypeCode 1..1 SU Code "" ""
 
+Logical: Admission
+Parent: Concept
+Title: "SPHN Admission"
+* hasDateTime 1..1 SU dateTime "" ""
+* hasOriginLocation 0..1 SU Location "" ""
+
+Logical: Discharge
+Parent: Concept
+Title: "SPHN Discharge "
+* hasDateTime 0..1 SU dateTime "" ""
+* hasTargetLocation 0..1 SU Location "" ""
+
 Logical: BirthDate
 Parent: Concept
 Title: "SPHN Birth Date"
-* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasYear 1..1 SU string "" ""
 * hasMonth 0..1 SU string "" ""
 * hasDay 0..1 SU string "" ""
+
+Logical: Birth
+Parent: Concept
+Title: "SPHN Birth"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasDate 0..1 SU BirthDate "" ""
 
 Logical: DeathDate
 Parent: Concept
@@ -114,7 +131,6 @@ Characteristics: #can-be-target
 * hasMonth 0..1 SU string "" ""
 * hasDay 0..1 SU string "" ""
 * hasTime 0..1 SU time "" ""
-* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 
 Logical: Death
 Parent: Concept
@@ -122,7 +138,7 @@ Title: "SPHN Death"
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
 * hasReportDateTime 0..1 SU dateTime "" ""
-* hasDate 0..1 SU Reference(DeathDate) "" ""
+* hasDate 0..1 SU DeathDate "" ""
 * hasCircumstanceCode 0..1 SU Code "" ""
 * hasConditionCode 0..1 SU Code "" ""
 
@@ -139,10 +155,8 @@ Title: "SPHN Administrative Case"
 Characteristics: #can-be-target
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasCareHandling 0..1 SU CareHandling "" ""
-* hasAdmissionDateTime 1..1 SU dateTime "" ""
-* hasDischargeDateTime 0..1 SU dateTime "" ""
-* hasOriginLocation 0..1 SU Location "" ""
-* hasDischargeLocation 0..1 SU Location "" ""
+* hasAdmission 1..1 SU Admission "" ""
+* hasDischarge 0..1 SU Discharge "" ""
 
 Logical: MedicalDevice
 Parent: Concept
