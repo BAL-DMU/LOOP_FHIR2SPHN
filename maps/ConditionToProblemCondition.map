@@ -920,6 +920,25 @@ conceptmap "cm-icd10" {
   s:"U55.1" == t:"U55.1-"
   s:"U55.2" == t:"U55.2-"
   s:"U55.3" == t:"U55.3-"
+  // PUK-specific
+  s:"B18.8" == t:"B18.8-"
+  s:"B34.8" == t:"B34.8-"
+  s:"B48.8" == t:"B48.8-"
+  s:"B58.9" == t:"B58.9-"
+  s:"B60.8" == t:"B60.8-"
+  s:"E78.8" == t:"E78.8-"
+  s:"G90.8" == t:"G90.8-"
+  s:"I21.4" == t:"I21.4-"
+  s:"I27.0" == t:"I27.0-"
+  s:"J45.0" == t:"J45.0-"
+  s:"J45.1" == t:"J45.1-"
+  s:"J45.8" == t:"J45.8-"
+  s:"J45.9" == t:"J45.9-"
+  s:"J84.1" == t:"J84.1-"
+  s:"J84.8" == t:"J84.8-"
+  s:"K86.1" == t:"K86.1-"
+  s:"N51." == t:"N51.-"
+  s:"S02.4" == t:"S02.4-"
 }
 
 uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as source
