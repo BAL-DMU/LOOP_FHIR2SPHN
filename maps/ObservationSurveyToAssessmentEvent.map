@@ -37,9 +37,13 @@ group assessmentEvent(source observation : Observation, target content : Content
    // observation.code -> Assessment
    observation.code as observation_code -> assessmentEvent.hasAssessment = create('Assessment') as assessment, assessment.id = uuid() then {
      observation_code.coding as coding -> assessment then codingToCode(coding, assessment);
-     observation_code.coding as coding then {
-       coding.display as d -> assessment.hasName = d;
-     };
+     // hasName: prefer observation_code.text, fallback to coding.display
+     observation_code.text as t -> assessment.hasName = t;
+     observation_code where $this.text.exists().not() then {
+       observation_code.coding as coding then {
+         coding.display as d -> assessment.hasName = d;
+       } "hasNameFromDisplay";
+     } "hasNameFallback";
 
      // valueCodeableConcept -> AssessmentResult/hasCode
      observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
@@ -60,14 +64,13 @@ group assessmentEvent(source observation : Observation, target content : Content
        // coding -> Components/hasCode
        comp.code as srcCode then {
          srcCode.coding as coding -> component then codingToCode(coding, component);
-         srcCode.coding as coding then {
-           coding.display as d -> component.hasName = d;
-         };
-
-         // Handle components without SNOMED code
-         srcCode.coding as srcCoding where $this.system = 'https://www.biomedit.ch/rdf/sphn-schema/sphn#AssessmentComponent' then {
-           srcCoding.display as d -> component.hasName = d;
-         };
+         // hasName: prefer srcCode.text, fallback to coding.display
+         srcCode.text as t -> component.hasName = t;
+         srcCode where $this.text.exists().not() then {
+           srcCode.coding as coding then {
+             coding.display as d -> component.hasName = d;
+           } "componentHasNameFromDisplay";
+         } "componentHasNameFallback";
        };
 
        // Component results
