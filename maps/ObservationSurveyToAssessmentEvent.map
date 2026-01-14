@@ -25,6 +25,23 @@ group codingToCode(source coding, target trg){
  } "codingToCode";
 }
 
+// Helper to populate Assessment result from observation
+// Note: Uses polymorphic obs.value access since obs.valueQuantity/obs.valueCodeableConcept
+// don't resolve correctly when observation is passed as a group parameter
+group populateAssessmentResult(source obs: Observation, target assessment: Assessment) {
+  // value[x] as CodeableConcept -> AssessmentResult/hasCode
+  obs.value as vcc where $this.is(CodeableConcept) -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
+    vcc.coding as coding -> result then codingToCode(coding, result);
+    // valueCodeableConcept/extension/ValueQuantity -> Assessment/hasQuantity
+    vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
+      ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
+    };
+  } "valueCodeableConcept";
+
+  // value[x] as Quantity -> AssessmentResult/hasQuantity
+  obs.value as vq where $this.is(Quantity) -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasQuantity as q then quantity(vq, q) "valueQuantity";
+}
+
 // Main mapping Observation -> AssessmentEvent
 group assessmentEvent(source observation : Observation, target content : Content) <<types>> {
  observation -> content.AssessmentEvent = create('AssessmentEvent') as assessmentEvent then {
@@ -45,19 +62,8 @@ group assessmentEvent(source observation : Observation, target content : Content
        } "hasNameFromDisplay";
      } "hasNameFallback";
 
-     // valueCodeableConcept -> AssessmentResult/hasCode
-     observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
-       vcc.coding as coding -> result then codingToCode(coding, result);
-
-       // valueCodeableConcept/extension/ValueQuantity  -> Assessment/hasQuantity
-       // present if result is available as code and value
-       vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
-         ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
-       };
-     } "valueCodeableConcept";
-
-     // valueQuantity -> AssessmentResult/hasQuantity
-     observation.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
+     // Populate assessment result (valueCodeableConcept or valueQuantity)
+     observation -> assessment then populateAssessmentResult(observation, assessment) "assessmentResult";
  
      // Component -> Assessment/Component
      observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component, component.id = uuid() then {
