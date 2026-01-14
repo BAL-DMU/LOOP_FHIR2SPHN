@@ -13,12 +13,12 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentEvent"
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
-// Utils
-group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment){
+// Helper groups
+group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment) {
  vq -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasQuantity as q then quantity(vq, q) "AssessmentResult";
 }
 
-group codingToCode(source coding, target trg){
+group codingToCode(source coding, target trg) {
  coding as srcCoding where $this.system = 'http://snomed.info/sct' -> trg.hasCode as trgCode then {
    srcCoding.code as c -> trgCode.termid = c as termid,
    trgCode.iri = append('http://snomed.info/id/', termid);
@@ -69,9 +69,9 @@ group assessmentEvent(source observation : Observation, target content : Content
        } "hasNameFromDisplay";
      } "hasNameFallback";
 
-     // Populate assessment result (valueCodeableConcept or valueQuantity)
+     // Populate assessment result (valueCodeableConcept, valueQuantity, or valueString)
      observation -> assessment then populateAssessmentResult(observation, assessment) "assessmentResult";
- 
+
      // Component -> Assessment/Component
      observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component, component.id = uuid() then {
        // coding -> Components/hasCode
@@ -86,11 +86,10 @@ group assessmentEvent(source observation : Observation, target content : Content
          } "componentHasNameFallback";
        };
 
-       // Component results
-       //  valueCodeableConcept
+       // Component results: valueCodeableConcept
        comp.valueCodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
          vcc.coding as coding -> result then codingToCode(coding, result);
-       
+
          // valueQuantity extension
          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
            ext.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
@@ -100,7 +99,7 @@ group assessmentEvent(source observation : Observation, target content : Content
            ext.valueString as vs -> result.hasStringValue = vs;
          };
        } "compValueCodeableConcept";
-       
+
        // Standalone valueQuantity
        comp.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
 
