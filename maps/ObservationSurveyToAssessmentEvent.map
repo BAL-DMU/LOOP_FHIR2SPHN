@@ -36,6 +36,10 @@ group populateAssessmentResult(source obs: Observation, target assessment: Asses
     vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
       ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
     };
+    // valueCodeableConcept/extension/ValueString -> AssessmentResult/hasStringValue
+    vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueString" then {
+      ext.valueString as vs -> result.hasStringValue = vs;
+    };
   } "valueCodeableConcept";
 
   // value[x] as Quantity -> AssessmentResult/hasQuantity
@@ -90,6 +94,10 @@ group assessmentEvent(source observation : Observation, target content : Content
          // valueQuantity extension
          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
            ext.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
+         };
+         // valueString extension
+         vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueString" then {
+           ext.valueString as vs -> result.hasStringValue = vs;
          };
        } "compValueCodeableConcept";
        
