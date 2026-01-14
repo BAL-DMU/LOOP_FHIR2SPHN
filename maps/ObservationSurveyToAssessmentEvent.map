@@ -13,16 +13,40 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentEvent"
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
-// Utils
-group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment){
+// Helper groups
+group resultValueQuantityToAssessmentResult(source vq: Quantity, target assessment: Assessment) {
  vq -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasQuantity as q then quantity(vq, q) "AssessmentResult";
 }
 
-group codingToCode(source coding, target trg){
+group codingToCode(source coding, target trg) {
  coding as srcCoding where $this.system = 'http://snomed.info/sct' -> trg.hasCode as trgCode then {
    srcCoding.code as c -> trgCode.termid = c as termid,
    trgCode.iri = append('http://snomed.info/id/', termid);
  } "codingToCode";
+}
+
+// Helper to populate Assessment result from observation
+// Note: Uses polymorphic obs.value access since obs.valueQuantity/obs.valueCodeableConcept
+// don't resolve correctly when observation is passed as a group parameter
+group populateAssessmentResult(source obs: Observation, target assessment: Assessment) {
+  // value[x] as CodeableConcept -> AssessmentResult/hasCode
+  obs.value as vcc where $this.is(CodeableConcept) -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
+    vcc.coding as coding -> result then codingToCode(coding, result);
+    // valueCodeableConcept/extension/ValueQuantity -> Assessment/hasQuantity
+    vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
+      ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
+    };
+    // valueCodeableConcept/extension/ValueString -> AssessmentResult/hasStringValue
+    vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueString" then {
+      ext.valueString as vs -> result.hasStringValue = vs;
+    };
+  } "valueCodeableConcept";
+
+  // value[x] as Quantity -> AssessmentResult/hasQuantity
+  obs.value as vq where $this.is(Quantity) -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasQuantity as q then quantity(vq, q) "valueQuantity";
+
+  // value[x] as String -> AssessmentResult/hasStringValue
+  obs.value as vs where $this.is(string) -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasStringValue = vs "valueString";
 }
 
 // Main mapping Observation -> AssessmentEvent
@@ -37,52 +61,50 @@ group assessmentEvent(source observation : Observation, target content : Content
    // observation.code -> Assessment
    observation.code as observation_code -> assessmentEvent.hasAssessment = create('Assessment') as assessment, assessment.id = uuid() then {
      observation_code.coding as coding -> assessment then codingToCode(coding, assessment);
-     observation_code.coding as coding then {
-       coding.display as d -> assessment.hasName = d;
-     };
+     // hasName: prefer observation_code.text, fallback to coding.display
+     observation_code.text as t -> assessment.hasName = t;
+     observation_code where $this.text.exists().not() then {
+       observation_code.coding as coding then {
+         coding.display as d -> assessment.hasName = d;
+       } "hasNameFromDisplay";
+     } "hasNameFallback";
 
-     // valueCodeableConcept -> AssessmentResult/hasCode
-     observation.valueCodeableConcept as vcc -> assessment.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
-       vcc.coding as coding -> result then codingToCode(coding, result);
+     // Populate assessment result (valueCodeableConcept, valueQuantity, or valueString)
+     observation -> assessment then populateAssessmentResult(observation, assessment) "assessmentResult";
 
-       // valueCodeableConcept/extension/ValueQuantity  -> Assessment/hasQuantity
-       // present if result is available as code and value
-       vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
-         ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
-       };
-     } "valueCodeableConcept";
-
-     // valueQuantity -> AssessmentResult/hasQuantity
-     observation.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
- 
      // Component -> Assessment/Component
      observation.component as comp -> assessment.hasComponent = create('AssessmentComponent') as component, component.id = uuid() then {
        // coding -> Components/hasCode
        comp.code as srcCode then {
          srcCode.coding as coding -> component then codingToCode(coding, component);
-         srcCode.coding as coding then {
-           coding.display as d -> component.hasName = d;
-         };
-
-         // Handle components without SNOMED code
-         srcCode.coding as srcCoding where $this.system = 'https://www.biomedit.ch/rdf/sphn-schema/sphn#AssessmentComponent' then {
-           srcCoding.display as d -> component.hasName = d;
-         };
+         // hasName: prefer srcCode.text, fallback to coding.display
+         srcCode.text as t -> component.hasName = t;
+         srcCode where $this.text.exists().not() then {
+           srcCode.coding as coding then {
+             coding.display as d -> component.hasName = d;
+           } "componentHasNameFromDisplay";
+         } "componentHasNameFallback";
        };
 
-       // Component results
-       //  valueCodeableConcept
+       // Component results: valueCodeableConcept
        comp.valueCodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
          vcc.coding as coding -> result then codingToCode(coding, result);
-       
+
          // valueQuantity extension
          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
            ext.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
          };
+         // valueString extension
+         vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueString" then {
+           ext.valueString as vs -> result.hasStringValue = vs;
+         };
        } "compValueCodeableConcept";
-       
+
        // Standalone valueQuantity
        comp.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
+
+       // Standalone valueString
+       comp.valueString as vs -> component.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasStringValue = vs "compValueString";
 
      } "AssessmentComponent";
    } "Assessment";
