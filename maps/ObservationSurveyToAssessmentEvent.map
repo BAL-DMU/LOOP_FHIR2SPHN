@@ -56,7 +56,7 @@ group assessmentEvent(source observation : Observation, target content : Content
    observation.meta as m then refSourceSystem(m, assessmentEvent);
    observation.id as id -> assessmentEvent.id = ('AssessmentEvent/' & %id);
    // Use generic 'effective' instead of 'effectiveDateTime'
-   // workaround: observation.effectiveDateTime fails when value[x] is Quantity
+   // workaround: observation.effectiveDateTime fails sometimes (unclear when; works for many assessment types, but not honos)
    observation.effective as t where $this.is(dateTime) -> assessmentEvent.hasDateTime = t;
    observation.encounter as encounter -> assessmentEvent.hasAdministrativeCase = encounter;
 
