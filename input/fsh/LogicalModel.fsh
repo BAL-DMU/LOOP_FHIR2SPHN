@@ -424,14 +424,13 @@ Title: "SPHN Assessment Result"
 Logical: AssessmentComponent
 Parent: Concept
 Title: "SPHN Assessment Component"
-* hasResult 0..1 SU AssessmentResult "" ""
+* hasResult 0..* SU AssessmentResult "" ""
 * hasCode 0..1 SU Code "" ""
 * hasName 0..1 SU string "" ""
 
 Logical: Assessment
 Parent: Concept
 Title: "SPHN Assessment"
-* target_concept 1..1 SU url "" ""
 * hasComponent 0..* SU AssessmentComponent "" ""
 * hasCode 0..1 SU Code "" ""
 * hasName 0..1 SU string "" ""
