@@ -26,7 +26,7 @@ group nursingDiagnosis(source condition : Condition, target content: Content) <<
     };
 
     // onsetAge -> Content.Age
-    condition.onsetAge as onsetAge -> content.Age = create('Age') as age then {
+    condition.onset : Age as onsetAge -> content.Age = create('Age') as age then {
       condition.meta as m then refSourceSystem(m, age);
       onsetAge -> age.id = uuid() as id,
         diagnosis.hasSubjectAge = create('Reference') as ref, ref.reference = id,

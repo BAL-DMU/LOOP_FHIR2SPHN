@@ -21,14 +21,14 @@ group claimBilled(source claim : Claim, target content: Content) <<types>> {
 
     // Claim.extension[encounter-id] -> hasAdministrativeCase
     claim.extension as ext where $this.url = 'http://research.balgrist.ch/fhir/StructureDefinition/encounter-id' then {
-      ext.valueReference as encounter -> diag.hasAdministrativeCase = encounter;
+      ext.value : Reference as encounter -> diag.hasAdministrativeCase = encounter;
     };
 
     // Claim.created -> hasRecordDateTime
     claim.created as created -> diag.hasRecordDateTime = created;
 
     // diagnosisCodeableConcept -> hasCode
-    diagnosis.diagnosisCodeableConcept as code then {
+    diagnosis.diagnosis : CodeableConcept as code then {
       code.coding as coding where $this.system = 'http://hl7.org/fhir/sid/icd-10' -> diag.hasCode as tgtCode then {
         coding.code as c -> tgtCode.termid = c, tgtCode.iri = ('https://biomedit.ch/rdf/sphn-resource/icd-10-gm/' & c) "i";
       };
@@ -49,14 +49,14 @@ group claimBilled(source claim : Claim, target content: Content) <<types>> {
 
     // Claim.extension[encounter-id] -> hasAdministrativeCase
     claim.extension as ext where $this.url = 'http://research.balgrist.ch/fhir/StructureDefinition/encounter-id' then {
-      ext.valueReference as encounter -> proc.hasAdministrativeCase = encounter;
+      ext.value : Reference as encounter -> proc.hasAdministrativeCase = encounter;
     };
 
     // Claim.created -> hasStartDateTime
     claim.created as created -> proc.hasStartDateTime = created;
 
     // procedureCodeableConcept -> hasCode
-    procedure.procedureCodeableConcept as code then {
+    procedure.procedure : CodeableConcept as code then {
       code.coding as coding -> proc.hasCode as tgtCode then {
         coding.code as c -> tgtCode.termid = c, tgtCode.iri = ('https://biomedit.ch/rdf/sphn-resource/chop/' & c) "i";
       };
