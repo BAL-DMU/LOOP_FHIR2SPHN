@@ -1,0 +1,13 @@
+services:
+  matchbox:
+    image: registry-bmip.ethz.ch/bmip/loop-fhir2sphn-docker/loop-fhir2sphn-docker-image:0.2.6
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx4g
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/matchboxv3/fhir/metadata"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
