@@ -34,11 +34,11 @@ group populateAssessmentResult(source obs: Observation, target assessment: Asses
     vcc.coding as coding -> result then codingToCode(coding, result);
     // valueCodeableConcept/extension/ValueQuantity -> Assessment/hasQuantity
     vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
-      ext.valueQuantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
+      ext.value : Quantity as vq -> assessment then resultValueQuantityToAssessmentResult(vq, assessment);
     };
     // valueCodeableConcept/extension/ValueString -> AssessmentResult/hasStringValue
     vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueString" then {
-      ext.valueString as vs -> result.hasStringValue = vs;
+      ext.value : string as vs -> result.hasStringValue = vs;
     };
   } "valueCodeableConcept";
 
@@ -89,24 +89,24 @@ group assessmentEvent(source observation : Observation, target content : Content
        };
 
        // Component results: valueCodeableConcept
-       comp.valueCodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
+       comp.value : CodeableConcept as vcc -> component.hasResult = create('AssessmentResult') as result, result.id = uuid() then {
          vcc.coding as coding -> result then codingToCode(coding, result);
 
          // valueQuantity extension
          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueQuantity" then {
-           ext.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
+           ext.value : Quantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
          };
          // valueString extension
          vcc.extension as ext where $this.url = "https://www.hl7.org/fhir/R4/observation.html#component/valueString" then {
-           ext.valueString as vs -> result.hasStringValue = vs;
+           ext.value : string as vs -> result.hasStringValue = vs;
          };
        } "compValueCodeableConcept";
 
        // Standalone valueQuantity
-       comp.valueQuantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
+       comp.value : Quantity as vq -> component then resultValueQuantityToAssessmentResult(vq, component);
 
        // Standalone valueString
-       comp.valueString as vs -> component.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasStringValue = vs "compValueString";
+       comp.value : string as vs -> component.hasResult = create('AssessmentResult') as result, result.id = uuid(), result.hasStringValue = vs "compValueString";
 
      } "AssessmentComponent";
    } "Assessment";

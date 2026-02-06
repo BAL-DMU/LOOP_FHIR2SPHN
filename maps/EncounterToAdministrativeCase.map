@@ -93,7 +93,7 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
         encounter.hospitalization as hospitalization then {
           // extension [dischargedestination] -> hasDischargeLocation
           hospitalization.extension as ext where $this.url = 'http://fhir.ch/ig/ch-core/StructureDefinition/ch-ext-bfs-ms-dischargedestination' -> discharge.hasTargetLocation = create('Location') as location then {
-            ext.valueCoding as coding then {
+            ext.value : Coding as coding then {
               coding.code as code -> location.id = uuid(), translate(code, '#cm-encounter-dischargedestination') as cm,
                 location.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "dischargedestination";
             };

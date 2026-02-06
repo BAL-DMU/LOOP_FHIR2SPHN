@@ -43,7 +43,7 @@ group measurementParent(source observation : Observation, target measurement: Me
   observation.meta as m then refSourceSystem(m, measurement);
   observation.id as id  -> measurement.id = ('Observation/' & %id);
   observation.encounter as encounter -> measurement.hasAdministrativeCase = encounter;
-  observation.effectiveDateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;
+  observation.effective : dateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;
 
   // method (Snomed CT) -> hasMethodCode
   observation.method as method then {
@@ -80,7 +80,7 @@ group measurementOneResult(source observation : Observation, target measurement:
   observation.meta as m then refSourceSystem(m, measurement);
   observation.id as id  -> measurement.id = ('Observation/' & %id);
   observation.encounter as encounter -> measurement.hasAdministrativeCase = encounter;
-  observation.effectiveDateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;
+  observation.effective : dateTime as effectiveDateTime -> measurement.hasStartDateTime = effectiveDateTime;
 
   // method (Snomed CT) -> hasMethodCode
   observation.method as method then {

@@ -25,8 +25,8 @@ group medication_administration(source medicationAdministration : MedicationAdmi
         medicationAdministration.context as context -> event.hasAdministrativeCase = context;
 
         // Start/end dates
-        medicationAdministration.effectiveDateTime as dateTime -> event.hasStartDateTime = dateTime;
-        medicationAdministration.effectivePeriod as period then {
+        medicationAdministration.effective : dateTime as dateTime -> event.hasStartDateTime = dateTime;
+        medicationAdministration.effective : Period as period then {
             period.start as start -> event.hasStartDateTime = start;
             period.end as end -> event.hasEndDateTime = end;
         };
@@ -43,7 +43,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                     ingredient -> substance.id = uuid() "substance_id";
 
                     // Medication/ingredient/coding -> Drug/hasActiveIngredient/code
-                    ingredient.itemCodeableConcept as code then {
+                    ingredient.item : CodeableConcept as code then {
                         code.coding first as coding where $this.system = "http://www.cas.org" -> substance.hasCode as substanceCode then {
                             coding.code as c -> substanceCode.id = uuid(), substanceCode.hasIdentifier = c;
                             coding.system as s -> substanceCode.hasCodingSystemAndVersion = s;
@@ -60,7 +60,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
                     // Medication/ingredient/strength/extension/sphn#Substance_hasQuantity -> Drug/hasActiveIngredient/hasQuantity
                     ingredient.strength as strength then {
                         strength.extension first as e where $this.url = "https://www.biomedit.ch/rdf/sphn-schema/sphn#Substance_hasQuantity" then {
-                            e.valueQuantity as value -> substance.hasQuantity as q then quantity(value, q);
+                            e.value : Quantity as value -> substance.hasQuantity as q then quantity(value, q);
                         } "valueQuantity";
                     };
                 } "Substance";
