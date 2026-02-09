@@ -7,8 +7,8 @@ Provides:
 - Map upload fixture (uploads .map files from maps/ directory)
 - Transform function for executing mappings
 
-The pre-built Docker image includes StructureDefinitions only.
-Maps are uploaded by the test fixture from the local maps/ directory.
+The test fixture runs sushi build inside the container to generate StructureDefinitions,
+uploads them, then uploads the FML maps from the local maps/ directory.
 
 Usage:
     # Start container manually first (recommended for development):
@@ -19,6 +19,7 @@ Usage:
     pytest tests/ -v --start-container
 """
 
+import json
 import subprocess
 import time
 from pathlib import Path
@@ -30,6 +31,7 @@ import requests
 # Configuration
 MATCHBOX_PORT = 8080
 MATCHBOX_BASE_URL = f"http://localhost:{MATCHBOX_PORT}/matchboxv3/fhir"
+DOCKER_CONTAINER_NAME = "tests-matchbox-1"
 
 # Timeouts
 SERVER_STARTUP_TIMEOUT = 300  # 5 minutes
@@ -39,6 +41,7 @@ SERVER_POLL_INTERVAL = 5  # seconds
 PROJECT_ROOT = Path(__file__).parent.parent
 DOCKER_COMPOSE_FILE = Path(__file__).parent / "docker-compose.yml"
 MAPS_DIR = PROJECT_ROOT / "maps"
+STRUCTURE_DEFINITIONS_DIR = PROJECT_ROOT / "fsh-generated" / "resources"
 
 # Main StructureMap URL for transformations
 MAIN_STRUCTURE_MAP = (
@@ -191,10 +194,71 @@ def delete_all_maps() -> None:
         delete_map(map_url)
 
 
+def run_sushi_build() -> None:
+    """Run sushi build inside the Docker container to generate StructureDefinitions."""
+    print(f"Running sushi build in container {DOCKER_CONTAINER_NAME}...")
+    result = subprocess.run(
+        [
+            "docker", "exec", DOCKER_CONTAINER_NAME,
+            "sh", "-c", "cd /home/matchbox/maps && sushi build",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"sushi build failed (exit code {result.returncode}):\n"
+            f"stdout: {result.stdout[-1000:]}\n"
+            f"stderr: {result.stderr[-1000:]}"
+        )
+    print("sushi build completed successfully")
+
+
+def upload_structure_definitions() -> int:
+    """Upload all StructureDefinition JSON files to Matchbox.
+
+    Returns the number of StructureDefinitions uploaded.
+    """
+    sd_files = sorted(STRUCTURE_DEFINITIONS_DIR.glob("StructureDefinition-*.json"))
+    if not sd_files:
+        raise FileNotFoundError(
+            f"No StructureDefinition files found in {STRUCTURE_DEFINITIONS_DIR}. "
+            "Did sushi build run successfully?"
+        )
+
+    print(f"Uploading {len(sd_files)} StructureDefinitions...")
+    for sd_path in sd_files:
+        sd_content = sd_path.read_text()
+        sd_json = json.loads(sd_content)
+        sd_id = sd_json.get("id", sd_path.stem)
+
+        response = requests.put(
+            f"{MATCHBOX_BASE_URL}/StructureDefinition/{sd_id}",
+            data=sd_content,
+            headers={"Content-Type": "application/fhir+json"},
+            timeout=60,
+        )
+        if response.status_code not in (200, 201):
+            raise AssertionError(
+                f"Failed to upload {sd_path.name}: {response.status_code} - "
+                f"{response.text[:500]}"
+            )
+
+    print(f"Uploaded {len(sd_files)} StructureDefinitions")
+    return len(sd_files)
+
+
 @pytest.fixture(scope="session")
 def maps_uploaded(matchbox_ready, request) -> List[str]:  # noqa: ARG001 - fixture dependency
     """
-    Upload all StructureMaps from maps/ directory to Matchbox.
+    Build StructureDefinitions, upload them, then upload all StructureMaps.
+
+    Steps:
+    1. Run sushi build inside the container to generate StructureDefinitions
+    2. Upload all StructureDefinition JSON files to Matchbox
+    3. Delete existing StructureMaps
+    4. Upload all StructureMaps from maps/ directory
 
     Use --exclude-map to skip a specific map for coverage testing.
 
@@ -203,10 +267,17 @@ def maps_uploaded(matchbox_ready, request) -> List[str]:  # noqa: ARG001 - fixtu
     exclude_map = request.config.getoption("--exclude-map")
     uploaded = []
 
-    # Delete existing maps first to ensure clean slate
+    # Step 1: Run sushi build in the container
+    run_sushi_build()
+
+    # Step 2: Upload StructureDefinitions
+    upload_structure_definitions()
+
+    # Step 3: Delete existing maps first to ensure clean slate
     print("Deleting existing StructureMaps...")
     delete_all_maps()
 
+    # Step 4: Upload maps
     print(f"Uploading StructureMaps from {MAPS_DIR}...")
 
     for map_name in MAP_UPLOAD_ORDER:
