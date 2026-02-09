@@ -4,10 +4,11 @@ Pytest fixtures for FHIR to SPHN mapping tests.
 Provides:
 - Matchbox server connection (expects container already running by default)
 - Optional container startup via --start-container flag
+- Map upload fixture (uploads .map files from maps/ directory)
 - Transform function for executing mappings
 
-The pre-built Docker image already includes all StructureDefinitions and StructureMaps,
-so no upload step is needed.
+The pre-built Docker image includes StructureDefinitions only.
+Maps are uploaded by the test fixture from the local maps/ directory.
 
 Usage:
     # Start container manually first (recommended for development):
@@ -21,7 +22,7 @@ Usage:
 import subprocess
 import time
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import pytest
 import requests
@@ -37,11 +38,27 @@ SERVER_POLL_INTERVAL = 5  # seconds
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
 DOCKER_COMPOSE_FILE = Path(__file__).parent / "docker-compose.yml"
+MAPS_DIR = PROJECT_ROOT / "maps"
 
 # Main StructureMap URL for transformations
 MAIN_STRUCTURE_MAP = (
     "http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn"
 )
+
+# Map upload order (dependencies must be uploaded first)
+MAP_UPLOAD_ORDER = [
+    "Utils.map",
+    "EncounterToAdministrativeCase.map",
+    "ObservationVitalSignToMeasurement.map",
+    "AllergyIntoleranceToAllergy.map",
+    "ConditionToProblemCondition.map",
+    "ConditionToNursingDiagnosis.map",
+    "ClaimToBilledDiagnosisProcedure.map",
+    "DiagnosticReportToLabTestEvent.map",
+    "MedicationAdministrationToDrugAdministrationEvent.map",
+    "ObservationSurveyToAssessmentEvent.map",
+    "BundleToLoopSphn.map",
+]
 
 
 def pytest_addoption(parser):
@@ -52,6 +69,12 @@ def pytest_addoption(parser):
         default=False,
         help="Start the Matchbox container via docker-compose "
         "(default: expect it already running)",
+    )
+    parser.addoption(
+        "--exclude-map",
+        action="store",
+        default=None,
+        help="Exclude a specific map file from upload (e.g., 'AllergyIntoleranceToAllergy.map')",
     )
 
 
@@ -113,10 +136,102 @@ def matchbox_ready(matchbox_container):  # noqa: ARG001 - fixture dependency
     )
 
 
+def upload_map(map_path: Path) -> None:
+    """Upload a single StructureMap to Matchbox."""
+    map_content = map_path.read_text()
+    response = requests.post(
+        f"{MATCHBOX_BASE_URL}/StructureMap",
+        data=map_content,
+        headers={"Content-Type": "text/fhir-mapping"},
+        timeout=60,
+    )
+    if response.status_code not in (200, 201):
+        raise AssertionError(
+            f"Failed to upload {map_path.name}: {response.status_code} - "
+            f"{response.text[:500]}"
+        )
+
+
+def delete_map(map_url: str) -> bool:
+    """Delete a StructureMap from Matchbox by URL. Returns True if deleted."""
+    # First, find the map's ID by searching
+    search_response = requests.get(
+        f"{MATCHBOX_BASE_URL}/StructureMap",
+        params={"url": map_url},
+        headers={"Accept": "application/fhir+json"},
+        timeout=30,
+    )
+    if search_response.status_code != 200:
+        return False
+
+    bundle = search_response.json()
+    if not bundle.get("entry"):
+        return False
+
+    # Delete each matching resource
+    for entry in bundle["entry"]:
+        resource_id = entry["resource"]["id"]
+        delete_response = requests.delete(
+            f"{MATCHBOX_BASE_URL}/StructureMap/{resource_id}",
+            timeout=30,
+        )
+        if delete_response.status_code not in (200, 204):
+            return False
+
+    return True
+
+
+def delete_all_maps() -> None:
+    """Delete all StructureMaps from Matchbox to ensure clean slate."""
+    base_url = "http://research.balgrist.ch/fhir2sphn/StructureMap/"
+
+    # Delete in reverse order (dependents first)
+    for map_name in reversed(MAP_UPLOAD_ORDER):
+        map_url = base_url + map_name.replace(".map", "")
+        delete_map(map_url)
+
+
 @pytest.fixture(scope="session")
-def transform_bundle(matchbox_ready) -> Callable:  # noqa: ARG001 - fixture dependency
+def maps_uploaded(matchbox_ready, request) -> List[str]:  # noqa: ARG001 - fixture dependency
+    """
+    Upload all StructureMaps from maps/ directory to Matchbox.
+
+    Use --exclude-map to skip a specific map for coverage testing.
+
+    Returns list of uploaded map URLs.
+    """
+    exclude_map = request.config.getoption("--exclude-map")
+    uploaded = []
+
+    # Delete existing maps first to ensure clean slate
+    print("Deleting existing StructureMaps...")
+    delete_all_maps()
+
+    print(f"Uploading StructureMaps from {MAPS_DIR}...")
+
+    for map_name in MAP_UPLOAD_ORDER:
+        if exclude_map and map_name == exclude_map:
+            print(f"  SKIPPING {map_name} (excluded via --exclude-map)")
+            continue
+
+        map_path = MAPS_DIR / map_name
+        if map_path.exists():
+            print(f"  Uploading {map_name}...")
+            upload_map(map_path)
+            uploaded.append(map_name)
+        else:
+            print(f"  Warning: {map_name} not found")
+
+    print(f"Uploaded {len(uploaded)} StructureMaps")
+    return uploaded
+
+
+@pytest.fixture(scope="session")
+def transform_bundle(maps_uploaded) -> Callable:  # noqa: ARG001 - fixture dependency
     """
     Fixture that returns a function to transform FHIR Bundles.
+
+    Depends on maps_uploaded to ensure all StructureMaps are available.
 
     Usage:
         result = transform_bundle(bundle_dict)
