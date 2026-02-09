@@ -87,7 +87,7 @@ rm -rf matchbox/matchbox-server/database
 ```
 
 ## Compile maps / execute transformation
-* POST maps and execture transformation using REST against local matchbox server:
+* POST maps and exectute transformation using REST against local matchbox server:
     * See [transform.http](transform.http)
 
 
@@ -95,5 +95,88 @@ rm -rf matchbox/matchbox-server/database
 ```bash
 cat temp/result.json  | jq 'walk(if type == "object" then with_entries(.key = (if .key == "reference" then "id" else .key end)) else . end)' | jq 'walk(if type == "object" then with_entries(.key = (if .key != "id" and .key != "iri" and .key != "termid" and .key != "content" and .key != "target_concept" then "sphn:" else "" end ) + .key) else . end)'
 ```
+
+# (Containerized) Testing Framework
+
+An automated test suite verifies that FML mapping rules produce the expected SPHN output. Tests run against a containerized Matchbox server: the framework uploads the `.map` files from the local `maps/` directory, transforms FHIR Bundles, and asserts on the JSON output. This makes the edit-upload-test cycle fast when developing maps.
+
+## Setup
+
+Install Python dependencies (Python 3.10+):
+```bash
+pip install -r tests/requirements-test.txt
+```
+
+Docker is required to run the Matchbox container.
+
+## Development workflow
+
+The recommended workflow for developing and testing maps:
+
+1. Start the Matchbox container once:
+```bash
+docker compose -f tests/docker-compose.yml up -d
+```
+
+2. Edit a `.map` file in `maps/`.
+
+3. Run the relevant tests (maps are re-uploaded automatically at the start of each pytest session):
+```bash
+pytest tests/maps/test_allergy_intolerance.py -v
+```
+
+4. Iterate: edit the map, re-run tests. To force re-upload of maps after changes, start a new pytest session (each session uploads all maps fresh).
+
+5. Run the full suite before committing:
+```bash
+pytest tests/ -v
+```
+
+To stop the container when done:
+```bash
+docker compose -f tests/docker-compose.yml down
+```
+
+## Running all tests without starting the container first
+
+Use the `--start-container` flag to let pytest manage the container lifecycle automatically (starts before tests, stops after):
+```bash
+pytest tests/ -v --start-container
+```
+
+## Test fixtures
+
+The test infrastructure is defined in `tests/conftest.py` and provides the following pytest fixtures:
+
+| Fixture | Scope | Description |
+|---|---|---|
+| `matchbox_container` | session | Manages the Docker container lifecycle. With `--start-container`, starts/stops the container automatically. Otherwise expects it already running. |
+| `matchbox_ready` | session | Waits for the Matchbox server to be healthy (polls `/metadata` endpoint). |
+| `maps_uploaded` | session | Deletes existing StructureMaps and re-uploads all `.map` files from `maps/` in dependency order (Utils first, BundleToLoopSphn last). StructureDefinitions are loaded from the Docker image's built-in IG package. |
+| `transform_bundle` | session | Returns a function `transform_bundle(bundle_dict, source_map=None)` that POSTs a FHIR Bundle to the Matchbox `$transform` endpoint and returns the result as a dict. Defaults to `BundleToLoopSphn`. |
+| `make_bundle` | function | Factory that creates a FHIR Bundle wrapping one or more resources: `make_bundle(patient, observation, ...)`. |
+| `base_patient` | function | A minimal Patient resource with an identifier, for use in bundles that require a patient. |
+
+
+## Test structure
+
+Tests are organized by map file in `tests/maps/`: Each test constructs a minimal FHIR Bundle, transforms it via Matchbox, and asserts on the resulting SPHN output.
+
+## Coverage verification (mutation testing)
+
+The script `tests/verify_map_coverage.py` checks whether each mapping rule is covered by at least one test. It works by commenting out one rule at a time, re-running the relevant tests, and checking that at least one test fails:
+
+```bash
+# Verify coverage for all maps (requires running Matchbox container)
+python tests/verify_map_coverage.py
+
+# Verify a specific map
+python tests/verify_map_coverage.py --map AllergyIntoleranceToAllergy.map
+
+# Dry run: list all extracted rules without running tests
+python tests/verify_map_coverage.py --dry-run
+```
+
+The report shows each rule as **COVERED** (a test detected the removal) or **MISSING** (no test failed when the rule was removed).
 
 
