@@ -5,10 +5,10 @@ services:
       - "8080:8080"
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx4g
-    volumes:
-      - ../.:/home/matchbox/maps
+    # volumes:
+    #   - ../.:/home/matchbox/maps
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/matchboxv3/fhir/metadata"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/matchboxv3/fhir/metadata"]
       interval: 10s
       timeout: 5s
       retries: 30
