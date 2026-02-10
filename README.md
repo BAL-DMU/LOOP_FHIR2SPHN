@@ -152,7 +152,7 @@ The test infrastructure is defined in `tests/conftest.py` and provides the follo
 |---|---|---|
 | `matchbox_container` | session | Manages the Docker container lifecycle. With `--start-container`, starts/stops the container automatically. Otherwise expects it already running. |
 | `matchbox_ready` | session | Waits for the Matchbox server to be healthy (polls `/metadata` endpoint). |
-| `maps_uploaded` | session | Deletes existing StructureMaps and re-uploads all `.map` files from `maps/` in dependency order (Utils first, BundleToLoopSphn last). StructureDefinitions are loaded from the Docker image's built-in IG package. |
+| `maps_uploaded` | session | Runs `sushi build` inside the container, uploads StructureDefinitions, then uploads all `.map` files from `maps/` in dependency order (Utils first, BundleToLoopSphn last). |
 | `transform_bundle` | session | Returns a function `transform_bundle(bundle_dict, source_map=None)` that POSTs a FHIR Bundle to the Matchbox `$transform` endpoint and returns the result as a dict. Defaults to `BundleToLoopSphn`. |
 | `make_bundle` | function | Factory that creates a FHIR Bundle wrapping one or more resources: `make_bundle(patient, observation, ...)`. |
 | `base_patient` | function | A minimal Patient resource with an identifier, for use in bundles that require a patient. |
