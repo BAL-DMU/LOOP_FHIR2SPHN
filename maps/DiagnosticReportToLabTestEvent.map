@@ -5,12 +5,12 @@ uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias Diagnostic
 uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
 uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabTestEvent" alias LabTestEvent as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabTest" alias LabTest as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LabResult" alias LabResult as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/ReferenceRangeOrValue" alias ReferenceRangeOrValue as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-LabTestEvent" alias LabTestEvent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-LabTest" alias LabTest as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-LabResult" alias LabResult as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Quantity" alias Quantity as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ReferenceRangeOrValue" alias ReferenceRangeOrValue as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 

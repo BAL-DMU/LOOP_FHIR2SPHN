@@ -3,17 +3,17 @@ map "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationVitalSignToMe
 uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
 uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyTemperatureMeasurement" alias BodyTemperatureMeasurement as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyWeightMeasurement" alias BodyWeightMeasurement as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BodyHeightMeasurement" alias BodyHeightMeasurement as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BloodPressureMeasurement" alias BloodPressureMeasurement as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BloodPressure" alias BloodPressure as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRateMeasurement" alias HeartRateMeasurement as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/HeartRate" alias HeartRate as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturationMeasurement" alias OxygenSaturationMeasurement as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/OxygenSaturation" alias OxygenSaturation as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/MedicalDevice" alias MedicalDevice as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BodyTemperatureMeasurement" alias BodyTemperatureMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BodyWeightMeasurement" alias BodyWeightMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BodyHeightMeasurement" alias BodyHeightMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BloodPressureMeasurement" alias BloodPressureMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BloodPressure" alias BloodPressure as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-HeartRateMeasurement" alias HeartRateMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-HeartRate" alias HeartRate as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-OxygenSaturationMeasurement" alias OxygenSaturationMeasurement as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-OxygenSaturation" alias OxygenSaturation as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-MedicalDevice" alias MedicalDevice as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 

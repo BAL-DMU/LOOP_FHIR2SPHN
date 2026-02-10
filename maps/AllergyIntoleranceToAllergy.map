@@ -2,9 +2,9 @@ map "http://research.balgrist.ch/fhir2sphn/StructureMap/AllergyIntoleranceToAlle
 
 uses "http://hl7.org/fhir/StructureDefinition/AllergyIntolerance" alias AllergyIntolerance as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergy" alias Allergy as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Allergen" alias Allergen as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Allergy" alias Allergy as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Allergen" alias Allergen as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
