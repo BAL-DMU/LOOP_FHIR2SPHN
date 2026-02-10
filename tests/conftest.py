@@ -103,6 +103,26 @@ def matchbox_container(request):
             cwd=PROJECT_ROOT,
         )
 
+        # Wait for Matchbox startup to fully finish
+        print("Waiting for 'Maps upload DONE' in container logs...")
+        start_time = time.time()
+        timeout = 120
+        while time.time() - start_time < timeout:
+            result = subprocess.run(
+                ["docker", "compose", "-f", str(DOCKER_COMPOSE_FILE), "logs", "matchbox"],
+                capture_output=True,
+                text=True,
+                cwd=PROJECT_ROOT,
+            )
+            if "Maps upload DONE" in result.stdout:
+                print("Matchbox maps upload completed!")
+                break
+            time.sleep(5)
+        else:
+            raise RuntimeError(
+                f"Matchbox did not finish map upload within {timeout} seconds"
+            )
+
         yield
 
         print("Stopping Matchbox container...")
