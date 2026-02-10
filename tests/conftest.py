@@ -76,6 +76,12 @@ def pytest_addoption(parser):
         default=None,
         help="Exclude a specific map file from upload (e.g., 'AllergyIntoleranceToAllergy.map')",
     )
+    parser.addoption(
+        "--skip-sds",
+        action="store_true",
+        default=False,
+        help="Skip sushi build and StructureDefinition upload (faster when SDs haven't changed)",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -258,12 +264,15 @@ def maps_uploaded(matchbox_ready, request) -> List[str]:  # noqa: ARG001 - fixtu
     exclude_map = request.config.getoption("--exclude-map")
     uploaded = []
 
-    # Build and upload StructureDefinitions
-    print("Running sushi build inside container...")
-    run_sushi_build()
+    # Build and upload StructureDefinitions (skip with --skip-sds)
+    if not request.config.getoption("--skip-sds"):
+        print("Running sushi build inside container...")
+        run_sushi_build()
 
-    print("Uploading StructureDefinitions...")
-    upload_structure_definitions()
+        print("Uploading StructureDefinitions...")
+        upload_structure_definitions()
+    else:
+        print("Skipping sushi build and SD upload (--skip-sds)")
 
     print(f"Uploading StructureMaps from {MAPS_DIR}...")
 
