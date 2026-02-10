@@ -7,8 +7,6 @@ Tests the main orchestrating map that handles:
 - DataRelease, DataProvider, SourceSystem, SubjectPseudoIdentifier
 """
 
-import pytest
-
 from tests.helpers import (
     assert_code_mapped,
     assert_list_length,
@@ -16,6 +14,48 @@ from tests.helpers import (
     assert_path_exists,
     get_path,
 )
+
+
+def make_consent(policy_code="OPTIN", datetime="2024-01-10T08:00:00Z"):
+    """Create a Consent resource."""
+    return {
+        "resourceType": "Consent",
+        "id": "consent-1",
+        "meta": {"source": "http://example.org/ehr"},
+        "status": "active",
+        "scope": {
+            "coding": [
+                {"system": "http://terminology.hl7.org/CodeSystem/consentscope", "code": "research"}
+            ]
+        },
+        "category": [
+            {"coding": [{"system": "http://snomed.info/sct", "code": "59284002"}]}
+        ],
+        "dateTime": datetime,
+        "policyRule": {
+            "coding": [
+                {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": policy_code}
+            ]
+        },
+    }
+
+
+def make_patient_with_org(org_id="org-1", identifier="HOSP123", name="Test Hospital"):
+    """Create a Patient with a contained Organization."""
+    return {
+        "resourceType": "Patient",
+        "id": "pat-1",
+        "meta": {"source": "http://example.org/ehr"},
+        "contained": [
+            {
+                "resourceType": "Organization",
+                "id": org_id,
+                "identifier": [{"value": identifier}],
+                "name": name,
+            }
+        ],
+        "managingOrganization": {"reference": f"#{org_id}"},
+    }
 
 
 class TestPatientGender:
@@ -174,107 +214,27 @@ class TestConsent:
 
     def test_consent_optin_maps_to_snomed_385645004(self, transform_bundle, make_bundle):
         """Consent with OPTIN policy maps to SNOMED 385645004."""
-        consent = {
-            "resourceType": "Consent",
-            "id": "consent-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "status": "active",
-            "scope": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/consentscope", "code": "research"}
-                ]
-            },
-            "category": [
-                {"coding": [{"system": "http://snomed.info/sct", "code": "59284002"}]}
-            ],
-            "dateTime": "2024-01-10T08:00:00Z",
-            "policyRule": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "OPTIN"}
-                ]
-            },
-        }
-        patient = {
-            "resourceType": "Patient",
-            "id": "pat-1",
-            "meta": {"source": "http://example.org/ehr"},
-        }
-        bundle = make_bundle(patient, consent)
+        patient = {"resourceType": "Patient", "id": "pat-1", "meta": {"source": "http://example.org/ehr"}}
+        bundle = make_bundle(patient, make_consent(policy_code="OPTIN"))
 
         result = transform_bundle(bundle)
 
         assert_path_exists(result, "content.Consent[0]")
-        assert_code_mapped(
-            result,
-            "content.Consent[0].hasStatusCode",
-            "385645004",
-        )
+        assert_code_mapped(result, "content.Consent[0].hasStatusCode", "385645004")
 
     def test_consent_optout_maps_to_snomed_443390004(self, transform_bundle, make_bundle):
         """Consent with OPTOUT policy maps to SNOMED 443390004."""
-        consent = {
-            "resourceType": "Consent",
-            "id": "consent-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "status": "active",
-            "scope": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/consentscope", "code": "research"}
-                ]
-            },
-            "category": [
-                {"coding": [{"system": "http://snomed.info/sct", "code": "59284002"}]}
-            ],
-            "dateTime": "2024-01-10T08:00:00Z",
-            "policyRule": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "OPTOUT"}
-                ]
-            },
-        }
-        patient = {
-            "resourceType": "Patient",
-            "id": "pat-1",
-            "meta": {"source": "http://example.org/ehr"},
-        }
-        bundle = make_bundle(patient, consent)
+        patient = {"resourceType": "Patient", "id": "pat-1", "meta": {"source": "http://example.org/ehr"}}
+        bundle = make_bundle(patient, make_consent(policy_code="OPTOUT"))
 
         result = transform_bundle(bundle)
 
-        assert_code_mapped(
-            result,
-            "content.Consent[0].hasStatusCode",
-            "443390004",
-        )
+        assert_code_mapped(result, "content.Consent[0].hasStatusCode", "443390004")
 
     def test_consent_datetime_mapped(self, transform_bundle, make_bundle):
         """Consent dateTime is mapped to hasDateTime."""
-        consent = {
-            "resourceType": "Consent",
-            "id": "consent-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "status": "active",
-            "scope": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/consentscope", "code": "research"}
-                ]
-            },
-            "category": [
-                {"coding": [{"system": "http://snomed.info/sct", "code": "59284002"}]}
-            ],
-            "dateTime": "2024-01-10T08:00:00Z",
-            "policyRule": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "OPTIN"}
-                ]
-            },
-        }
-        patient = {
-            "resourceType": "Patient",
-            "id": "pat-1",
-            "meta": {"source": "http://example.org/ehr"},
-        }
-        bundle = make_bundle(patient, consent)
+        patient = {"resourceType": "Patient", "id": "pat-1", "meta": {"source": "http://example.org/ehr"}}
+        bundle = make_bundle(patient, make_consent())
 
         result = transform_bundle(bundle)
 
@@ -282,32 +242,8 @@ class TestConsent:
 
     def test_consent_category_snomed_mapped(self, transform_bundle, make_bundle):
         """Consent category SNOMED code is mapped to hasTypeCode."""
-        consent = {
-            "resourceType": "Consent",
-            "id": "consent-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "status": "active",
-            "scope": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/consentscope", "code": "research"}
-                ]
-            },
-            "category": [
-                {"coding": [{"system": "http://snomed.info/sct", "code": "59284002"}]}
-            ],
-            "dateTime": "2024-01-10T08:00:00Z",
-            "policyRule": {
-                "coding": [
-                    {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "OPTIN"}
-                ]
-            },
-        }
-        patient = {
-            "resourceType": "Patient",
-            "id": "pat-1",
-            "meta": {"source": "http://example.org/ehr"},
-        }
-        bundle = make_bundle(patient, consent)
+        patient = {"resourceType": "Patient", "id": "pat-1", "meta": {"source": "http://example.org/ehr"}}
+        bundle = make_bundle(patient, make_consent())
 
         result = transform_bundle(bundle)
 
@@ -401,21 +337,7 @@ class TestDataProvider:
 
     def test_data_provider_from_contained_organization(self, transform_bundle, make_bundle):
         """Contained Organization creates DataProvider."""
-        patient = {
-            "resourceType": "Patient",
-            "id": "pat-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "contained": [
-                {
-                    "resourceType": "Organization",
-                    "id": "org-1",
-                    "identifier": [{"value": "HOSP123"}],
-                    "name": "Test Hospital",
-                }
-            ],
-            "managingOrganization": {"reference": "#org-1"},
-        }
-        bundle = make_bundle(patient)
+        bundle = make_bundle(make_patient_with_org())
 
         result = transform_bundle(bundle)
 
@@ -424,21 +346,7 @@ class TestDataProvider:
 
     def test_data_provider_institution_code(self, transform_bundle, make_bundle):
         """DataProvider hasInstitutionCode from Organization."""
-        patient = {
-            "resourceType": "Patient",
-            "id": "pat-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "contained": [
-                {
-                    "resourceType": "Organization",
-                    "id": "org-1",
-                    "identifier": [{"value": "HOSP123"}],
-                    "name": "Test Hospital",
-                }
-            ],
-            "managingOrganization": {"reference": "#org-1"},
-        }
-        bundle = make_bundle(patient)
+        bundle = make_bundle(make_patient_with_org())
 
         result = transform_bundle(bundle)
 

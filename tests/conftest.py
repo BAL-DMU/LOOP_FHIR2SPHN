@@ -27,38 +27,20 @@ from typing import Callable, List, Optional
 import pytest
 import requests
 
-# Configuration
-MATCHBOX_PORT = 8080
-MATCHBOX_BASE_URL = f"http://localhost:{MATCHBOX_PORT}/matchboxv3/fhir"
+from tests.config import (
+    FSH_GENERATED_DIR,
+    MAIN_STRUCTURE_MAP,
+    MAP_UPLOAD_ORDER,
+    MAPS_DIR,
+    MATCHBOX_BASE_URL,
+    PROJECT_ROOT,
+)
+
 # Timeouts
 SERVER_STARTUP_TIMEOUT = 300  # 5 minutes
 SERVER_POLL_INTERVAL = 5  # seconds
 
-# Project paths
-PROJECT_ROOT = Path(__file__).parent.parent
 DOCKER_COMPOSE_FILE = Path(__file__).parent / "docker-compose.yml"
-MAPS_DIR = PROJECT_ROOT / "maps"
-FSH_GENERATED_DIR = PROJECT_ROOT / "fsh-generated" / "resources"
-
-# Main StructureMap URL for transformations
-MAIN_STRUCTURE_MAP = (
-    "http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn"
-)
-
-# Map upload order (dependencies must be uploaded first)
-MAP_UPLOAD_ORDER = [
-    "Utils.map",
-    "EncounterToAdministrativeCase.map",
-    "ObservationVitalSignToMeasurement.map",
-    "AllergyIntoleranceToAllergy.map",
-    "ConditionToProblemCondition.map",
-    "ConditionToNursingDiagnosis.map",
-    "ClaimToBilledDiagnosisProcedure.map",
-    "DiagnosticReportToLabTestEvent.map",
-    "MedicationAdministrationToDrugAdministrationEvent.map",
-    "ObservationSurveyToAssessmentEvent.map",
-    "BundleToLoopSphn.map",
-]
 
 
 def pytest_addoption(parser):

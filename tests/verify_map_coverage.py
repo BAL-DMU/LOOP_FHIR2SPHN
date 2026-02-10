@@ -35,26 +35,9 @@ from typing import Optional
 
 import requests
 
-# Configuration
-MATCHBOX_BASE_URL = "http://localhost:8080/matchboxv3/fhir"
-PROJECT_ROOT = Path(__file__).parent.parent
-MAPS_DIR = PROJECT_ROOT / "maps"
-TESTS_DIR = PROJECT_ROOT / "tests" / "maps"
+from config import MAP_UPLOAD_ORDER, MAPS_DIR, MATCHBOX_BASE_URL, PROJECT_ROOT
 
-# Map upload order (dependencies first)
-MAP_UPLOAD_ORDER = [
-    "Utils.map",
-    "EncounterToAdministrativeCase.map",
-    "ObservationVitalSignToMeasurement.map",
-    "AllergyIntoleranceToAllergy.map",
-    "ConditionToProblemCondition.map",
-    "ConditionToNursingDiagnosis.map",
-    "ClaimToBilledDiagnosisProcedure.map",
-    "DiagnosticReportToLabTestEvent.map",
-    "MedicationAdministrationToDrugAdministrationEvent.map",
-    "ObservationSurveyToAssessmentEvent.map",
-    "BundleToLoopSphn.map",
-]
+TESTS_DIR = PROJECT_ROOT / "tests" / "maps"
 
 # Map file -> Test file mapping
 MAP_TO_TEST = {
@@ -345,71 +328,16 @@ class MatchboxClient:
         except requests.exceptions.RequestException:
             return False
 
-    def upload_map(self, map_content: str) -> bool:
-        """Upload a StructureMap to Matchbox."""
-        try:
-            response = requests.post(
-                f"{self.base_url}/StructureMap",
-                data=map_content,
-                headers={"Content-Type": "text/fhir-mapping"},
-                timeout=60,
-            )
-            if self.verbose:
-                print(f"  Upload response: {response.status_code}")
-            return response.status_code in (200, 201)
-        except requests.exceptions.RequestException as e:
-            if self.verbose:
-                print(f"  Upload error: {e}")
-            return False
-
-    def delete_map(self, map_url: str) -> bool:
-        """Delete a StructureMap from Matchbox by URL."""
-        try:
-            # Search for the map
-            search_response = requests.get(
-                f"{self.base_url}/StructureMap",
-                params={"url": map_url},
-                headers={"Accept": "application/fhir+json"},
-                timeout=30,
-            )
-            if search_response.status_code != 200:
-                return False
-
-            bundle = search_response.json()
-            if not bundle.get("entry"):
-                return True  # Already deleted
-
-            # Delete each matching resource
-            for entry in bundle["entry"]:
-                resource_id = entry["resource"]["id"]
-                delete_response = requests.delete(
-                    f"{self.base_url}/StructureMap/{resource_id}",
-                    timeout=30,
-                )
-                if delete_response.status_code not in (200, 204):
-                    return False
-
-            return True
-        except requests.exceptions.RequestException:
-            return False
-
-    def get_map_url(self, map_name: str) -> str:
-        """Get the canonical URL for a map file."""
-        base = "http://research.balgrist.ch/fhir2sphn/StructureMap/"
-        return base + map_name.replace(".map", "")
-
 
 class MutationTester:
     """Performs mutation testing on FML map files."""
 
     def __init__(
         self,
-        matchbox: MatchboxClient,
         parser: FMLParser,
         verbose: bool = False,
         dry_run: bool = False,
     ):
-        self.matchbox = matchbox
         self.parser = parser
         self.verbose = verbose
         self.dry_run = dry_run
@@ -530,6 +458,7 @@ class MutationTester:
                     "pytest",
                     str(test_path),
                     "-v",
+                    "--skip-sd",
                     "--tb=line",
                     "-q",
                 ],
@@ -651,14 +580,12 @@ def main():
 
     # Initialize components
     fml_parser = FMLParser(verbose=args.verbose)
-    matchbox = MatchboxClient(verbose=args.verbose)
-    tester = MutationTester(
-        matchbox, fml_parser, verbose=args.verbose, dry_run=args.dry_run
-    )
+    tester = MutationTester(fml_parser, verbose=args.verbose, dry_run=args.dry_run)
 
     # Check Matchbox connectivity (unless dry run)
     if not args.dry_run:
         print("Checking Matchbox server connectivity...")
+        matchbox = MatchboxClient(verbose=args.verbose)
         if not matchbox.is_ready():
             print("ERROR: Matchbox server is not available at", MATCHBOX_BASE_URL)
             print("Start it with: docker compose -f tests/docker-compose.yml up -d")

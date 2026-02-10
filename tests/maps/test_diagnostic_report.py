@@ -9,8 +9,6 @@ Tests the DiagnosticReport + Observation -> LabTestEvent mapping including:
 - referenceRange -> hasNumericalReference
 """
 
-import pytest
-
 from tests.helpers import (
     assert_path_equals,
     assert_path_exists,
@@ -286,9 +284,7 @@ class TestLabResultQuantity:
         assert lab_results is not None
         lab_result = lab_results[0] if isinstance(lab_results, list) else lab_results
 
-        quantity = lab_result.get("hasQuantity")
-        assert quantity is not None
-        assert quantity.get("hasValue") == 185.5
+        assert_quantity_mapped(lab_result, "hasQuantity", 185.5)
 
 
 class TestLabResultString:

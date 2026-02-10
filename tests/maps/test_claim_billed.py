@@ -7,8 +7,6 @@ Tests the Claim -> BilledDiagnosis and BilledProcedure mappings including:
 - sequence -> hasRankCode (Principal vs Complementary/Supplementary)
 """
 
-import pytest
-
 from tests.helpers import (
     assert_code_mapped,
     assert_path_equals,

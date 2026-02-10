@@ -10,8 +10,6 @@ Tests the vital sign Observation -> Measurement mappings for:
 - Blood Pressure (bp profile)
 """
 
-import pytest
-
 from tests.helpers import (
     assert_code_mapped,
     assert_path_equals,

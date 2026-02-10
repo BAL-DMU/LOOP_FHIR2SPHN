@@ -8,8 +8,6 @@ Tests the Condition (problem-list-item) -> ProblemCondition mapping including:
 - note.text -> hasStringValue
 """
 
-import pytest
-
 from tests.helpers import (
     assert_code_mapped,
     assert_path_equals,

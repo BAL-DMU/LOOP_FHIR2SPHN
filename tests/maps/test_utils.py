@@ -8,8 +8,6 @@ Tests the shared utility functions and concept maps including:
 - refSourceSystem() function: meta.source reference
 """
 
-import pytest
-
 from tests.helpers import (
     assert_path_equals,
     assert_path_exists,
@@ -17,37 +15,49 @@ from tests.helpers import (
 )
 
 
+def make_vital_sign_obs(obs_id, profile, loinc_code, value=None, unit=None, components=None):
+    """Create a vital sign Observation for Utils tests."""
+    obs = {
+        "resourceType": "Observation",
+        "id": obs_id,
+        "meta": {
+            "source": "http://example.org/ehr",
+            "profile": [profile],
+        },
+        "status": "final",
+        "category": [
+            {
+                "coding": [
+                    {
+                        "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                        "code": "vital-signs",
+                    }
+                ]
+            }
+        ],
+        "code": {"coding": [{"system": "http://loinc.org", "code": loinc_code}]},
+    }
+    if value is not None and unit is not None:
+        obs["valueQuantity"] = {
+            "value": value,
+            "unit": unit,
+            "system": "http://unitsofmeasure.org",
+            "code": unit,
+        }
+    if components is not None:
+        obs["component"] = components
+    return obs
+
+
 class TestUCUMMapping:
     """Test cm-ucum-sphn concept map for unit transformations."""
 
     def test_celsius_mapped(self, transform_bundle, make_bundle, base_patient):
         """UCUM 'Cel' maps to SPHN 'Cel'."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "temp-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bodytemp"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "8310-5"}]},
-            "valueQuantity": {
-                "value": 37.5,
-                "unit": "Cel",
-                "system": "http://unitsofmeasure.org",
-                "code": "Cel",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "temp-1", "http://hl7.org/fhir/StructureDefinition/bodytemp", "8310-5",
+            value=37.5, unit="Cel",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -60,32 +70,10 @@ class TestUCUMMapping:
 
     def test_kilogram_mapped(self, transform_bundle, make_bundle, base_patient):
         """UCUM 'kg' maps to SPHN 'kg'."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "weight-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bodyweight"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "29463-7"}]},
-            "valueQuantity": {
-                "value": 70.5,
-                "unit": "kg",
-                "system": "http://unitsofmeasure.org",
-                "code": "kg",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "weight-1", "http://hl7.org/fhir/StructureDefinition/bodyweight", "29463-7",
+            value=70.5, unit="kg",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -98,32 +86,10 @@ class TestUCUMMapping:
 
     def test_percent_mapped(self, transform_bundle, make_bundle, base_patient):
         """UCUM '%' maps to SPHN 'percent'."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "oxygensat-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/oxygensat"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "2708-6"}]},
-            "valueQuantity": {
-                "value": 98.5,
-                "unit": "%",
-                "system": "http://unitsofmeasure.org",
-                "code": "%",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "oxygensat-1", "http://hl7.org/fhir/StructureDefinition/oxygensat", "2708-6",
+            value=98.5, unit="%",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -136,32 +102,10 @@ class TestUCUMMapping:
 
     def test_centimeter_mapped(self, transform_bundle, make_bundle, base_patient):
         """UCUM 'cm' maps to SPHN 'cm'."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "height-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bodyheight"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "8302-2"}]},
-            "valueQuantity": {
-                "value": 175,
-                "unit": "cm",
-                "system": "http://unitsofmeasure.org",
-                "code": "cm",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "height-1", "http://hl7.org/fhir/StructureDefinition/bodyheight", "8302-2",
+            value=175, unit="cm",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -174,46 +118,25 @@ class TestUCUMMapping:
 
     def test_mm_hg_mapped(self, transform_bundle, make_bundle, base_patient):
         """UCUM 'mm[Hg]' maps to SPHN 'mmsblHgsbr'."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "bp-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bp"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "85354-9"}]},
-            "component": [
+        obs = make_vital_sign_obs(
+            "bp-1", "http://hl7.org/fhir/StructureDefinition/bp", "85354-9",
+            components=[
                 {
                     "code": {"coding": [{"system": "http://loinc.org", "code": "8480-6"}]},
                     "valueQuantity": {
-                        "value": 120,
-                        "unit": "mmHg",
-                        "system": "http://unitsofmeasure.org",
-                        "code": "mm[Hg]",
+                        "value": 120, "unit": "mmHg",
+                        "system": "http://unitsofmeasure.org", "code": "mm[Hg]",
                     },
                 },
                 {
                     "code": {"coding": [{"system": "http://loinc.org", "code": "8462-4"}]},
                     "valueQuantity": {
-                        "value": 80,
-                        "unit": "mmHg",
-                        "system": "http://unitsofmeasure.org",
-                        "code": "mm[Hg]",
+                        "value": 80, "unit": "mmHg",
+                        "system": "http://unitsofmeasure.org", "code": "mm[Hg]",
                     },
                 },
             ],
-        }
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -229,32 +152,10 @@ class TestUCUMMapping:
 
     def test_beat_per_min_mapped(self, transform_bundle, make_bundle, base_patient):
         """UCUM '{beat}/min' maps to SPHN 'cblbeatcbrpermin'."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "hr-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/heartrate"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "8867-4"}]},
-            "valueQuantity": {
-                "value": 72,
-                "unit": "beats/min",
-                "system": "http://unitsofmeasure.org",
-                "code": "{beat}/min",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "hr-1", "http://hl7.org/fhir/StructureDefinition/heartrate", "8867-4",
+            value=72, unit="{beat}/min",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -271,32 +172,10 @@ class TestQuantityValue:
 
     def test_integer_value_mapped(self, transform_bundle, make_bundle, base_patient):
         """Integer quantity value is correctly mapped."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "weight-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bodyweight"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "29463-7"}]},
-            "valueQuantity": {
-                "value": 70,
-                "unit": "kg",
-                "system": "http://unitsofmeasure.org",
-                "code": "kg",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "weight-1", "http://hl7.org/fhir/StructureDefinition/bodyweight", "29463-7",
+            value=70, unit="kg",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -309,32 +188,10 @@ class TestQuantityValue:
 
     def test_decimal_value_mapped(self, transform_bundle, make_bundle, base_patient):
         """Decimal quantity value is correctly mapped."""
-        obs = {
-            "resourceType": "Observation",
-            "id": "temp-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bodytemp"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "8310-5"}]},
-            "valueQuantity": {
-                "value": 37.55,
-                "unit": "Cel",
-                "system": "http://unitsofmeasure.org",
-                "code": "Cel",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "temp-1", "http://hl7.org/fhir/StructureDefinition/bodytemp", "8310-5",
+            value=37.55, unit="Cel",
+        )
         bundle = make_bundle(base_patient, obs)
 
         result = transform_bundle(bundle)
@@ -352,6 +209,7 @@ class TestSourceSystemReference:
     def test_source_system_referenced(self, transform_bundle, make_bundle, base_patient):
         """Resources reference their source system."""
         base_patient["meta"]["source"] = "http://example.org/hospital-ehr"
+        base_patient["birthDate"] = "1990-01-01"
         bundle = make_bundle(base_patient)
 
         result = transform_bundle(bundle)
@@ -361,12 +219,10 @@ class TestSourceSystemReference:
         assert source_systems is not None
         assert len(source_systems) >= 1
 
-        # Check that a resource references the source system
-        birth = get_path(result, "content.Birth[0]") if base_patient.get("birthDate") else None
-        admin_sex = get_path(result, "content.AdministrativeSex[0]") if base_patient.get("gender") else None
-
-        # At least one should have hasSourceSystem reference
-        # (depending on patient data)
+        # Check that Birth references the source system
+        birth = get_path(result, "content.Birth[0]")
+        assert birth is not None
+        assert birth.get("hasSourceSystem") is not None
 
     def test_multiple_source_systems_deduplicated(
         self, transform_bundle, make_bundle, base_patient
@@ -376,32 +232,10 @@ class TestSourceSystemReference:
         base_patient["gender"] = "male"
         base_patient["birthDate"] = "1990-01-01"
 
-        obs = {
-            "resourceType": "Observation",
-            "id": "temp-1",
-            "meta": {
-                "source": "http://example.org/ehr",
-                "profile": ["http://hl7.org/fhir/StructureDefinition/bodytemp"],
-            },
-            "status": "final",
-            "category": [
-                {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                            "code": "vital-signs",
-                        }
-                    ]
-                }
-            ],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "8310-5"}]},
-            "valueQuantity": {
-                "value": 37.5,
-                "unit": "Cel",
-                "system": "http://unitsofmeasure.org",
-                "code": "Cel",
-            },
-        }
+        obs = make_vital_sign_obs(
+            "temp-1", "http://hl7.org/fhir/StructureDefinition/bodytemp", "8310-5",
+            value=37.5, unit="Cel",
+        )
 
         bundle = make_bundle(base_patient, obs)
 
