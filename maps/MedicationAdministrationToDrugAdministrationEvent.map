@@ -7,14 +7,14 @@ map "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministration
 uses "http://hl7.org/fhir/StructureDefinition/MedicationAdministration" alias MedicationAdministration as source
 
 // Target definitions (SPHN)
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugAdministrationEvent" alias DrugAdministrationEvent as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Drug" alias Drug as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Substance" alias Substance as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Quantity" alias Quantity as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DrugArticle" alias DrugArticle as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DrugAdministrationEvent" alias DrugAdministrationEvent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Drug" alias Drug as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Substance" alias Substance as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Quantity" alias Quantity as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Unit" alias Unit as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DrugArticle" alias DrugArticle as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 

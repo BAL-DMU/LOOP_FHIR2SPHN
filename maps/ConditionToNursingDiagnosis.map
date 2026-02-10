@@ -2,9 +2,9 @@ map "http://research.balgrist.ch/fhir2sphn/StructureMap/ConditionToNursingDiagno
 
 uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/NursingDiagnosis" alias NursingDiagnosis as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Age" alias Age as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-NursingDiagnosis" alias NursingDiagnosis as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Age" alias Age as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 

@@ -5,11 +5,11 @@ uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as 
 uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 
 // Target definitions
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentResult" alias AssessmentResult as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentComponent" alias AssessmentComponent as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Assessment" alias Assessment as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AssessmentEvent" alias AssessmentEvent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-AssessmentResult" alias AssessmentResult as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-AssessmentComponent" alias AssessmentComponent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Assessment" alias Assessment as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-AssessmentEvent" alias AssessmentEvent as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 

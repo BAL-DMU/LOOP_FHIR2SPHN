@@ -25,19 +25,19 @@ uses "http://hl7.org/fhir/StructureDefinition/Claim" alias Claim as source
 uses "http://hl7.org/fhir/StructureDefinition/Consent" alias Consent as source
 uses "http://hl7.org/fhir/StructureDefinition/Resource" alias Resource as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/LoopSphn" alias LoopSphn as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataRelease" alias DataRelease as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DataProvider" alias DataProvider as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SourceSystem" alias SourceSystem as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SubjectPseudoIdentifier" alias SubjectPseudoIdentifier as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Consent" alias Consent as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BirthDate" alias BirthDate as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/DeathDate" alias DeathDate as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Death" alias Death as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Birth" alias Birth as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/AdministrativeSex" alias AdministrativeSex as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Code" alias Code as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-LoopSphn" alias LoopSphn as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DataRelease" alias DataRelease as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DataProvider" alias DataProvider as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-SourceSystem" alias SourceSystem as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-SubjectPseudoIdentifier" alias SubjectPseudoIdentifier as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Consent" alias Consent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BirthDate" alias BirthDate as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DeathDate" alias DeathDate as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Death" alias Death as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Birth" alias Birth as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-AdministrativeSex" alias AdministrativeSex as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Code" alias Code as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/EncounterToAdministrativeCase"
