@@ -2,9 +2,9 @@ map "http://research.balgrist.ch/fhir2sphn/StructureMap/ClaimToBilledDiagnosisPr
 
 uses "http://hl7.org/fhir/StructureDefinition/Claim" alias Claim as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Content" alias Content as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BilledDiagnosis" alias BilledDiagnosis as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/BilledProcedure" alias BilledProcedure as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BilledDiagnosis" alias BilledDiagnosis as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BilledProcedure" alias BilledProcedure as target
 
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"

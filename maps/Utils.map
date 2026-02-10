@@ -994,8 +994,8 @@ conceptmap "cm-ucum-sphn" {
 uses "http://hl7.org/fhir/StructureDefinition/Meta" alias Meta as source
 uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Concept" alias Concept as target
-uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/Unit" alias Unit as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Concept" alias Concept as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Unit" alias Unit as target
 
 
 // Meta.Source -> reference to SourceSystem
