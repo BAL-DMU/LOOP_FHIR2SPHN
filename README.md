@@ -113,21 +113,26 @@ Docker is required to run the Matchbox container.
 
 The recommended workflow for developing and testing maps:
 
-1. Start the Matchbox container once:
+1. Build the Docker image:
+```bash
+docker compose -f docker/docker-compose.yml build
+```
+
+2. Start the Matchbox container once:
 ```bash
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-2. Edit a `.map` file in `maps/`.
+3. Edit a `.map` file in `maps/`.
 
-3. Run the relevant tests (maps are re-uploaded automatically at the start of each pytest session):
+4. Run the relevant tests (maps are re-uploaded automatically at the start of each pytest session):
 ```bash
 pytest tests/maps/test_allergy_intolerance_to_allergy.py -v
 ```
 
-4. Iterate: edit the map, re-run tests. To force re-upload of maps after changes, start a new pytest session (each session uploads all maps fresh).
+5. Iterate: edit the map, re-run tests. To force re-upload of maps after changes, start a new pytest session (each session uploads all maps fresh).
 
-5. Run the full suite before committing:
+6. Run the full suite before committing:
 ```bash
 pytest tests/ -v
 ```
