@@ -44,7 +44,6 @@ USER matchbox
 
 # Compile maps to load all needed components from the Internet
 ENV MAPS_DIR="/home/matchbox/fhir2sphn/maps"
-ENV COMPILED_DIR="/home/matchbox/fhir2sphn/maps/compiled"
 
 
 ENTRYPOINT ["/entrypoint.sh"]
