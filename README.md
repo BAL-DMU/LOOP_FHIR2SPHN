@@ -122,7 +122,7 @@ docker compose -f tests/docker-compose.yml up -d
 
 3. Run the relevant tests (maps are re-uploaded automatically at the start of each pytest session):
 ```bash
-pytest tests/maps/test_allergy_intolerance.py -v
+pytest tests/maps/test_allergy_intolerance_to_allergy.py -v
 ```
 
 4. Iterate: edit the map, re-run tests. To force re-upload of maps after changes, start a new pytest session (each session uploads all maps fresh).
