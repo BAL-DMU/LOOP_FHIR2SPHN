@@ -22,6 +22,9 @@ jobs:
       - name: Build Docker image
         run: docker compose -f docker/docker-compose.yml build
 
+      - name: Fix permissions for container
+        run: chmod -R a+w .
+
       - name: Run tests
         run: pytest tests/ -v --start-container
 

@@ -8,8 +8,7 @@ RUN apk add --no-cache curl wget maven jekyll nodejs npm bash jq \
 RUN java --version
 
 # get some sushi
-RUN npm install -g fsh-sushi
-RUN npm cache clean --force
+RUN npm install -g fsh-sushi && rm -rf /home/matchbox/.npm
 
 # Loop & map it as you w(f)ish
 USER matchbox
