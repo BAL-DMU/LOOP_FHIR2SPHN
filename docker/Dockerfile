@@ -9,7 +9,7 @@ RUN java --version
 
 # get some sushi
 RUN npm install -g fsh-sushi
-
+RUN npm cache clean --force
 
 # Loop & map it as you w(f)ish
 USER matchbox
