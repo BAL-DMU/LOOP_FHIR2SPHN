@@ -3,69 +3,91 @@ name: CI/CD
 on:
   push:
     branches: ["**"]
-    tags: ["[0-9]*.*"]
 
 jobs:
-  build-and-test:
+  debug:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install test dependencies
-        run: pip install -r tests/requirements-test.txt
 
       - name: Build Docker image
         run: docker compose -f docker/docker-compose.yml build
 
-      - name: Fix permissions for container
-        run: chmod -R a+w .
-
-      - name: Run tests
-        run: pytest tests/ -v --start-container
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get previous tag
-        id: prev_tag
+      - name: Start container and stream logs
         run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
-          echo "tag=$PREV" >> $GITHUB_OUTPUT
+          docker compose -f docker/docker-compose.yml up -d
+          sleep 240
+          docker compose -f docker/docker-compose.yml logs
+          docker compose -f docker/docker-compose.yml down
 
-      - name: Build changelog
-        id: changelog
-        run: |
-          if [ -n "${{ steps.prev_tag.outputs.tag }}" ]; then
-            RANGE="${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }}"
-          else
-            RANGE="HEAD"
-          fi
-          {
-            echo "body<<EOF"
-            git log $RANGE --oneline
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.changelog.outputs.body }}
-
-      - name: Tag Docker image
-        run: |
-          docker compose -f docker/docker-compose.yml build
-          docker tag fhir2sphn fhir2sphn:${{ github.ref_name }}
-          # docker push fhir2sphn:${{ github.ref_name }}
+# ----- full workflow (commented out) -----
+#
+# on:
+#   push:
+#     branches: ["**"]
+#     tags: ["[0-9]*.*"]
+#
+# jobs:
+#   build-and-test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.13"
+#
+#       - name: Install test dependencies
+#         run: pip install -r tests/requirements-test.txt
+#
+#       - name: Build Docker image
+#         run: docker compose -f docker/docker-compose.yml build
+#
+#       - name: Fix permissions for container
+#         run: chmod -R a+w .
+#
+#       - name: Run tests
+#         run: pytest tests/ -v --start-container
+#
+#   release:
+#     if: startsWith(github.ref, 'refs/tags/')
+#     needs: build-and-test
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#
+#       - name: Get previous tag
+#         id: prev_tag
+#         run: |
+#           PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
+#           echo "tag=$PREV" >> $GITHUB_OUTPUT
+#
+#       - name: Build changelog
+#         id: changelog
+#         run: |
+#           if [ -n "${{ steps.prev_tag.outputs.tag }}" ]; then
+#             RANGE="${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }}"
+#           else
+#             RANGE="HEAD"
+#           fi
+#           {
+#             echo "body<<EOF"
+#             git log $RANGE --oneline
+#             echo "EOF"
+#           } >> $GITHUB_OUTPUT
+#
+#       - name: Create GitHub release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           body: ${{ steps.changelog.outputs.body }}
+#
+#       - name: Tag Docker image
+#         run: |
+#           docker compose -f docker/docker-compose.yml build
+#           docker tag fhir2sphn fhir2sphn:${{ github.ref_name }}
+#           # docker push fhir2sphn:${{ github.ref_name }}
