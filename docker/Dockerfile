@@ -1,6 +1,6 @@
 FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.0.1
-MAINTAINER Todor Gitchev <todor.gitchev@uzh.ch>
-EXPOSE 8080 5005
+EXPOSE 8080 
+
 # invalidate chache
 RUN ls
 
@@ -26,11 +26,12 @@ RUN npm install -g fsh-sushi
 
 RUN apk --purge del
 
+
 # Loop & map it as you w(f)ish
 USER matchbox
-COPY entrypoint.sh /
-COPY build_maps.sh /
-COPY application.yaml /config/
+COPY docker/entrypoint.sh /
+COPY docker/build_maps.sh /
+COPY docker/application.yaml /config/
 
 ENV LOOP_FHIR2SPHN_COMMIT_HASH=5563371e81cb20a082bc2f8f84b62bb4b60699b1
 RUN git clone https://github.com/BAL-DMU/LOOP_FHIR2SPHN.git /home/matchbox/fhir2sphn && \
@@ -53,10 +54,12 @@ RUN cp /home/matchbox/fhir2sphn/output/package.tgz /package.tgz
 RUN chown -R matchbox:matchbox /package.tgz
 
 USER matchbox
+#RUN rm -rf /tmp/fhir2sphn
 
 # Compile maps to load all needed components from the Internet
 ENV MAPS_DIR="/home/matchbox/fhir2sphn/maps"
 ENV COMPILED_DIR="/home/matchbox/fhir2sphn/maps/compiled"
+
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["build"]

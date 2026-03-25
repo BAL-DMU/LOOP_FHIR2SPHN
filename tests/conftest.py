@@ -11,7 +11,7 @@ Provides:
 
 Usage:
     # Start container manually first (recommended for development):
-    docker compose -f tests/docker-compose.yml up -d
+    docker compose -f docker/docker-compose.yml up -d
     pytest tests/ -v
 
     # Or let pytest start the container:
@@ -40,7 +40,7 @@ from tests.config import (
 SERVER_STARTUP_TIMEOUT = 300  # 5 minutes
 SERVER_POLL_INTERVAL = 5  # seconds
 
-DOCKER_COMPOSE_FILE = Path(__file__).parent / "docker-compose.yml"
+DOCKER_COMPOSE_FILE = Path(__file__).parent.parent / "docker" / "docker-compose.yml"
 
 
 def pytest_addoption(parser):
@@ -140,7 +140,7 @@ def matchbox_ready(matchbox_container):  # noqa: ARG001 - fixture dependency
     pytest.fail(
         f"Matchbox server did not become ready within {SERVER_STARTUP_TIMEOUT} seconds. "
         "Make sure the container is running: "
-        "docker compose -f tests/docker-compose.yml up -d"
+        "docker compose -f docker/docker-compose.yml up -d"
     )
 
 

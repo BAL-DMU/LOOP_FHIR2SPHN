@@ -115,7 +115,7 @@ The recommended workflow for developing and testing maps:
 
 1. Start the Matchbox container once:
 ```bash
-docker compose -f tests/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 2. Edit a `.map` file in `maps/`.
@@ -134,7 +134,7 @@ pytest tests/ -v
 
 To stop the container when done:
 ```bash
-docker compose -f tests/docker-compose.yml down
+docker compose -f docker/docker-compose.yml down
 ```
 
 ## Skipping StructureDefinition rebuild

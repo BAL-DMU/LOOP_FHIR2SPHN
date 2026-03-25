@@ -9,7 +9,7 @@ while ! nc -z localhost 8080 ; do sleep 1 ; echo -n "." ; done
 echo "Matchbox RUNNING"
 
 # Compile/Upload Maps
-for i in $(ls ${MAPS_DIR}/*.map) ; do
+for i in ${MAPS_DIR}/*.map ; do
   echo "Uploading $i"
   curl 	--request POST \
     --fail \

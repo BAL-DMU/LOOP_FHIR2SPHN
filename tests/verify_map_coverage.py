@@ -588,7 +588,7 @@ def main():
         matchbox = MatchboxClient(verbose=args.verbose)
         if not matchbox.is_ready():
             print("ERROR: Matchbox server is not available at", MATCHBOX_BASE_URL)
-            print("Start it with: docker compose -f tests/docker-compose.yml up -d")
+            print("Start it with: docker compose -f docker/docker-compose.yml up -d")
             sys.exit(1)
         print("Matchbox server is ready.")
 
