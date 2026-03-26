@@ -14,13 +14,9 @@ StructureDefinitions for the target LOOP schema is defined using [FHIR Shorthand
     * [FHIR Shorthand](https://marketplace.visualstudio.com/items?itemName=MITRE-Health.vscode-language-fsh)
     * [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
 
-An FML engine is required like [HAPI-FHIR Validator Cli](https://confluence.hl7.org/pages/viewpage.action?pageId=76158820#UsingtheFHIRMappingLanguage-runtransformsjavavalidatorRunTransformsviatheJavaValidatorJar) or [Matchbox](https://ahdis.github.io/matchbox/) (recommended)
+An FML engine is required like [Matchbox](https://ahdis.github.io/matchbox/) (recommended) or [HAPI-FHIR Validator Cli](https://confluence.hl7.org/pages/viewpage.action?pageId=76158820#UsingtheFHIRMappingLanguage-runtransformsjavavalidatorRunTransformsviatheJavaValidatorJar).
 
-**Recommended versions:** Use at least 6.5.0 for HAPI-FHIR Validator Cli and 4.0.1 for Matchbox or later. These releases contain critical performance improvements required to transform large amount of data (see https://github.com/hapifhir/org.hl7.fhir.core/pull/1704 / https://github.com/ahdis/matchbox/pull/362) and corresponding issues [#1703](https://github.com/hapifhir/org.hl7.fhir.core/issues/1703) / [#1699](https://github.com/hapifhir/org.hl7.fhir.core/issues/1699)
-
-## HAPI-FHIR Validator Cli
-* Download validator:
-    * `wget https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar`
+**Recommended versions:** Use at least 4.0.1 for Matchbox or later. These releases contain critical performance improvements required to transform large amount of data (see https://github.com/hapifhir/org.hl7.fhir.core/pull/1704 / https://github.com/ahdis/matchbox/pull/362) and corresponding issues [#1703](https://github.com/hapifhir/org.hl7.fhir.core/issues/1703) / [#1699](https://github.com/hapifhir/org.hl7.fhir.core/issues/1699)
 
 ## Matchbox
 * Requires JDK 21 and maven
@@ -42,35 +38,6 @@ sushi build
 ```bash
 ./_updatePublisher.sh
 ./_genonce.sh
-```
-
-# Running transformations using Validator Cli
-## Compile maps
-```bash
-OUT_DIR="temp/map"
-mkdir -p ${OUT_DIR}
-for f in $(ls maps/*.map) ; do
-    BASE=$(basename ${f} .map)
-    java -jar validator_cli.jar -ig ${f} \
-        -compile http://research.balgrist.ch/fhir2sphn/StructureMap/${BASE} \
-        -version 4.0 -output ${OUT_DIR}/${BASE}.xml
-done
-```
-
-## Execute a transformation
-Transform input data ```testdata/pat.json```:
-```bash
-java -jar validator_cli.jar testdata/pat.json \
-    -transform http://research.balgrist.ch/fhir2sphn/StructureMap/BundleToLoopSphn \
-    -version 4.0 -ig ${OUT_DIR}/ -ig ./fsh-generated/resources \
-    -output temp/result.json
-```
-
-## Validate the result
-Validate the resulting  ```temp/result.json``` against the LogicalModel:
-```bash
-java -jar validator_cli.jar temp/result.json \
-    -version 4.0 -ig ./fsh-generated/resources
 ```
 
 # Running transformations using Matchbox
