@@ -3,27 +3,6 @@ name: CI/CD
 on:
   push:
     branches: ["**"]
-
-jobs:
-  debug:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker compose -f docker/docker-compose.yml build
-
-      - name: Start container and stream logs
-        run: |
-          docker compose -f docker/docker-compose.yml up -d
-          sleep 240
-          docker compose -f docker/docker-compose.yml logs
-          docker compose -f docker/docker-compose.yml down
-
-
-on:
-  push:
-    branches: ["**"]
     tags: ["[0-9]*.*"]
 
 jobs:
