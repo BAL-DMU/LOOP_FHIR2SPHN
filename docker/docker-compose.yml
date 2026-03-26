@@ -1,0 +1,19 @@
+services:
+  fhir2sphn:
+    image: fhir2sphn:latest
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx4g
+    volumes:
+      - ..:/home/matchbox/maps
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/matchboxv3/fhir/metadata"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
