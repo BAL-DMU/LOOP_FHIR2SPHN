@@ -19,8 +19,18 @@ jobs:
       - name: Install test dependencies
         run: pip install -r tests/requirements-test.txt
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image
-        run: docker compose -f docker/docker-compose.yml build
+        uses: docker/build-push-action@v6
+        with:
+          context: docker
+          file: docker/Dockerfile
+          tags: fhir2sphn:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Fix permissions for container
         run: chmod -R a+w .
