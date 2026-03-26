@@ -32,12 +32,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Fix permissions for container
-        run: chmod -R a+w .
+      # - name: Fix permissions for container
+      #   run: chmod -R a+w .
 
       - name: Start container 
+        #--no-build
         run: |
-          docker compose -f docker/docker-compose.yml up -d
+          docker compose -f docker/docker-compose.yml up -d 
           sleep 60
           docker compose -f docker/docker-compose.yml logs
 

@@ -1,5 +1,6 @@
 services:
   fhir2sphn:
+    image: fhir2sphn:latest
     platform: linux/amd64
     build:
       context: ..
