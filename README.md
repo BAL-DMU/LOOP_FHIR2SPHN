@@ -191,4 +191,29 @@ python tests/verify_map_coverage.py --dry-run
 
 The report shows each rule as **COVERED** (a test detected the removal) or **MISSING** (no test failed when the rule was removed).
 
+## CI/CD
 
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push. It builds the image with the updated SDs and maps, starts a container and runs the tests.
+
+On a version tag push, a **release** job additionally:
+- Creates a GitHub release with a changelog of commits since the last tag 
+- Pushes the Docker image to GitHub Container Registry (GHCR): ghcr.io/bal-dmu/fhir2sphn
+
+### Docker image
+Pull a specific version or `latest`:
+
+```bash
+docker pull ghcr.io/bal-dmu/fhir2sphn:0.1.2
+docker pull ghcr.io/bal-dmu/fhir2sphn:latest
+```
+
+
+### How to release
+
+```bash
+git tag 0.1.2
+# or git tag 0.1.2.rc1
+git push --tags
+```
+
+The release job triggers automatically, creates the GitHub release with the commit changelog, and tags the image.
