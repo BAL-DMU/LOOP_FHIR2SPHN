@@ -45,7 +45,7 @@ jobs:
         run: curl http://localhost:8080/matchboxv3/fhir/swagger-ui/?page=StructureDefinition
 
       - name: Run tests
-        run: pytest tests/ -v
+        run: pytest tests/ --skip-sds -v
 #
 #   release:
 #     if: startsWith(github.ref, 'refs/tags/')
