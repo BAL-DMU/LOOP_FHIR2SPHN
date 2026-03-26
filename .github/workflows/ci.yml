@@ -32,19 +32,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # - name: Fix permissions for container
-      #   run: chmod -R a+w .
-
       - name: Start container 
-        #--no-build
         run: |
           docker compose -f docker/docker-compose.yml up -d 
           sleep 60
           docker compose -f docker/docker-compose.yml logs
 
       - name: Run tests
-        # run: pytest tests/ --skip-sds -v # have been built when building the container
-        run: pytest tests/ --skip-sds -v # have been built when building the container
+        run: pytest tests/ --skip-sds -v # SDs have been built when building the container
 
       - name: Dump container logs
         if: always()
