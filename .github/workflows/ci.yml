@@ -35,17 +35,15 @@ jobs:
       - name: Fix permissions for container
         run: chmod -R a+w .
 
-      - name: Start container 
-        run: |
-          docker compose -f docker/docker-compose.yml up -d
-          sleep 60
-          docker compose -f docker/docker-compose.yml logs
-
-      - name: get strucutre def
-        run: curl http://localhost:8080/matchboxv3/fhir/swagger-ui/?page=StructureDefinition
+      # - name: Start container 
+      #   run: |
+      #     docker compose -f docker/docker-compose.yml up -d
+      #     # sleep 60
+      #     # docker compose -f docker/docker-compose.yml logs
 
       - name: Run tests
-        run: pytest tests/ --skip-sds -v
+        # run: pytest tests/ --skip-sds -v # have been built when building the container
+        run: pytest tests/ --start-container --skip-sds -v # have been built when building the container
 #
 #   release:
 #     if: startsWith(github.ref, 'refs/tags/')
