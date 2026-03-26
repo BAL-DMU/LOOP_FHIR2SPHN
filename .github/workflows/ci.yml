@@ -31,6 +31,8 @@ jobs:
           sleep 60
           docker compose -f docker/docker-compose.yml logs
 
+      - name: get strucutre def
+        run: curl http://localhost:8080/matchboxv3/fhir/swagger-ui/?page=StructureDefinition
 
       - name: Run tests
         run: pytest tests/ -v
