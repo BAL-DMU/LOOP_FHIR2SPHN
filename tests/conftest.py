@@ -43,6 +43,25 @@ SERVER_POLL_INTERVAL = 5  # seconds
 DOCKER_COMPOSE_FILE = Path(__file__).parent.parent / "docker" / "docker-compose.yml"
 
 
+def wait_for_matchbox_ready():
+    """Poll Matchbox /metadata until it returns 200 or timeout is reached."""
+    metadata_url = f"{MATCHBOX_BASE_URL}/metadata"
+    print(f"Waiting for Matchbox server at {metadata_url}...")
+    start_time = time.time()
+    while time.time() - start_time < SERVER_STARTUP_TIMEOUT:
+        try:
+            response = requests.get(metadata_url, timeout=10)
+            if response.status_code == 200:
+                print("Matchbox server is ready!")
+                return
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(SERVER_POLL_INTERVAL)
+    raise RuntimeError(
+        f"Matchbox did not become ready within {SERVER_STARTUP_TIMEOUT} seconds"
+    )
+
+
 def pytest_addoption(parser):
     """Add custom command line options."""
     parser.addoption(
@@ -86,24 +105,10 @@ def matchbox_container(request):
         )
 
         # Wait for Matchbox startup to fully finish
-        print("Waiting for 'Maps upload DONE' in container logs...")
-        start_time = time.time()
-        timeout = 120
-        while time.time() - start_time < timeout:
-            result = subprocess.run(
-                ["docker", "compose", "-f", str(DOCKER_COMPOSE_FILE), "logs", "matchbox"],
-                capture_output=True,
-                text=True,
-                cwd=PROJECT_ROOT,
-            )
-            if "Maps upload DONE" in result.stdout:
-                print("Matchbox maps upload completed!")
-                break
-            time.sleep(5)
-        else:
-            raise RuntimeError(
-                f"Matchbox did not finish map upload within {timeout} seconds"
-            )
+        print("Waiting 30 seconds for Matchbox to initialize...")
+        time.sleep(30)
+
+        wait_for_matchbox_ready()
 
         yield
 
@@ -121,27 +126,14 @@ def matchbox_container(request):
 @pytest.fixture(scope="session")
 def matchbox_ready(matchbox_container):  # noqa: ARG001 - fixture dependency
     """Wait for Matchbox server to be ready."""
-    metadata_url = f"{MATCHBOX_BASE_URL}/metadata"
-    start_time = time.time()
-
-    print(f"Waiting for Matchbox server at {metadata_url}...")
-
-    while time.time() - start_time < SERVER_STARTUP_TIMEOUT:
-        try:
-            response = requests.get(metadata_url, timeout=10)
-            if response.status_code == 200:
-                print("Matchbox server is ready!")
-                return True
-        except requests.exceptions.RequestException:
-            pass
-
-        time.sleep(SERVER_POLL_INTERVAL)
-
-    pytest.fail(
-        f"Matchbox server did not become ready within {SERVER_STARTUP_TIMEOUT} seconds. "
-        "Make sure the container is running: "
-        "docker compose -f docker/docker-compose.yml up -d"
-    )
+    try:
+        wait_for_matchbox_ready()
+    except RuntimeError as e:
+        pytest.fail(
+            f"{e}. Make sure the container is running: "
+            "docker compose -f docker/docker-compose.yml up -d"
+        )
+    return True
 
 
 def run_sushi_build() -> None:
@@ -149,7 +141,7 @@ def run_sushi_build() -> None:
     result = subprocess.run(
         [
             "docker", "compose", "-f", str(DOCKER_COMPOSE_FILE),
-            "exec", "matchbox",
+            "exec", "fhir2sphn",
             "sh", "-c", "cd /home/matchbox/maps && sushi build",
         ],
         capture_output=True,
