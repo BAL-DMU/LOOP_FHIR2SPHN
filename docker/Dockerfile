@@ -17,13 +17,13 @@ COPY docker/build_maps.sh /
 COPY docker/application.yaml /config/
 
 WORKDIR /home/matchbox/fhir2sphn
-
-COPY ./maps ./maps/
-COPY ./input ./input/
 COPY ./ig.ini .
 COPY ./sushi-config.yaml .
 COPY ./_updatePublisher.sh .
 COPY ./_genonce.sh .
+COPY ./maps ./maps/
+COPY ./input ./input/
+
 
 RUN sushi build
 RUN ./_updatePublisher.sh -y
