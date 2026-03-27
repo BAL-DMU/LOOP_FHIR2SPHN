@@ -20,6 +20,8 @@ def make_survey_observation(
     obs_id="survey-1",
     snomed_code=None,
     snomed_display=None,
+    loinc_code=None,
+    loinc_display=None,
     effective=None,
     encounter_ref=None,
     value_codeable_concept=None,
@@ -52,6 +54,15 @@ def make_survey_observation(
         if snomed_display:
             code_entry["coding"][0]["display"] = snomed_display
             code_entry["text"] = snomed_display
+        obs["code"] = code_entry
+
+    if loinc_code:
+        code_entry = {
+            "coding": [{"system": "http://loinc.org", "code": loinc_code}]
+        }
+        if loinc_display:
+            code_entry["coding"][0]["display"] = loinc_display
+            code_entry["text"] = loinc_display
         obs["code"] = code_entry
 
     if effective:
@@ -505,3 +516,22 @@ class TestMultipleSurveys:
         events = get_path(result, "content.AssessmentEvent")
         assert events is not None
         assert len(events) == 2
+
+
+class TestLoincCode:
+    """Test LOINC code mapping on observation.code -> Assessment."""
+
+    def test_loinc_code_on_assessment(self, transform_bundle, make_bundle, base_patient):
+        """LOINC code on observation.code maps to Assessment.hasCode with correct termid and IRI."""
+        obs = make_survey_observation(loinc_code="44249-1")
+        bundle = make_bundle(base_patient, obs)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AssessmentEvent[0].hasAssessment.hasCode",
+            "44249-1",
+            "https://loinc.org/rdf/44249-1",
+        )
+

@@ -22,7 +22,11 @@ group codingToCode(source coding, target trg) {
  coding as srcCoding where $this.system = 'http://snomed.info/sct' -> trg.hasCode as trgCode then {
    srcCoding.code as c -> trgCode.termid = c as termid,
    trgCode.iri = append('http://snomed.info/id/', termid);
- } "codingToCode";
+ } "codingToCodeSnomed";
+ coding as srcCoding where $this.system = 'http://loinc.org' -> trg.hasCode as trgCode then {
+   srcCoding.code as c -> trgCode.termid = c,
+   trgCode.iri = append('https://loinc.org/rdf/', c);
+ } "codingToCodeLoinc";
 }
 
 // Helper to populate Assessment result from observation
