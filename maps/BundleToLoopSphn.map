@@ -49,6 +49,7 @@ imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ClaimToBilledDiagnos
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/DiagnosticReportToLabTestEvent"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationAdministrationToDrugAdministrationEvent"
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationSurveyToAssessmentEvent"
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationFluidToFluidInputOutput"
 
 
 
@@ -99,6 +100,10 @@ group fhir2sphn(source bundle : Bundle, target tgt : LoopSphn) {
 
       // Observation (survey) -> Content.AssessmentEvent
       entry.resource as observation where $this.ofType(FHIR.Observation) and $this.category.coding.code = 'survey' then assessmentEvent(observation, content);
+
+      // Observation (exam + fluid SNOMED codes) -> Content.FluidInputOutput
+      // code 251992000 "Fluid intake (observable entity)", 251840008 "Fluid output (observable entity)"
+      entry.resource as observation where $this.ofType(FHIR.Observation) and $this.category.coding.code = 'exam' and ($this.code.coding.code = '251992000' or $this.code.coding.code = '251840008') then fluidInputOutput(observation, content);
     };
   } "Content";
 }
