@@ -100,6 +100,15 @@ jobs:
         id: owner
         run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
+      - name: Is stable release
+        id: stable
+        run: |
+          if echo "${{ github.ref_name }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "yes=true" >> $GITHUB_OUTPUT
+          else
+            echo "yes=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Push Docker image to GHCR
         uses: docker/build-push-action@v6
         with:
@@ -107,6 +116,6 @@ jobs:
           file: docker/Dockerfile
           tags: |
             ghcr.io/${{ steps.owner.outputs.name }}/fhir2sphn:${{ github.ref_name }}
-            ghcr.io/${{ steps.owner.outputs.name }}/fhir2sphn:latest
+            ${{ steps.stable.outputs.yes == 'true' && format('ghcr.io/{0}/fhir2sphn:latest', steps.owner.outputs.name) || '' }}
           push: true
           cache-from: type=gha

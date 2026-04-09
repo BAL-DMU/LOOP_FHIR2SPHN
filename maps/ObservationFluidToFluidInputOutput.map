@@ -1,0 +1,72 @@
+// Maps fluid intake/output Observations to SPHN FluidInputOutput
+// FHIR: https://hl7.org/fhir/R4/observation.html
+// SPHN: https://www.biomedit.ch/rdf/sphn-schema/sphn/2025/2#FluidInputOutput
+//
+// Direction coding (observation.code):
+//   251992000 "Fluid intake (observable entity)"  -> positive hasQuantity value
+//   251840008 "Fluid output (observable entity)"  -> negative hasQuantity value
+//
+// Substance coding (component[105590001 "Substance"].valueCodeableConcept):
+//   226465004 "Drinks (substance)"
+//   78014005  "Urine (substance)"
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/ObservationFluidToFluidInputOutput" = "ObservationFluidToFluidInputOutput"
+
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
+uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-FluidInputOutput" alias FluidInputOutput as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Substance" alias Substance as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Unit" alias Unit as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+// Observation (exam + fluid SNOMED codes) -> Content.FluidInputOutput
+group fluidInputOutput(source observation : Observation, target content: Content) <<types>> {
+  observation -> content.FluidInputOutput = create('FluidInputOutput') as fio then {
+    observation.meta as m then refSourceSystem(m, fio);
+    observation.id as id -> fio.id = ('Observation/' & %id);
+
+    // encounter.reference -> hasAdministrativeCase
+    observation.encounter as enc -> fio.hasAdministrativeCase = enc;
+
+    // effectivePeriod -> hasStartDateTime + hasEndDateTime
+    observation.effective : Period as period then {
+      period.start as start -> fio.hasStartDateTime = start;
+      period.end as end -> fio.hasEndDateTime = end;
+    };
+
+    // effectiveDateTime -> hasStartDateTime AND hasEndDateTime (same value)
+    observation.effective : dateTime as dt -> fio.hasStartDateTime = dt, fio.hasEndDateTime = dt;
+
+    // hasSubstance
+    observation -> fio.hasSubstance = create('Substance') as substance then {
+      observation.meta as m then refSourceSystem(m, substance);
+      observation -> substance.id = uuid() "substance_id";
+
+      // component[105590001 Substance].valueCodeableConcept -> hasCode
+      observation.component as comp where $this.code.coding.code = '105590001' then {
+        comp.valueCodeableConcept as vcc then {
+          vcc.coding first as substCoding where $this.system = 'http://snomed.info/sct' -> substance.hasCode as substCode then {
+            substCoding.code as c -> substCode.id = uuid(), substCode.termid = c, substCode.iri = append('http://snomed.info/id/', c);
+          };
+        };
+      };
+
+      // code 251992000 (Fluid intake) -> positive quantity (copy as-is via Utils helper)
+      observation where $this.code.coding.code = '251992000' then {
+        observation.valueQuantity as vq -> substance.hasQuantity as q then quantity(vq, q) "quantity_intake";
+      } "intake";
+
+      // code 251840008 (Fluid output) -> negative quantity
+      // Step 1: use Utils quantity helper to set id + unit correctly
+      // Step 2: override hasValue with negated value (second write wins)
+      observation where $this.code.coding.code = '251840008' then {
+        observation.valueQuantity as vq -> substance.hasQuantity as q then quantity(vq, q) "quantity_output_unit";
+        observation.valueQuantity as vq then {
+          vq.value as v -> substance.hasQuantity as q, q.hasValue = (0 - v) "negate";
+        } "quantity_output_negate";
+      } "output";
+    } "Substance";
+  } "FIO";
+}
