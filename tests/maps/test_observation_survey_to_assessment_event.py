@@ -24,6 +24,8 @@ def make_survey_observation(
     loinc_display=None,
     bmip_code=None,
     bmip_display=None,
+    chop_code=None,
+    chop_display=None,
     effective=None,
     encounter_ref=None,
     value_codeable_concept=None,
@@ -75,6 +77,15 @@ def make_survey_observation(
             code_entry["coding"][0]["display"] = bmip_display
         obs["code"] = code_entry
 
+    if chop_code:
+        code_entry = {
+            "coding": [{"system": "CHOP", "code": chop_code}]
+        }
+        if chop_display:
+            code_entry["coding"][0]["display"] = chop_display
+            code_entry["text"] = chop_display
+        obs["code"] = code_entry
+
     if effective:
         obs["effectiveDateTime"] = effective
 
@@ -104,6 +115,8 @@ def make_survey_observation(
 def make_component(
     snomed_code=None,
     snomed_display=None,
+    chop_code=None,
+    chop_display=None,
     value_codeable_concept=None,
     value_quantity=None,
     value_string=None,
@@ -118,6 +131,15 @@ def make_component(
         if snomed_display:
             code_entry["coding"][0]["display"] = snomed_display
             code_entry["text"] = snomed_display
+        comp["code"] = code_entry
+
+    if chop_code:
+        code_entry = {
+            "coding": [{"system": "CHOP", "code": chop_code}]
+        }
+        if chop_display:
+            code_entry["coding"][0]["display"] = chop_display
+            code_entry["text"] = chop_display
         comp["code"] = code_entry
 
     if value_codeable_concept:
@@ -563,4 +585,58 @@ class TestLoincCode:
             "44249-1",
             "https://loinc.org/rdf/44249-1",
         )
+
+
+class TestChopCode:
+    """Test CHOP code mapping on observation.code -> Assessment."""
+
+    def test_chop_code_on_assessment(self, transform_bundle, make_bundle, base_patient):
+        """CHOP code on observation.code maps to Assessment.hasCode with correct termid and IRI."""
+        obs = make_survey_observation(chop_code="99.04")
+        bundle = make_bundle(base_patient, obs)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AssessmentEvent[0].hasAssessment.hasCode",
+            "99.04",
+            "https://biomedit.ch/rdf/sphn-resource/chop/99.04",
+        )
+
+    def test_chop_code_name_from_display(self, transform_bundle, make_bundle, base_patient):
+        """CHOP code display maps to Assessment.hasName."""
+        obs = make_survey_observation(chop_code="99.04", chop_display="Some Procedure")
+        bundle = make_bundle(base_patient, obs)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result,
+            "content.AssessmentEvent[0].hasAssessment.hasName",
+            "Some Procedure",
+        )
+
+    def test_chop_code_on_component(self, transform_bundle, make_bundle, base_patient):
+        """CHOP code on component maps to AssessmentComponent.hasCode."""
+        obs = make_survey_observation(
+            snomed_code="444735006",
+            components=[
+                make_component(chop_code="99.04", value_string="done"),
+            ],
+        )
+        bundle = make_bundle(base_patient, obs)
+
+        result = transform_bundle(bundle)
+
+        assessment = get_path(result, "content.AssessmentEvent[0].hasAssessment")
+        component = assessment.get("hasComponent")
+        if isinstance(component, list):
+            component = component[0]
+
+        assert component is not None
+        code = component.get("hasCode")
+        assert code is not None
+        assert code.get("termid") == "99.04"
+        assert code.get("iri") == "https://biomedit.ch/rdf/sphn-resource/chop/99.04"
 

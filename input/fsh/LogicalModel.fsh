@@ -92,6 +92,7 @@ Title: "List of SPHN concepts"
 * BilledDiagnosis 0..* SU BilledDiagnosis "" ""
 * BilledProcedure 0..* SU BilledProcedure "" ""
 * Age 0..* SU Age "" ""
+* FluidInputOutput 0..* SU FluidInputOutput "" ""
 
 
 Logical: Location
@@ -552,3 +553,13 @@ Id: SPHN-BilledProcedure
 Parent: MedicalProcedure
 Title: "SPHN Billed Procedure"
 * hasRankCode 0..1 SU Code "" ""
+
+Logical: FluidInputOutput
+Id: SPHN-FluidInputOutput
+Parent: Concept
+Title: "SPHN Fluid Input Output"
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasEndDateTime 1..1 SU dateTime "" ""
+* hasSubstance 1..1 SU Substance "" ""

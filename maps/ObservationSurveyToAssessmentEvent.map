@@ -27,6 +27,10 @@ group codingToCode(source coding, target trg) {
    srcCoding.code as c -> trgCode.termid = c,
    trgCode.iri = append('https://loinc.org/rdf/', c);
  } "codingToCodeLoinc";
+ coding as srcCoding where $this.system = 'CHOP' -> trg.hasCode as trgCode then {
+   srcCoding.code as c -> trgCode.termid = c,
+   trgCode.iri = append('https://biomedit.ch/rdf/sphn-resource/chop/', c);
+ } "codingToCodeChop";
 }
 
 // Helper to populate Assessment result from observation
