@@ -989,6 +989,9 @@ conceptmap "cm-ucum-sphn" {
   s:"u[IU]/L" == t:"usblIUsbrperL"
   s:"u[IU]/mL" == t:"usblIUsbrpermL"
   s:"wk" == t:"wk"
+
+  // still missing in 2025 terminology
+  s:"mS/cm" == t:"mSpercm"
 }
 
 uses "http://hl7.org/fhir/StructureDefinition/Meta" alias Meta as source
