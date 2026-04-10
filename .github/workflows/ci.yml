@@ -119,3 +119,12 @@ jobs:
             ${{ steps.stable.outputs.yes == 'true' && format('ghcr.io/{0}/fhir2sphn:latest', steps.owner.outputs.name) || '' }}
           push: true
           cache-from: type=gha
+
+      - name: Prepare docker-compose.yml for release
+        run: |
+          sed 's|:latest|:${{ github.ref_name }}|' docker/docker-compose.prod.yml > docker-compose.yml
+
+      - name: Upload docker-compose.yml to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: docker-compose.yml

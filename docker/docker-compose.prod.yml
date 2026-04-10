@@ -1,0 +1,7 @@
+services:
+  fhir2sphn:
+    image: ghcr.io/bal-dmu/fhir2sphn:latest
+    ports:
+      - "8180:8080"
+    restart: always
+
