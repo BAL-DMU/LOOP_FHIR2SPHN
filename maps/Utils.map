@@ -992,6 +992,7 @@ conceptmap "cm-ucum-sphn" {
 
   // still missing in 2025 terminology
   s:"mS/cm" == t:"mSpercm"
+  s:"ng{hemoglobin}/mL" == t:"ngcblhemoglobincbrpermL"
 }
 
 uses "http://hl7.org/fhir/StructureDefinition/Meta" alias Meta as source

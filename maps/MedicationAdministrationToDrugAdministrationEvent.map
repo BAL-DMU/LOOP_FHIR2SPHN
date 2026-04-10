@@ -31,6 +31,7 @@ group medication_administration(source medicationAdministration : MedicationAdmi
             period.end as end -> event.hasEndDateTime = end;
         };
 
+        // TODO: use resolve() instead
         // Medication -> Drug
         medicationAdministration.contained as medication where $this.ofType(FHIR.Medication) -> event.hasDrug = create('Drug') as drug then {
             medicationAdministration.meta as m then refSourceSystem(m, drug);
