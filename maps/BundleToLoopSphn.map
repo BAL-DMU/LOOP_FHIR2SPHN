@@ -154,7 +154,11 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
 
   // SubjectPseudoIdentifier
   patient -> tgt.SubjectPseudoIdentifier as subject then {
-    patient.id as id ->  subject.id = ('Patient/' & %id);
+    // Note: We use a fixed and stable (pseudo-)identifier also for .id here and not the usual
+    //    patient.id as id ->  subject.id = ('Patient/' & %id);
+    // Connector uses this .id to replace the entire graph in case of updates.
+    // subject.id might change if FHIR partition is expunged, keep it stable by using the identifier
+    patient.identifier as identifier -> subject.id = (%identifier.system & '_' & %identifier.value);
     patient.identifier as identifier -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
   } "SubjectPseudoIdentifier";
 }

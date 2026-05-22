@@ -314,7 +314,7 @@ class TestSubjectPseudoIdentifier:
         result = transform_bundle(bundle)
 
         assert_path_exists(result, "SubjectPseudoIdentifier")
-        assert_path_equals(result, "SubjectPseudoIdentifier.id", "Patient/patient-abc")
+        assert_path_equals(result, "SubjectPseudoIdentifier.id", "http://example.org/patients_12345")
 
     def test_subject_identifier_combined(self, transform_bundle, make_bundle, base_patient):
         """SubjectPseudoIdentifier hasIdentifier combines system and value."""
