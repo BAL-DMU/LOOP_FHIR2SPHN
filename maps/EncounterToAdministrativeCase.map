@@ -5,7 +5,7 @@ conceptmap "cm-encounter-admitSource" {
   prefix t = "http://snomed.info/id"
   s:1 == t:264362003        // Zuhause
   s:2 == t:264362003        // Zuhause mit SPITEX Versorgung
-  s:3 == t:285201006        // Krankenheim, Pflegeheim
+  s:3 == t:42665001         // Krankenheim, Pflegeheim
   s:4 == t:257652008        // Altersheim, andere sozialmed. Institutionen
   s:5 == t:702914003        // Psychiatrische Klinik, anderer Betrieb
   s:55 == t:702914003       // Psychiatrische Abteilung/Klinik, gleicher Betrieb
@@ -22,7 +22,7 @@ conceptmap "cm-encounter-dischargedestination" {
   prefix s = "http://fhir.ch/ig/ch-core/ValueSet/bfs-medstats-28-dischargedestination"
   prefix t = "http://snomed.info/id"
   s:1 == t:264362003        // Zuhause
-  s:2 == t:285201006        // Krankenheim, Pflegeheim
+  s:2 == t:42665001         // Krankenheim, Pflegeheim
   s:3 == t:257652008        // Altersheim, andere sozialmed. Institution
   s:4 == t:702914003        // Psychiatrische Klinik, anderer Betrieb
   s:44 == t:702914003       // Psychiatrische Abteilung/Klinik, gleicher Betrieb
