@@ -48,7 +48,7 @@ group fluidInputOutput(source observation : Observation, target content: Content
       observation.component as comp where $this.code.coding.code = '105590001' then {
         comp.valueCodeableConcept as vcc then {
           vcc.coding first as substCoding where $this.system = 'http://snomed.info/sct' -> substance.hasCode as substCode then {
-            substCoding.code as c -> substCode.id = uuid(), substCode.termid = c, substCode.iri = append('http://snomed.info/id/', c);
+            substCoding.code as c -> substCode.termid = c, substCode.iri = append('http://snomed.info/id/', c);
           };
         };
       };
