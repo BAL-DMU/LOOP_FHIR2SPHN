@@ -128,7 +128,7 @@ class TestAdmission:
         )
 
     def test_admit_source_3_maps_nursing_home(self, transform_bundle, make_bundle, base_patient):
-        """admitSource code 3 (Pflegeheim) maps to SNOMED 285201006."""
+        """admitSource code 3 (Pflegeheim) maps to SNOMED 42665001."""
         encounter = make_encounter(start="2024-01-15T08:00:00Z", admit_source="3")
         bundle = make_bundle(base_patient, encounter)
 
@@ -137,8 +137,8 @@ class TestAdmission:
         assert_code_mapped(
             result,
             "content.AdministrativeCase[0].hasAdmission.hasOriginLocation.hasTypeCode",
-            "285201006",
-            "/285201006",
+            "42665001",
+            "/42665001",
         )
 
     def test_admit_source_5_maps_psychiatric(self, transform_bundle, make_bundle, base_patient):
@@ -218,7 +218,7 @@ class TestDischarge:
     def test_discharge_destination_2_maps_nursing_home(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """dischargeDestination code 2 (Pflegeheim) maps to SNOMED 285201006."""
+        """dischargeDestination code 2 (Pflegeheim) maps to SNOMED 42665001."""
         encounter = make_encounter(
             start="2024-01-15T08:00:00Z",
             end="2024-01-20T14:00:00Z",
@@ -231,8 +231,8 @@ class TestDischarge:
         assert_code_mapped(
             result,
             "content.AdministrativeCase[0].hasDischarge.hasTargetLocation.hasTypeCode",
-            "285201006",
-            "/285201006",
+            "42665001",
+            "/42665001",
         )
 
     def test_discharge_destination_5_maps_rehab(self, transform_bundle, make_bundle, base_patient):
