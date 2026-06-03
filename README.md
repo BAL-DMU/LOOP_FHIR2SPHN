@@ -109,6 +109,15 @@ To stop the container when done:
 docker compose -f docker/docker-compose.yml down
 ```
 
+Behind a corporate proxy that intercepts TLS, drop the proxy's root CA at
+`docker/ca.crt` before building (git-ignored, optional) so the Java IG Publisher
+trusts it. Capture the self-signed root (the last cert in the chain, not the leaf):
+```bash
+openssl s_client -connect tx.fhir.org:443 -showcerts </dev/null 2>/dev/null \
+  | awk '/-----BEGIN CERTIFICATE-----/{n++} n>0{print > ("/tmp/c-" n ".pem")}'
+cp "$(ls /tmp/c-*.pem | sort -V | tail -1)" docker/ca.crt && rm /tmp/c-*.pem
+```
+
 ## Skipping StructureDefinition rebuild
 
 When only `.map` files have changed, use `--skip-sds` to skip the sushi build and SD upload for faster iteration:

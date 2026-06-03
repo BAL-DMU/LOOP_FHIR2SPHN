@@ -3,9 +3,28 @@ EXPOSE 8080
 
 # Alpine:
 USER root
-RUN apk add --no-cache curl wget maven jekyll nodejs npm bash jq \
-    fontconfig ttf-dejavu freetype-dev
+RUN apk add --no-cache  --no-check-certificate curl wget maven jekyll nodejs npm bash jq \
+    fontconfig ttf-dejavu freetype-dev ca-certificates
 RUN java --version
+
+# Optional corporate proxy CA: drop your PEM cert at docker/ca.crt to make curl/wget
+# AND the Java IG Publisher trust an SSL-intercepting corporate network. Without it the
+# publisher fails with: PKIX path building failed (certificate_unknown). When ca.crt is
+# absent the Dockerfile anchor keeps the COPY from failing and the block is a no-op.
+COPY docker/Dockerfile docker/ca.cr[t] /tmp/cabuild/
+# Always create the file NODE_EXTRA_CA_CERTS points at (stays empty if no proxy CA).
+RUN install -m 0644 /dev/null /usr/local/share/ca-certificates/corp-ca.crt && \
+    if [ -f /tmp/cabuild/ca.crt ]; then \
+      cp /tmp/cabuild/ca.crt /usr/local/share/ca-certificates/corp-ca.crt && \
+      update-ca-certificates && \
+      JH=$(dirname $(dirname $(readlink -f $(which java)))) && \
+      keytool -importcert -noprompt -trustcacerts -alias corp-ca \
+        -file /tmp/cabuild/ca.crt -keystore "$JH/lib/security/cacerts" -storepass changeit ; \
+    fi && rm -rf /tmp/cabuild
+
+# Node ignores the system trust store, so point it at the (possibly empty) proxy CA
+# instead of disabling TLS verification. Covers npm, sushi and the IG Publisher's node calls.
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/corp-ca.crt
 
 # get some sushi
 RUN npm install -g fsh-sushi && rm -rf /home/matchbox/.npm

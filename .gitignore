@@ -1,5 +1,6 @@
 validator_cli.jar
 CLAUDE.md
+docker/ca.crt
 .DS_Store
 Thumbs.db
 /fsh-generated
