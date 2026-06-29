@@ -87,6 +87,7 @@ Title: "List of SPHN concepts"
 * SourceSystem 0..* SU SourceSystem "" ""
 * Consent 0..* SU Consent "" ""
 * DrugAdministrationEvent 0..* SU DrugAdministrationEvent "" ""
+* DrugPrescriptionEvent 0..* SU DrugPrescriptionEvent "" ""
 * AssessmentEvent 0..* SU AssessmentEvent "" ""
 * NursingDiagnosis 0..* SU NursingDiagnosis "" ""
 * BilledDiagnosis 0..* SU BilledDiagnosis "" ""
@@ -452,7 +453,10 @@ Logical: TimePattern
 Id: SPHN-TimePattern
 Parent: Concept
 Title: "SPHN Time Pattern"
-* hasTypeCode 1..1 SU Code "" ""
+* hasTypeCode 0..1 SU Code "" ""
+* hasFrequency 0..1 SU Quantity "" ""
+* hasOffset 0..1 SU Quantity "" ""
+* hasTimeOfDayCode 0..1 SU Code "" ""
 
 Logical: DrugAdministrationEvent
 Id: SPHN-DrugAdministrationEvent
@@ -468,6 +472,27 @@ Title: "SPHN Drug Administration Event"
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasReasonToStopCode 0..1 SU Code "" ""
+
+Logical: DrugPrescription
+Id: SPHN-DrugPrescription
+Parent: Concept
+Title: "SPHN Drug Prescription"
+* hasDrug 1..1 SU Drug "" ""
+* hasTimePattern 0..* SU TimePattern "" ""
+* hasStartDateTime 0..1 SU dateTime "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasDuration 0..1 SU Quantity "" ""
+* hasAdministrationRouteCode 0..1 SU Code "" ""
+
+Logical: DrugPrescriptionEvent
+Id: SPHN-DrugPrescriptionEvent
+Parent: Concept
+Title: "SPHN Drug Prescription Event"
+* SubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
+* hasDateTime 1..1 SU dateTime "" ""
+* hasDrugPrescription 1..* SU DrugPrescription "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 
 Logical: AssessmentResult
 Id: SPHN-AssessmentResult
