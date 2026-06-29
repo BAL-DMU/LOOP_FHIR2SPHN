@@ -1081,3 +1081,15 @@ group unit_per_week(source src, target unit : Unit) {
     translate('{#}/wk', '#cm-ucum-sphn') as cm,
     code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "unit_per_week";
 }
+
+// TimePattern.hasTypeCode SNOMED CT literals (value set restricted in 2026.1).
+// Hardcoded codes; the driving source only triggers the rule.
+group type_continuous(source src, target tp : TimePattern) {
+  src -> tp.hasTypeCode as code, code.termid = '255238004', code.iri = 'http://snomed.info/id/255238004' "type_continuous";
+}
+group type_intermittent(source src, target tp : TimePattern) {
+  src -> tp.hasTypeCode as code, code.termid = '7087005', code.iri = 'http://snomed.info/id/7087005' "type_intermittent";
+}
+group type_as_required(source src, target tp : TimePattern) {
+  src -> tp.hasTypeCode as code, code.termid = '225761000', code.iri = 'http://snomed.info/id/225761000' "type_as_required";
+}

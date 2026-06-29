@@ -407,6 +407,14 @@ def _freq(tp):
     return tp.get("hasFrequency")
 
 
+def _type(tp):
+    return (tp.get("hasTypeCode") or {}).get("termid")
+
+
+def _offset(tp):
+    return tp.get("hasOffset")
+
+
 class TestTimePatternDaily:
     def test_b_schema_when_one_tp_per_when(self, transform_request):
         """B: when=[MORN,EVE] -> two TimePatterns, freq 1 {#}/d, ToD Morning/Evening."""
@@ -505,3 +513,113 @@ class TestTimePatternMultiplan:
         presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
         assert presc.get("hasStartDateTime") == "2025-05-07T22:36:00+02:00"
         assert _time_patterns(presc) == []
+
+
+# --------------------------------------------------------------------------- #
+# TimePattern -- interval (E/F) and special (G, H)
+# --------------------------------------------------------------------------- #
+INTERMITTENT = "7087005"
+AS_REQUIRED = "225761000"
+CONTINUOUS = "255238004"
+
+
+class TestTimePatternInterval:
+    def test_e_every_n_days(self, transform_request):
+        """E: period=3, periodUnit=d -> Intermittent + hasOffset 3 d."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {"repeat": {"frequency": 1, "period": 3, "periodUnit": "d"}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        tps = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _type(tp) == INTERMITTENT
+        off = _offset(tp)
+        assert off is not None and off.get("hasValue") == 3
+        assert off.get("hasUnit", {}).get("hasCode", {}).get("termid") == "d"
+        assert "hasFrequency" not in tp
+
+    def test_f_every_n_hours(self, transform_request):
+        """F: period=6, periodUnit=h -> Intermittent + hasOffset 6 h."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {"repeat": {"frequency": 1, "period": 6, "periodUnit": "h"}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        tps = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _type(tp) == INTERMITTENT
+        off = _offset(tp)
+        assert off is not None and off.get("hasValue") == 6
+        assert off.get("hasUnit", {}).get("hasCode", {}).get("termid") == "h"
+
+
+class TestTimePatternSpecial:
+    def test_g_prn_with_min_interval(self, transform_request):
+        """G: asNeededBoolean=true + min interval -> As required + hasOffset 6 h."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "asNeededBoolean": True,
+                    "timing": {"repeat": {"frequency": 1, "period": 6, "periodUnit": "h"}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        tps = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _type(tp) == AS_REQUIRED
+        off = _offset(tp)
+        assert off is not None and off.get("hasValue") == 6
+        assert off.get("hasUnit", {}).get("hasCode", {}).get("termid") == "h"
+
+    def test_g_bare_prn_type_only(self, transform_request):
+        """G: bare asNeededBoolean=true (no repeat) -> As required, no offset/frequency."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[{"doseAndRate": [_ucum_dose(1)], "asNeededBoolean": True}],
+        )
+        result = transform_request(mr)
+        tps = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _type(tp) == AS_REQUIRED
+        assert "hasOffset" not in tp
+        assert "hasFrequency" not in tp
+
+    def test_h_infusion_continuous(self, transform_request):
+        """H: rateQuantity -> Continuous TypeCode; rate stored in Drug.hasQuantity."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_rate(1000, "mg/h")],
+                    "timing": {"repeat": {"boundsPeriod": {"start": "2025-10-31T10:15:00+01:00", "end": "2025-11-01T10:15:00+01:00"}}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        tps = _time_patterns(presc)
+        assert len(tps) == 1
+        assert _type(tps[0]) == CONTINUOUS
+        # rate -> Drug.hasQuantity (rate unit), start/end preserved
+        assert presc["hasDrug"]["hasQuantity"]["hasValue"] == 1000
+        assert presc["hasDrug"]["hasQuantity"]["hasUnit"]["hasCode"]["termid"] == "mgperh"
+        assert presc.get("hasStartDateTime") == "2025-10-31T10:15:00+01:00"
+        assert presc.get("hasEndDateTime") == "2025-11-01T10:15:00+01:00"

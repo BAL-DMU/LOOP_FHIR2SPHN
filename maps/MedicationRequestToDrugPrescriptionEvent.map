@@ -109,6 +109,37 @@ group medication_request(source mr : MedicationRequest, target content : Content
                     };
                 };
             } "daily_patterns";
+
+            // E/F -- interval dosing (every N days/hours): period>1. One TimePattern with
+            // hasTypeCode=Intermittent + hasOffset = period <periodUnit>. Excludes daily
+            // (period=1), weekly (dayOfWeek), Multiplan (event), infusion (rate), PRN.
+            di where $this.timing.repeat.period > 1
+                 and $this.timing.repeat.periodUnit.exists()
+                 and $this.timing.repeat.dayOfWeek.empty()
+                 and $this.timing.event.empty()
+                 and $this.doseAndRate.rate.empty()
+                 and $this.asNeededBoolean.where($this = true).empty() then {
+                di.timing as timI then {
+                    timI.repeat as rI -> presc.hasTimePattern as tp then {
+                        rI as rt then type_intermittent(rt, tp) "EF_type";
+                        rI as ro then offset_from_period(ro, tp) "EF_offset";
+                    } "EF_interval";
+                };
+            } "interval_patterns";
+
+            // G -- Reserve / PRN: asNeededBoolean=true. hasTypeCode=As required,
+            // + hasOffset from the min-interval (repeat.period/periodUnit) if present.
+            di where $this.asNeededBoolean.where($this = true).exists()
+                 and $this.doseAndRate.rate.empty() -> presc.hasTimePattern as tp then {
+                di as dprn then type_as_required(dprn, tp) "G_type";
+                di.timing as timG then {
+                    timG.repeat as rG then offset_from_period(rG, tp) "G_offset";
+                };
+            } "prn_pattern";
+
+            // H -- RateSchema / continuous infusion: rateQuantity present. hasTypeCode=Continuous.
+            // (The rate itself is mapped to Drug.hasQuantity above; start/end from boundsPeriod.)
+            di where $this.doseAndRate.rate.exists() -> presc.hasTimePattern as tp then type_continuous(di, tp) "H_continuous";
         } "DrugPrescription";
     } "DrugPrescriptionEvent";
 }
@@ -174,4 +205,14 @@ group medication_to_drug(source medication : Medication, source meta : Meta, tar
             } "doseForm";
         };
     };
+}
+
+// FHIR Timing.repeat.period (+ periodUnit) -> TimePattern.hasOffset (Quantity, unit via
+// cm-ucum-sphn). Guarded on period.exists() so a repeat without a period adds no offset.
+// Reused by the interval (E/F) and PRN (G) branches.
+group offset_from_period(source repeat, target tp : TimePattern) {
+    repeat as r where $this.period.exists() -> tp.hasOffset as off, off.id = uuid() then {
+        r.period as p -> off.hasValue = p "offset_value";
+        r.periodUnit as pu -> off.hasUnit as ounit then unit_ucum(pu, ounit) "offset_unit";
+    } "offset_quantity";
 }
