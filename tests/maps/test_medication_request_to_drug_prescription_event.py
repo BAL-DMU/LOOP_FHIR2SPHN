@@ -362,8 +362,116 @@ class TestDateTime:
         assert presc.get("hasStartDateTime") == "2025-05-07T22:36:00+02:00"
         assert presc.get("hasEndDateTime") == "2025-05-08T22:36:00+02:00"
 
-    def test_no_time_pattern_emitted_yet(self, transform_request):
-        """WP3 does not decode timing into TimePattern."""
+    def test_once_emits_no_time_pattern(self, transform_request):
+        """Pattern A (Once): count=1, boundsPeriod{start==end} -> start datetime, no TimePattern."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "asNeededBoolean": False,
+                    "timing": {
+                        "repeat": {
+                            "count": 1,
+                            "boundsPeriod": {
+                                "start": "2024-10-15T14:18:00+02:00",
+                                "end": "2024-10-15T14:18:00+02:00",
+                            },
+                        }
+                    },
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        assert presc.get("hasStartDateTime") == "2024-10-15T14:18:00+02:00"
+        assert "hasTimePattern" not in presc
+
+
+# --------------------------------------------------------------------------- #
+# TimePattern -- simple shapes A, B, C, J, K
+# --------------------------------------------------------------------------- #
+def _time_patterns(presc):
+    """Return TimePattern(s) of a prescription as a list (or [] if none)."""
+    tp = (presc or {}).get("hasTimePattern")
+    if tp is None:
+        return []
+    return tp if isinstance(tp, list) else [tp]
+
+
+def _tod(tp):
+    return (tp.get("hasTimeOfDayCode") or {}).get("termid")
+
+
+def _freq(tp):
+    return tp.get("hasFrequency")
+
+
+class TestTimePatternDaily:
+    def test_b_schema_when_one_tp_per_when(self, transform_request):
+        """B: when=[MORN,EVE] -> two TimePatterns, freq 1 {#}/d, ToD Morning/Evening."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d", "when": ["MORN", "EVE"]}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        tps = _time_patterns(presc)
+        assert len(tps) == 2
+        tods = sorted(_tod(tp) for tp in tps)
+        assert tods == ["3157002", "73775008"]  # Evening, Morning
+        for tp in tps:
+            f = _freq(tp)
+            assert f is not None and f.get("hasValue") == 1
+            assert f.get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperd"
+
+    def test_c_schedule_canonical_and_offgrid(self, transform_request):
+        """C: timeOfDay=[08:00:00, 09:15:00], no when -> two TPs; only the canonical one is coded."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(2)],
+                    "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d", "timeOfDay": ["08:00:00", "09:15:00"]}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        tps = _time_patterns(presc)
+        assert len(tps) == 2
+        # every TP carries the daily frequency
+        for tp in tps:
+            assert _freq(tp).get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperd"
+        coded = sorted(t for t in (_tod(tp) for tp in tps) if t is not None)
+        assert coded == ["73775008"]  # 08:00 -> Morning; 09:15 off-grid -> no code
+
+    def test_k_bare_daily_single_tp_no_tod(self, transform_request):
+        """K: period=1, periodUnit=d, no when/timeOfDay -> single TP, freq 1 {#}/d, no ToD."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d"}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        tps = _time_patterns(presc)
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _freq(tp).get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperd"
+        assert "hasTimeOfDayCode" not in tp
+
+    def test_b_does_not_set_type_code(self, transform_request):
+        """Daily shapes carry frequency/ToD only -- no hasTypeCode (relaxed to 0..1 in WP1)."""
         mr = make_medication_request(
             medication=make_medication(),
             dosage_instructions=[
@@ -374,5 +482,26 @@ class TestDateTime:
             ],
         )
         result = transform_request(mr)
+        tp = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))[0]
+        assert "hasTypeCode" not in tp
+
+
+class TestTimePatternMultiplan:
+    def test_j_event_no_time_pattern(self, transform_request):
+        """J: timing.event present -> start datetime from event, NO TimePattern."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(2)],
+                    "timing": {
+                        "event": ["2025-05-07T22:36:00+02:00"],
+                        "repeat": {"boundsPeriod": {"start": "2025-05-07T22:36:00+02:00", "end": "2025-05-08T22:36:00+02:00"}},
+                    },
+                }
+            ],
+        )
+        result = transform_request(mr)
         presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
-        assert "hasTimePattern" not in presc
+        assert presc.get("hasStartDateTime") == "2025-05-07T22:36:00+02:00"
+        assert _time_patterns(presc) == []

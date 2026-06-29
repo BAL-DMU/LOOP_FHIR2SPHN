@@ -75,6 +75,40 @@ group medication_request(source mr : MedicationRequest, target content : Content
                     };
                 };
             };
+
+            // TimePattern -- daily shapes (period=1, periodUnit=d). One mutually-exclusive
+            // dispatch (FML has no if/else). Excludes: interval (period>1 / periodUnit!=d),
+            // weekly (dayOfWeek), Multiplan (event), PRN (asNeededBoolean=true), infusion
+            // (rateQuantity) and Once (no periodUnit). A/J therefore emit no TimePattern.
+            di where $this.timing.repeat.period = 1
+                 and $this.timing.repeat.periodUnit = 'd'
+                 and $this.timing.repeat.dayOfWeek.empty()
+                 and $this.timing.event.empty()
+                 and $this.doseAndRate.rate.empty()
+                 and $this.asNeededBoolean.where($this = true).empty() then {
+                di.timing as tim3 then {
+                    tim3.repeat as r3 then {
+
+                        // B -- Schema / day-parts: one TimePattern per `when` (freq 1 {#}/d + ToD code)
+                        r3.when as w -> presc.hasTimePattern as tp then {
+                            w -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(w, funit) "B_freq";
+                            w as wv then when_to_time_of_day(wv, tp) "B_tod";
+                        } "B_when";
+
+                        // C -- Schedule / explicit clock (no `when`): one TimePattern per timeOfDay
+                        // (freq 1 {#}/d + ToD code only for canonical clock values, decision #2a)
+                        r3 as rC where $this.when.empty() then {
+                            rC.timeOfDay as tod -> presc.hasTimePattern as tp then {
+                                tod -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(tod, funit) "C_freq";
+                                tod as todv then clock_to_time_of_day(todv, tp) "C_tod";
+                            } "C_clock";
+                        } "C_block";
+
+                        // K -- bare daily (no `when`, no timeOfDay): single TimePattern, freq 1 {#}/d
+                        r3 as rK where $this.when.empty() and $this.timeOfDay.empty() -> presc.hasTimePattern as tp, tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rK, funit) "K_daily";
+                    };
+                };
+            } "daily_patterns";
         } "DrugPrescription";
     } "DrugPrescriptionEvent";
 }
