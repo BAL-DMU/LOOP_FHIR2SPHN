@@ -186,10 +186,29 @@ docker pull ghcr.io/bal-dmu/fhir2sphn:latest
 
 ### How to release
 
+The release job triggers on any tag starting with a digit and containing a dot.
+Tag the commit you want to release (any branch — it does not need to be on `main`)
+and push the tag:
+
 ```bash
+# Stable release
 git tag 0.1.2
-# or git tag 0.1.2.rc1
+git push --tags
+
+# Release candidate (pre-release)
+git tag 0.1.2-rc.1
 git push --tags
 ```
 
-The release job triggers automatically, creates the GitHub release with the commit changelog, and tags the image.
+The release job then creates the GitHub release with the commit changelog, pushes
+the Docker image tagged with the version, and uploads a pinned `docker-compose.yml`.
+
+**Stable vs. release candidate** — the behavior is driven by the tag name:
+
+| | Tag format | `:latest` image | GitHub release |
+| --- | --- | --- | --- |
+| Stable | `X.Y.Z` (e.g. `0.1.2`) | updated | normal release |
+| Release candidate | anything else (e.g. `0.1.2-rc.1`) | **not** updated | marked **pre-release** |
+
+So an RC is fully published to GHCR under its own tag, but it will not move
+`:latest` and is flagged as a pre-release in the GitHub Releases UI.
