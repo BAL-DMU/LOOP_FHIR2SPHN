@@ -623,3 +623,97 @@ class TestTimePatternSpecial:
         assert presc["hasDrug"]["hasQuantity"]["hasUnit"]["hasCode"]["termid"] == "mgperh"
         assert presc.get("hasStartDateTime") == "2025-10-31T10:15:00+01:00"
         assert presc.get("hasEndDateTime") == "2025-11-01T10:15:00+01:00"
+
+
+# --------------------------------------------------------------------------- #
+# TimePattern -- complex basic (D weekly, I nDay)
+# --------------------------------------------------------------------------- #
+class TestTimePatternWeekly:
+    def test_d_weekday_subset(self, transform_request):
+        """D: dayOfWeek=[mon,wed,fri] -> <count> {#}/wk + Intermittent; off-grid time uncoded."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {"repeat": {"dayOfWeek": ["mon", "wed", "fri"], "timeOfDay": ["09:13:00"]}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        tps = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _type(tp) == INTERMITTENT
+        f = _freq(tp)
+        assert f.get("hasValue") == 3
+        assert f.get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperwk"
+        assert "hasTimeOfDayCode" not in tp  # 09:13 off-grid
+
+    def test_d_all_seven_days_is_daily(self, transform_request):
+        """D: all 7 weekdays -> treated as daily (1 {#}/d, no typeCode)."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {
+                        "repeat": {
+                            "dayOfWeek": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+                            "timeOfDay": ["08:00:00"],
+                        }
+                    },
+                }
+            ],
+        )
+        result = transform_request(mr)
+        tps = _time_patterns(get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]"))
+        assert len(tps) == 1
+        tp = tps[0]
+        assert "hasTypeCode" not in tp
+        assert _freq(tp).get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperd"
+        assert _tod(tp) == "73775008"  # 08:00 canonical -> Morning
+
+
+class TestTimePatternNDay:
+    def test_i_nday_step(self, transform_request):
+        """I: one cycle step (period=4 d, timeOfDay 12:00) -> Intermittent + offset 4 d + Noon."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_form_dose(2, "CAP")],
+                    "timing": {"repeat": {"frequency": 1, "period": 4, "periodUnit": "d", "timeOfDay": ["12:00:00"], "offset": 1}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        tps = _time_patterns(presc)
+        assert len(tps) == 1
+        tp = tps[0]
+        assert _type(tp) == INTERMITTENT
+        off = _offset(tp)
+        assert off.get("hasValue") == 4
+        assert off.get("hasUnit", {}).get("hasCode", {}).get("termid") == "d"
+        assert _tod(tp) == "71997007"  # 12:00 -> Noon
+        # dose (CAP) -> {#}
+        assert presc["hasDrug"]["hasQuantity"]["hasValue"] == 2
+
+    def test_i_steps_are_separate_prescriptions(self, transform_request):
+        """I: each cycle step is its own dosageInstruction -> its own DrugPrescription."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {"doseAndRate": [_form_dose(1, "CAP")], "timing": {"repeat": {"period": 4, "periodUnit": "d", "timeOfDay": ["08:00:00"], "offset": 0}}},
+                {"doseAndRate": [_form_dose(2, "CAP")], "timing": {"repeat": {"period": 4, "periodUnit": "d", "timeOfDay": ["12:00:00"], "offset": 1}}},
+            ],
+        )
+        result = transform_request(mr)
+        prescs = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription")
+        assert len(prescs) == 2
+        # each carries its own interval TimePattern with offset 4 d
+        for p in prescs:
+            tp = _time_patterns(p)[0]
+            assert _type(tp) == INTERMITTENT
+            assert _offset(tp).get("hasValue") == 4

@@ -110,9 +110,11 @@ group medication_request(source mr : MedicationRequest, target content : Content
                 };
             } "daily_patterns";
 
-            // E/F -- interval dosing (every N days/hours): period>1. One TimePattern with
-            // hasTypeCode=Intermittent + hasOffset = period <periodUnit>. Excludes daily
-            // (period=1), weekly (dayOfWeek), Multiplan (event), infusion (rate), PRN.
+            // E/F/I -- interval dosing (every N days/hours): period>1. One TimePattern with
+            // hasTypeCode=Intermittent + hasOffset = period <periodUnit> (+ ToD code if a
+            // canonical timeOfDay is given -- this also covers I/nDay, where each cycle step is
+            // its own dosageInstruction and the cycle phase repeat.offset is intentionally not read).
+            // Excludes daily (period=1), weekly (dayOfWeek), Multiplan (event), infusion (rate), PRN.
             di where $this.timing.repeat.period > 1
                  and $this.timing.repeat.periodUnit.exists()
                  and $this.timing.repeat.dayOfWeek.empty()
@@ -123,9 +125,35 @@ group medication_request(source mr : MedicationRequest, target content : Content
                     timI.repeat as rI -> presc.hasTimePattern as tp then {
                         rI as rt then type_intermittent(rt, tp) "EF_type";
                         rI as ro then offset_from_period(ro, tp) "EF_offset";
+                        rI.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "I_tod";
                     } "EF_interval";
                 };
             } "interval_patterns";
+
+            // D -- Weekly: dayOfWeek present. Count the weekdays (FHIRPath count() via evaluate);
+            // ==7 -> treat as daily (hasFrequency 1 {#}/d, no typeCode); <7 -> hasFrequency
+            // <count> {#}/wk + Intermittent. ToD code added for a canonical timeOfDay.
+            // Loss: WHICH weekdays (no SPHN concept) -- only the count survives.
+            di where $this.timing.repeat.dayOfWeek.exists()
+                 and $this.timing.event.empty()
+                 and $this.doseAndRate.rate.empty()
+                 and $this.asNeededBoolean.where($this = true).empty() then {
+                di.timing as timD then {
+                    timD.repeat as rD then {
+                        // all 7 days -> daily
+                        rD where $this.dayOfWeek.count() = 7 -> presc.hasTimePattern as tp then {
+                            rD -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rD, funit) "D7_freq";
+                            rD.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "D7_tod";
+                        } "D_daily";
+                        // subset (<7) -> <count> {#}/wk + Intermittent
+                        rD where $this.dayOfWeek.count() < 7 -> presc.hasTimePattern as tp then {
+                            rD as rt then type_intermittent(rt, tp) "Dw_type";
+                            rD -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = evaluate(rD, dayOfWeek.count()), freq.hasUnit as funit then unit_per_week(rD, funit) "Dw_freq";
+                            rD.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "Dw_tod";
+                        } "D_weekly";
+                    };
+                };
+            } "weekly_patterns";
 
             // G -- Reserve / PRN: asNeededBoolean=true. hasTypeCode=As required,
             // + hasOffset from the min-interval (repeat.period/periodUnit) if present.
