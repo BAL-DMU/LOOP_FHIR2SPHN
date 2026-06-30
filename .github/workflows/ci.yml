@@ -27,7 +27,7 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          tags: fhir2sphn:latest
+          tags: ghcr.io/bal-dmu/fhir2sphn:latest
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
