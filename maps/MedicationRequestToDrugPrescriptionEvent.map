@@ -34,6 +34,7 @@ group medication_request(source mr : MedicationRequest, target content : Content
         // Medication is shared, but each DrugPrescription gets its OWN Drug so the
         // per-instruction dose/rate can be attached.
         mr.dosageInstruction as di -> event.hasDrugPrescription = create('DrugPrescription') as presc then {
+            di -> presc.id = uuid() "presc_id";
             mr.contained as medication where $this.ofType(FHIR.Medication) -> presc.hasDrug = create('Drug') as drug then {
                 // article / ingredient / doseForm from the Medication (shared group)
                 mr.meta as m then medication_to_drug(medication, m, drug);
@@ -91,6 +92,7 @@ group medication_request(source mr : MedicationRequest, target content : Content
 
                         // B -- Schema / day-parts: one TimePattern per `when` (freq 1 {#}/d + ToD code)
                         r3.when as w -> presc.hasTimePattern as tp then {
+                            w -> tp.id = uuid() "B_id";
                             w -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(w, funit) "B_freq";
                             w as wv then when_to_time_of_day(wv, tp) "B_tod";
                         } "B_when";
@@ -99,13 +101,14 @@ group medication_request(source mr : MedicationRequest, target content : Content
                         // (freq 1 {#}/d + ToD code only for canonical clock values, decision #2a)
                         r3 as rC where $this.when.empty() then {
                             rC.timeOfDay as tod -> presc.hasTimePattern as tp then {
+                                tod -> tp.id = uuid() "C_id";
                                 tod -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(tod, funit) "C_freq";
                                 tod as todv then clock_to_time_of_day(todv, tp) "C_tod";
                             } "C_clock";
                         } "C_block";
 
                         // K -- bare daily (no `when`, no timeOfDay): single TimePattern, freq 1 {#}/d
-                        r3 as rK where $this.when.empty() and $this.timeOfDay.empty() -> presc.hasTimePattern as tp, tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rK, funit) "K_daily";
+                        r3 as rK where $this.when.empty() and $this.timeOfDay.empty() -> presc.hasTimePattern as tp, tp.id = uuid(), tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rK, funit) "K_daily";
                     };
                 };
             } "daily_patterns";
@@ -123,6 +126,7 @@ group medication_request(source mr : MedicationRequest, target content : Content
                  and $this.asNeededBoolean.where($this = true).empty() then {
                 di.timing as timI then {
                     timI.repeat as rI -> presc.hasTimePattern as tp then {
+                        rI -> tp.id = uuid() "EF_id";
                         rI as rt then type_intermittent(rt, tp) "EF_type";
                         rI as ro then offset_from_period(ro, tp) "EF_offset";
                         rI.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "I_tod";
@@ -142,11 +146,13 @@ group medication_request(source mr : MedicationRequest, target content : Content
                     timD.repeat as rD then {
                         // all 7 days -> daily
                         rD where $this.dayOfWeek.count() = 7 -> presc.hasTimePattern as tp then {
+                            rD -> tp.id = uuid() "D7_id";
                             rD -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rD, funit) "D7_freq";
                             rD.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "D7_tod";
                         } "D_daily";
                         // subset (<7) -> <count> {#}/wk + Intermittent
                         rD where $this.dayOfWeek.count() < 7 -> presc.hasTimePattern as tp then {
+                            rD -> tp.id = uuid() "Dw_id";
                             rD as rt then type_intermittent(rt, tp) "Dw_type";
                             rD -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = evaluate(rD, dayOfWeek.count()), freq.hasUnit as funit then unit_per_week(rD, funit) "Dw_freq";
                             rD.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "Dw_tod";
@@ -159,6 +165,7 @@ group medication_request(source mr : MedicationRequest, target content : Content
             // + hasOffset from the min-interval (repeat.period/periodUnit) if present.
             di where $this.asNeededBoolean.where($this = true).exists()
                  and $this.doseAndRate.rate.empty() -> presc.hasTimePattern as tp then {
+                di -> tp.id = uuid() "G_id";
                 di as dprn then type_as_required(dprn, tp) "G_type";
                 di.timing as timG then {
                     timG.repeat as rG then offset_from_period(rG, tp) "G_offset";
@@ -167,7 +174,10 @@ group medication_request(source mr : MedicationRequest, target content : Content
 
             // H -- RateSchema / continuous infusion: rateQuantity present. hasTypeCode=Continuous.
             // (The rate itself is mapped to Drug.hasQuantity above; start/end from boundsPeriod.)
-            di where $this.doseAndRate.rate.exists() -> presc.hasTimePattern as tp then type_continuous(di, tp) "H_continuous";
+            di where $this.doseAndRate.rate.exists() -> presc.hasTimePattern as tp then {
+                di -> tp.id = uuid() "H_id";
+                di as dcont then type_continuous(dcont, tp) "H_continuous";
+            } "H_pattern";
         } "DrugPrescription";
     } "DrugPrescriptionEvent";
 }
