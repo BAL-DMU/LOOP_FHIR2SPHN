@@ -188,6 +188,52 @@ class TestEnvelope:
 
 
 # --------------------------------------------------------------------------- #
+# Required-attribute guards (SPHN cardinalities stricter than FHIR)
+# --------------------------------------------------------------------------- #
+class TestRequiredAttributeGuards:
+    """SPHN requires DrugPrescriptionEvent.hasDateTime (1..1), .hasDrugPrescription
+    (1..*) and each DrugPrescription.hasDrug (1..1). FHIR MedicationRequest is
+    looser, so the event is suppressed entirely when the source of any required
+    attribute is missing (rather than emitting a structurally invalid event)."""
+
+    def test_missing_authored_on_suppresses_event(self, transform_request):
+        # authoredOn -> hasDateTime (1..1)
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[{"doseAndRate": [_ucum_dose(1)]}],
+        )
+        del mr["authoredOn"]
+        result = transform_request(mr)
+        assert get_path(result, "DrugPrescriptionEvent") is None
+
+    def test_missing_dosage_instruction_suppresses_event(self, transform_request):
+        # dosageInstruction -> hasDrugPrescription (1..*)
+        mr = make_medication_request(medication=make_medication())
+        result = transform_request(mr)
+        assert get_path(result, "DrugPrescriptionEvent") is None
+
+    def test_missing_contained_medication_suppresses_event(self, transform_request):
+        # contained Medication -> hasDrugPrescription.hasDrug (1..1)
+        mr = make_medication_request(
+            dosage_instructions=[{"doseAndRate": [_ucum_dose(1)]}],
+        )
+        result = transform_request(mr)
+        assert get_path(result, "DrugPrescriptionEvent") is None
+
+    def test_all_required_present_emits_event(self, transform_request):
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[{"doseAndRate": [_ucum_dose(1)]}],
+        )
+        result = transform_request(mr)
+        assert get_path(result, "DrugPrescriptionEvent[0]") is not None
+        assert (
+            get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0].hasDrug")
+            is not None
+        )
+
+
+# --------------------------------------------------------------------------- #
 # One DrugPrescription per dosageInstruction
 # --------------------------------------------------------------------------- #
 class TestPrescriptionGranularity:

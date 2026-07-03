@@ -22,7 +22,17 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DrugArticle
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 group medication_request(source mr : MedicationRequest, target content : Content) <<types>> {
-    mr -> content.DrugPrescriptionEvent = create('DrugPrescriptionEvent') as event then {
+    // SPHN requires DrugPrescriptionEvent.hasDateTime (1..1), .hasDrugPrescription (1..*)
+    // and each DrugPrescription.hasDrug (1..1); FHIR MedicationRequest has looser cardinalities.
+    // Guard: emit the event only when all three source elements are present, otherwise the
+    // event would be structurally invalid. Sources:
+    //   hasDateTime                  <- authoredOn
+    //   hasDrugPrescription          <- dosageInstruction (>= 1)
+    //   hasDrugPrescription.hasDrug  <- contained Medication (shared across all prescriptions)
+    mr where $this.authoredOn.exists()
+         and $this.dosageInstruction.exists()
+         and $this.contained.ofType(FHIR.Medication).exists()
+      -> content.DrugPrescriptionEvent = create('DrugPrescriptionEvent') as event then {
         mr.meta as m then refSourceSystem(m, event);
         mr.id as id -> event.id = ('MedicationRequest/' & %id);
 
