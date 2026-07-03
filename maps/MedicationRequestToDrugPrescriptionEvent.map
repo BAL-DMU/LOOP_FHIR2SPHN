@@ -69,27 +69,26 @@ group medication_request(source mr : MedicationRequest, target content : Content
                 };
             };
 
-            // datetime: the event timestamp (Multiplan) is the start and SUPPRESSES the
-            // generic boundsPeriod.start rule, so the 0..1 hasStartDateTime is never doubly set.
+            // datetime: a single point-in-time `event` (Once / Multiplan -- one planned
+            // administration) sets BOTH hasStartDateTime and hasEndDateTime to the event time.
+            // All other schemas carry no event and take their window from repeat.boundsPeriod.
+            // event and boundsPeriod are mutually exclusive, so the 0..1 date fields are never
+            // doubly assigned (bounds branch guarded by event.empty()).
             di.timing as tim then {
-                tim.event first as ev -> presc.hasStartDateTime = ev "start_from_event";
+                tim.event first as ev -> presc.hasStartDateTime = ev, presc.hasEndDateTime = ev "point_from_event";
                 tim as t where $this.event.empty() then {
                     t.repeat as r then {
                         r.boundsPeriod as bp then {
                             bp.start as s -> presc.hasStartDateTime = s "start_from_bounds";
+                            bp.end as e -> presc.hasEndDateTime = e "end_from_bounds";
                         };
                     };
-                } "no_event_start";
-                tim.repeat as r2 then {
-                    r2.boundsPeriod as bp2 then {
-                        bp2.end as e -> presc.hasEndDateTime = e "end_from_bounds";
-                    };
-                };
+                } "bounds_window";
             };
 
             // TimePattern -- daily shapes (period=1, periodUnit=d). One mutually-exclusive
             // dispatch (FML has no if/else). Excludes: interval (period>1 / periodUnit!=d),
-            // weekly (dayOfWeek), Multiplan (event), PRN (asNeededBoolean=true), infusion
+            // weekly (dayOfWeek), Once/Multiplan (event), PRN (asNeededBoolean=true), infusion
             // (rateQuantity) and Once (no periodUnit). A/J therefore emit no TimePattern.
             di where $this.timing.repeat.period = 1
                  and $this.timing.repeat.periodUnit = 'd'
@@ -127,7 +126,7 @@ group medication_request(source mr : MedicationRequest, target content : Content
             // hasTypeCode=Intermittent + hasOffset = period <periodUnit> (+ ToD code if a
             // canonical timeOfDay is given -- this also covers I/nDay, where each cycle step is
             // its own dosageInstruction and the cycle phase repeat.offset is intentionally not read).
-            // Excludes daily (period=1), weekly (dayOfWeek), Multiplan (event), infusion (rate), PRN.
+            // Excludes daily (period=1), weekly (dayOfWeek), Once/Multiplan (event), infusion (rate), PRN.
             di where $this.timing.repeat.period > 1
                  and $this.timing.repeat.periodUnit.exists()
                  and $this.timing.repeat.dayOfWeek.empty()

@@ -54,9 +54,9 @@ def _rich_medication_request():
         "contained": [med],
         "medicationReference": {"reference": f"#{med['id']}"},
         "dosageInstruction": [
-            # A -- Once
+            # A -- Once (single point-in-time event)
             {"doseAndRate": [_form_dose(1, "TAB")], "asNeededBoolean": False,
-             "timing": {"repeat": {"count": 1, "boundsPeriod": {"start": "2025-01-20T14:18:00+01:00", "end": "2025-01-20T14:18:00+01:00"}}}},
+             "timing": {"event": ["2025-01-20T14:18:00+01:00"]}},
             # B -- Schema / day-parts
             {"doseAndRate": [_form_dose(1, "TAB")],
              "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d", "when": ["MORN", "EVE"]}}},
@@ -75,9 +75,9 @@ def _rich_medication_request():
             # D -- weekly subset
             {"doseAndRate": [_form_dose(1, "TAB")],
              "timing": {"repeat": {"dayOfWeek": ["mon", "wed", "fri"], "timeOfDay": ["08:00:00"]}}},
-            # J -- multiplan (absolute event)
+            # J -- multiplan (single absolute event)
             {"doseAndRate": [_form_dose(2, "TAB")],
-             "timing": {"event": ["2025-01-23T22:36:00+01:00"], "repeat": {"boundsPeriod": {"start": "2025-01-23T22:36:00+01:00", "end": "2025-01-24T22:36:00+01:00"}}}},
+             "timing": {"event": ["2025-01-23T22:36:00+01:00"]}},
         ],
     }
 
@@ -133,10 +133,12 @@ def test_key_timepatterns_present(rich_result):
 
 
 def test_once_and_multiplan_have_no_timepattern(rich_result):
-    """A (Once) and J (Multiplan) carry start datetimes but no TimePattern."""
+    """A (Once) and J (Multiplan) are single point events: start == end, no TimePattern."""
     prescriptions = _all_prescriptions(rich_result)
     # the two prescriptions whose drug quantity comes with a start but no TimePattern
     no_tp = [p for p in prescriptions if not _time_patterns(p)]
     # exactly A and J yield no TimePattern
     assert len(no_tp) == 2
     assert all(p.get("hasStartDateTime") is not None for p in no_tp)
+    # a single event is the whole window: hasStartDateTime == hasEndDateTime
+    assert all(p.get("hasStartDateTime") == p.get("hasEndDateTime") for p in no_tp)

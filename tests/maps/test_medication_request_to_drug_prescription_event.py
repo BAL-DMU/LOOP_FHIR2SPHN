@@ -383,8 +383,8 @@ class TestDateTime:
         assert presc.get("hasStartDateTime") == "2025-10-31T10:15:00+01:00"
         assert presc.get("hasEndDateTime") == "2025-11-01T10:15:00+01:00"
 
-    def test_event_start_suppresses_bounds_start(self, transform_request):
-        """Multiplan: event timestamp is the start; boundsPeriod.start is NOT used (no double-assign)."""
+    def test_single_event_sets_start_and_end(self, transform_request):
+        """Once/Multiplan: a single point-in-time event sets BOTH start and end (no boundsPeriod)."""
         mr = make_medication_request(
             medication=make_medication(),
             dosage_instructions=[
@@ -392,24 +392,18 @@ class TestDateTime:
                     "doseAndRate": [_ucum_dose(2)],
                     "timing": {
                         "event": ["2025-05-07T22:36:00+02:00"],
-                        "repeat": {
-                            "boundsPeriod": {
-                                "start": "2025-05-07T22:36:00+02:00",
-                                "end": "2025-05-08T22:36:00+02:00",
-                            }
-                        },
                     },
                 }
             ],
         )
         result = transform_request(mr)
         presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
-        # start comes from event; end still from boundsPeriod
+        # a single event is the whole window: start == end == event
         assert presc.get("hasStartDateTime") == "2025-05-07T22:36:00+02:00"
-        assert presc.get("hasEndDateTime") == "2025-05-08T22:36:00+02:00"
+        assert presc.get("hasEndDateTime") == "2025-05-07T22:36:00+02:00"
 
     def test_once_emits_no_time_pattern(self, transform_request):
-        """Pattern A (Once): count=1, boundsPeriod{start==end} -> start datetime, no TimePattern."""
+        """Pattern A (Once): single timing.event -> start == end == event, no TimePattern."""
         mr = make_medication_request(
             medication=make_medication(),
             dosage_instructions=[
@@ -417,13 +411,7 @@ class TestDateTime:
                     "doseAndRate": [_ucum_dose(1)],
                     "asNeededBoolean": False,
                     "timing": {
-                        "repeat": {
-                            "count": 1,
-                            "boundsPeriod": {
-                                "start": "2024-10-15T14:18:00+02:00",
-                                "end": "2024-10-15T14:18:00+02:00",
-                            },
-                        }
+                        "event": ["2024-10-15T14:18:00+02:00"],
                     },
                 }
             ],
@@ -431,6 +419,7 @@ class TestDateTime:
         result = transform_request(mr)
         presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
         assert presc.get("hasStartDateTime") == "2024-10-15T14:18:00+02:00"
+        assert presc.get("hasEndDateTime") == "2024-10-15T14:18:00+02:00"
         assert "hasTimePattern" not in presc
 
 
@@ -542,7 +531,7 @@ class TestTimePatternDaily:
 
 class TestTimePatternMultiplan:
     def test_j_event_no_time_pattern(self, transform_request):
-        """J: timing.event present -> start datetime from event, NO TimePattern."""
+        """J: single timing.event -> start == end == event, NO TimePattern."""
         mr = make_medication_request(
             medication=make_medication(),
             dosage_instructions=[
@@ -550,7 +539,6 @@ class TestTimePatternMultiplan:
                     "doseAndRate": [_ucum_dose(2)],
                     "timing": {
                         "event": ["2025-05-07T22:36:00+02:00"],
-                        "repeat": {"boundsPeriod": {"start": "2025-05-07T22:36:00+02:00", "end": "2025-05-08T22:36:00+02:00"}},
                     },
                 }
             ],
@@ -558,6 +546,7 @@ class TestTimePatternMultiplan:
         result = transform_request(mr)
         presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
         assert presc.get("hasStartDateTime") == "2025-05-07T22:36:00+02:00"
+        assert presc.get("hasEndDateTime") == "2025-05-07T22:36:00+02:00"
         assert _time_patterns(presc) == []
 
 
