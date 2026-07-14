@@ -1,6 +1,5 @@
 // MedicationRequest -> DrugPrescriptionEvent
-// Does not manage (yet):
-// - hasTimePattern   (decoded from timing in later work)
+// Timing patterns are documented in docs/MedicationRequest_to_DrugPrescriptionEvent.md
 map "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationRequestToDrugPrescriptionEvent" = "MedicationRequestToDrugPrescriptionEvent"
 
 // Source definitions
@@ -107,7 +106,7 @@ group medication_request(source mr : MedicationRequest, target content : Content
                         } "B_when";
 
                         // C -- Schedule / explicit clock (no `when`): one TimePattern per timeOfDay
-                        // (freq 1 {#}/d + ToD code only for canonical clock values, decision #2a)
+                        // (freq 1 {#}/d + ToD code; the clock time is bucketed into a day-part)
                         r3 as rC where $this.when.empty() then {
                             rC.timeOfDay as tod -> presc.hasTimePattern as tp then {
                                 tod -> tp.id = uuid() "C_id";
