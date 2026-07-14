@@ -1,21 +1,23 @@
 """
 Verification of the TimePattern translate strategy & helper groups (Utils.map).
 
-Confirms the reusable lookup helpers resolve for canonical inputs and -- crucially
--- do NOT abort the transform on off-grid / unknown inputs (the repo hazard with
-unguarded ``translate()``):
+Confirms the reusable lookup helpers resolve their inputs and -- crucially --
+do NOT abort the transform on unknown inputs (the repo hazard with unguarded
+``translate()``):
 
   * ``when_to_time_of_day``  -- FHIR ``when`` (MORN/NOON/EVE/NIGHT) -> SNOMED ToD
-  * ``clock_to_time_of_day`` -- canonical clock (08/12/13/18/22) -> SNOMED ToD;
-                                off-grid clock matches nothing (no abort)
+  * ``clock_to_time_of_day`` -- any clock time bucketed into a day-part code
+                                (06-11:59 Morning | 12-13:59 Noon | 14-17:59
+                                Afternoon | 18-21:59 Evening | 22-05:59 Night)
   * ``unit_ucum``            -- data-driven UCUM code (periodUnit) -> SPHN Unit
   * ``unit_per_day`` / ``unit_per_week`` -- {#}/d and {#}/wk frequency literals
 
 A small throwaway StructureMap drives the helpers against the real
 DrugPrescriptionEvent / DrugPrescription / TimePattern structures and the result
 is scanned for the expected ``termid`` strings. The input deliberately includes
-an unknown ``when`` (``AC``) and an off-grid clock (``09:15:00``) to prove they
-are silently skipped rather than aborting.
+an unknown ``when`` (``AC``) to prove it is silently skipped rather than
+aborting, and a non-canonical clock (``15:30:00``) to prove arbitrary times
+are bucketed.
 """
 
 from pathlib import Path
@@ -48,7 +50,7 @@ group exercise_helpers(source mr : MedicationRequest, target content : Content) 
                 tim.repeat as r then {{
                     // when -> ToD : one TimePattern per `when` (unknown `when` skipped, no abort)
                     r.when as w -> presc.hasTimePattern as tp then when_to_time_of_day(w, tp) "when_tod";
-                    // clock -> ToD : canonical coded, off-grid silently skipped (no abort)
+                    // clock -> ToD : every valid time bucketed into a day-part code
                     r.timeOfDay as tod -> presc.hasTimePattern as tp then clock_to_time_of_day(tod, tp) "clock_tod";
                     // offset unit via cm-ucum-sphn (data-driven periodUnit)
                     r.periodUnit as pu -> presc.hasTimePattern as tp, tp.hasOffset as q, q.id = uuid(), q.hasUnit as unit then unit_ucum(pu, unit) "offset_unit";
@@ -62,9 +64,10 @@ group exercise_helpers(source mr : MedicationRequest, target content : Content) 
 }}
 '''
 
-# `when` mixes mapped (MORN/EVE) and unknown (AC) codes; `timeOfDay` mixes a
-# canonical (08:00:00) and an off-grid (09:15:00) clock -> both unknowns must be
-# silently skipped, not abort the transform.
+# `when` mixes mapped (MORN/EVE) and unknown (AC) codes -> the unknown must be
+# silently skipped, not abort the transform. `timeOfDay` mixes a canonical
+# (08:00:00) and a non-canonical (15:30:00) clock -> both must be bucketed
+# (Morning resp. Afternoon).
 HELPERS_INPUT = {
     "resourceType": "MedicationRequest",
     "id": "medreq-helpers",
@@ -76,7 +79,7 @@ HELPERS_INPUT = {
             "timing": {
                 "repeat": {
                     "when": ["MORN", "EVE", "AC"],
-                    "timeOfDay": ["08:00:00", "09:15:00"],
+                    "timeOfDay": ["08:00:00", "15:30:00"],
                     "period": "3",
                     "periodUnit": "d",
                 }
@@ -135,11 +138,13 @@ def test_clock_to_time_of_day_canonical(helpers_strings):
     assert "73775008" in helpers_strings, f"08:00 not coded. Strings: {helpers_strings}"
 
 
-def test_offgrid_clock_skipped_no_abort(helpers_result, helpers_strings):
-    """Off-grid clock 09:15:00 yields no code yet the transform succeeds."""
-    # Success == we got a structured result back at all.
+def test_noncanonical_clock_bucketed(helpers_result, helpers_strings):
+    """Non-canonical clock 15:30:00 buckets to Afternoon (255213009)."""
     assert isinstance(helpers_result, dict) and helpers_result, "transform aborted"
-    # No Night code anywhere (no 22:00 / NIGHT in input).
+    assert "255213009" in helpers_strings, (
+        f"15:30 not bucketed to Afternoon. Strings: {helpers_strings}"
+    )
+    # No Night code anywhere (no 22:00-05:59 / NIGHT in input).
     assert "2546009" not in helpers_strings
 
 

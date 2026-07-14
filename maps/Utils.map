@@ -1050,14 +1050,18 @@ group when_to_time_of_day(source w, target tp : TimePattern) {
 }
 
 // FHIR Timing.repeat.timeOfDay (clock) -> TimePattern.hasTimeOfDayCode (SNOMED).
-// Decision #2(a): only the canonical clock values map to a code; off-grid times
-// (09:15, 13:55, ...) match no rule -> no code, no abort.
+// Every valid time is bucketed into a day-part (supersedes decision #2(a)):
+//   06:00-11:59 Morning | 12:00-13:59 Noon | 14:00-17:59 Afternoon |
+//   18:00-21:59 Evening | 22:00-05:59 Night (wraps midnight).
+// Guards compare the time as a string: zero-padded hh:mm:ss[.fff] makes
+// lexicographic order == chronological order (fractional seconds included).
+// A malformed value matches no guard -> no code, no abort.
 group clock_to_time_of_day(source t, target tp : TimePattern) {
-  t as ct where $this = '08:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '73775008', code.iri = 'http://snomed.info/id/73775008' "clock_morning";
-  t as ct where $this = '12:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '71997007', code.iri = 'http://snomed.info/id/71997007' "clock_noon_12";
-  t as ct where $this = '13:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '71997007', code.iri = 'http://snomed.info/id/71997007' "clock_noon_13";
-  t as ct where $this = '18:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '3157002',  code.iri = 'http://snomed.info/id/3157002'  "clock_evening";
-  t as ct where $this = '22:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '2546009',  code.iri = 'http://snomed.info/id/2546009'  "clock_night";
+  t as ct where $this.toString() >= '06:00:00' and $this.toString() < '12:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '73775008',  code.iri = 'http://snomed.info/id/73775008'  "clock_morning";
+  t as ct where $this.toString() >= '12:00:00' and $this.toString() < '14:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '71997007',  code.iri = 'http://snomed.info/id/71997007'  "clock_noon";
+  t as ct where $this.toString() >= '14:00:00' and $this.toString() < '18:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '255213009', code.iri = 'http://snomed.info/id/255213009' "clock_afternoon";
+  t as ct where $this.toString() >= '18:00:00' and $this.toString() < '22:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '3157002',   code.iri = 'http://snomed.info/id/3157002'   "clock_evening";
+  t as ct where ($this.toString() >= '22:00:00' and $this.toString() < '24') or ($this.toString() >= '00:00:00' and $this.toString() < '06:00:00') -> tp.hasTimeOfDayCode as code, code.termid = '2546009', code.iri = 'http://snomed.info/id/2546009' "clock_night";
 }
 
 // UCUM unit code from the data (e.g. Timing.repeat.periodUnit d|h|min|wk|mo|a)

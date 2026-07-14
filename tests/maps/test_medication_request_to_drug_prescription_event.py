@@ -473,8 +473,8 @@ class TestTimePatternDaily:
             assert f is not None and f.get("hasValue") == 1
             assert f.get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperd"
 
-    def test_c_schedule_canonical_and_offgrid(self, transform_request):
-        """C: timeOfDay=[08:00:00, 09:15:00], no when -> two TPs; only the canonical one is coded."""
+    def test_c_schedule_all_times_bucketed(self, transform_request):
+        """C: timeOfDay=[08:00:00, 09:15:00], no when -> two TPs; both bucket to Morning."""
         mr = make_medication_request(
             medication=make_medication(),
             dosage_instructions=[
@@ -492,7 +492,41 @@ class TestTimePatternDaily:
         for tp in tps:
             assert _freq(tp).get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperd"
         coded = sorted(t for t in (_tod(tp) for tp in tps) if t is not None)
-        assert coded == ["73775008"]  # 08:00 -> Morning; 09:15 off-grid -> no code
+        assert coded == ["73775008", "73775008"]  # 08:00 and 09:15 both -> Morning
+
+    @pytest.mark.parametrize(
+        ("clock", "expected_tod"),
+        [
+            ("06:00:00", "73775008"),  # Morning lower bound
+            ("11:59:59", "73775008"),  # Morning upper bound
+            ("12:00:00", "71997007"),  # Noon lower bound
+            ("13:59:00", "71997007"),  # Noon upper bound
+            ("14:00:00", "255213009"),  # Afternoon lower bound
+            ("17:59:00", "255213009"),  # Afternoon upper bound
+            ("18:00:00", "3157002"),  # Evening lower bound
+            ("21:59:00", "3157002"),  # Evening upper bound
+            ("22:00:00", "2546009"),  # Night lower bound
+            ("05:59:00", "2546009"),  # Night upper bound (past midnight)
+            ("00:30:00", "2546009"),  # Night midnight wrap
+            ("08:00:00.000", "73775008"),  # fractional seconds tolerated
+        ],
+    )
+    def test_c_bucket_boundaries(self, transform_request, clock, expected_tod):
+        """Any clock time buckets into the day-part covering it (5 ranges, night wraps)."""
+        mr = make_medication_request(
+            medication=make_medication(),
+            dosage_instructions=[
+                {
+                    "doseAndRate": [_ucum_dose(1)],
+                    "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d", "timeOfDay": [clock]}},
+                }
+            ],
+        )
+        result = transform_request(mr)
+        presc = get_path(result, "DrugPrescriptionEvent[0].hasDrugPrescription[0]")
+        tps = _time_patterns(presc)
+        assert len(tps) == 1
+        assert _tod(tps[0]) == expected_tod
 
     def test_k_bare_daily_single_tp_no_tod(self, transform_request):
         """K: period=1, periodUnit=d, no when/timeOfDay -> single TP, freq 1 {#}/d, no ToD."""
@@ -665,7 +699,7 @@ class TestTimePatternSpecial:
 # --------------------------------------------------------------------------- #
 class TestTimePatternWeekly:
     def test_d_weekday_subset(self, transform_request):
-        """D: dayOfWeek=[mon,wed,fri] -> <count> {#}/wk + Intermittent; off-grid time uncoded."""
+        """D: dayOfWeek=[mon,wed,fri] -> <count> {#}/wk + Intermittent; time bucketed to ToD."""
         mr = make_medication_request(
             medication=make_medication(),
             dosage_instructions=[
@@ -683,7 +717,7 @@ class TestTimePatternWeekly:
         f = _freq(tp)
         assert f.get("hasValue") == 3
         assert f.get("hasUnit", {}).get("hasCode", {}).get("termid") == "cblnbcbrperwk"
-        assert "hasTimeOfDayCode" not in tp  # 09:13 off-grid
+        assert _tod(tp) == "73775008"  # 09:13 buckets to Morning
 
     def test_d_all_seven_days_is_daily(self, transform_request):
         """D: all 7 weekdays -> treated as daily (1 {#}/d, no typeCode)."""
