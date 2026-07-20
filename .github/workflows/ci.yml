@@ -27,7 +27,7 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          tags: fhir2sphn:latest
+          tags: ghcr.io/bal-dmu/fhir2sphn:latest
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -81,10 +81,20 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
+      - name: Is stable release
+        id: stable
+        run: |
+          if echo "${{ github.ref_name }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "yes=true" >> $GITHUB_OUTPUT
+          else
+            echo "yes=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.changelog.outputs.body }}
+          prerelease: ${{ steps.stable.outputs.yes != 'true' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -99,15 +109,6 @@ jobs:
       - name: Lowercase owner
         id: owner
         run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Is stable release
-        id: stable
-        run: |
-          if echo "${{ github.ref_name }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "yes=true" >> $GITHUB_OUTPUT
-          else
-            echo "yes=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Push Docker image to GHCR
         uses: docker/build-push-action@v6

@@ -49,6 +49,7 @@ MAP_TO_TEST = {
     "DiagnosticReportToLabTestEvent.map": "test_diagnostic_report.py",
     "EncounterToAdministrativeCase.map": "test_encounter_to_admin_case.py",
     "MedicationAdministrationToDrugAdministrationEvent.map": "test_medication_admin.py",
+    "MedicationRequestToDrugPrescriptionEvent.map": "test_medication_request_to_drug_prescription_event.py",
     "ObservationSurveyToAssessmentEvent.map": "test_observation_survey.py",
     "ObservationVitalSignToMeasurement.map": "test_vital_sign_to_measurement.py",
     "Utils.map": "test_utils.py",

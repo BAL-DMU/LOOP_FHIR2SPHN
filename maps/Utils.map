@@ -1001,6 +1001,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Concept" alias Concept as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Unit" alias Unit as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-TimePattern" alias TimePattern as target
 
 
 // Meta.Source -> reference to SourceSystem
@@ -1031,4 +1032,68 @@ group unit_number(source vq : Quantity, target unit: Unit) {
     vq.code as c -> translate("{#}", '#cm-ucum-sphn') as cm,
       code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code);
   } "code_unitNumber";
+}
+
+// ---------------------------------------------------------------------------
+// TimePattern decoding helpers (MedicationRequest -> DrugPrescriptionEvent)
+// ---------------------------------------------------------------------------
+
+// FHIR Timing.repeat.when -> TimePattern.hasTimeOfDayCode (SNOMED CT, desc. of
+// 272106006 | Temporal periods of day |). where-literal dispatch, NOT a concept
+// map: the ~20 other legal `when` codes simply match no rule, so no code is
+// emitted and the transform never aborts (unlike an unguarded translate()).
+group when_to_time_of_day(source w, target tp : TimePattern) {
+  w as cw where $this = 'MORN'  -> tp.hasTimeOfDayCode as code, code.termid = '73775008', code.iri = 'http://snomed.info/id/73775008' "when_morning";
+  w as cw where $this = 'NOON'  -> tp.hasTimeOfDayCode as code, code.termid = '71997007', code.iri = 'http://snomed.info/id/71997007' "when_noon";
+  w as cw where $this = 'EVE'   -> tp.hasTimeOfDayCode as code, code.termid = '3157002',  code.iri = 'http://snomed.info/id/3157002'  "when_evening";
+  w as cw where $this = 'NIGHT' -> tp.hasTimeOfDayCode as code, code.termid = '2546009',  code.iri = 'http://snomed.info/id/2546009'  "when_night";
+}
+
+// FHIR Timing.repeat.timeOfDay (clock) -> TimePattern.hasTimeOfDayCode (SNOMED).
+// Every valid time is bucketed into a day-part (supersedes decision #2(a)):
+//   06:00-11:59 Morning | 12:00-13:59 Noon | 14:00-17:59 Afternoon |
+//   18:00-21:59 Evening | 22:00-05:59 Night (wraps midnight).
+// Guards compare the time as a string: zero-padded hh:mm:ss[.fff] makes
+// lexicographic order == chronological order (fractional seconds included).
+// A malformed value matches no guard -> no code, no abort.
+group clock_to_time_of_day(source t, target tp : TimePattern) {
+  t as ct where $this.toString() >= '06:00:00' and $this.toString() < '12:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '73775008',  code.iri = 'http://snomed.info/id/73775008'  "clock_morning";
+  t as ct where $this.toString() >= '12:00:00' and $this.toString() < '14:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '71997007',  code.iri = 'http://snomed.info/id/71997007'  "clock_noon";
+  t as ct where $this.toString() >= '14:00:00' and $this.toString() < '18:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '255213009', code.iri = 'http://snomed.info/id/255213009' "clock_afternoon";
+  t as ct where $this.toString() >= '18:00:00' and $this.toString() < '22:00:00' -> tp.hasTimeOfDayCode as code, code.termid = '3157002',   code.iri = 'http://snomed.info/id/3157002'   "clock_evening";
+  t as ct where ($this.toString() >= '22:00:00' and $this.toString() < '24') or ($this.toString() >= '00:00:00' and $this.toString() < '06:00:00') -> tp.hasTimeOfDayCode as code, code.termid = '2546009', code.iri = 'http://snomed.info/id/2546009' "clock_night";
+}
+
+// UCUM unit code from the data (e.g. Timing.repeat.periodUnit d|h|min|wk|mo|a)
+// -> SPHN Unit via cm-ucum-sphn. Reused for TimePattern.hasOffset. Only fed
+// codes known to exist in cm-ucum-sphn, so translate() never aborts.
+group unit_ucum(source ucumCode, target unit : Unit) {
+  ucumCode as c -> unit.id = uuid(), unit.hasCode as code,
+    translate(c, '#cm-ucum-sphn') as cm,
+    code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "unit_ucum";
+}
+
+// Frequency unit literals -- the only two the converter ever emits ({#}/d, {#}/wk).
+// Hardcoded (like unit_number hardcodes {#}); the driving source only triggers the rule.
+group unit_per_day(source src, target unit : Unit) {
+  src -> unit.id = uuid(), unit.hasCode as code,
+    translate('{#}/d', '#cm-ucum-sphn') as cm,
+    code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "unit_per_day";
+}
+group unit_per_week(source src, target unit : Unit) {
+  src -> unit.id = uuid(), unit.hasCode as code,
+    translate('{#}/wk', '#cm-ucum-sphn') as cm,
+    code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "unit_per_week";
+}
+
+// TimePattern.hasTypeCode SNOMED CT literals (value set restricted in 2026.1).
+// Hardcoded codes; the driving source only triggers the rule.
+group type_continuous(source src, target tp : TimePattern) {
+  src -> tp.hasTypeCode as code, code.termid = '255238004', code.iri = 'http://snomed.info/id/255238004' "type_continuous";
+}
+group type_intermittent(source src, target tp : TimePattern) {
+  src -> tp.hasTypeCode as code, code.termid = '7087005', code.iri = 'http://snomed.info/id/7087005' "type_intermittent";
+}
+group type_as_required(source src, target tp : TimePattern) {
+  src -> tp.hasTypeCode as code, code.termid = '225761000', code.iri = 'http://snomed.info/id/225761000' "type_as_required";
 }

@@ -1,0 +1,264 @@
+// MedicationRequest -> DrugPrescriptionEvent
+// Timing patterns are documented in docs/MedicationRequest_to_DrugPrescriptionEvent.md
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/MedicationRequestToDrugPrescriptionEvent" = "MedicationRequestToDrugPrescriptionEvent"
+
+// Source definitions
+uses "http://hl7.org/fhir/StructureDefinition/MedicationRequest" alias MedicationRequest as source
+uses "http://hl7.org/fhir/StructureDefinition/Medication" alias Medication as source
+uses "http://hl7.org/fhir/StructureDefinition/Meta" alias Meta as source
+
+// Target definitions (SPHN)
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DrugPrescriptionEvent" alias DrugPrescriptionEvent as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DrugPrescription" alias DrugPrescription as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Drug" alias Drug as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Substance" alias Substance as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Quantity" alias Quantity as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Unit" alias Unit as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-PharmaceuticalDoseForm" alias PharmaceuticalDoseForm as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-DrugArticle" alias DrugArticle as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+group medication_request(source mr : MedicationRequest, target content : Content) <<types>> {
+    // SPHN requires DrugPrescriptionEvent.hasDateTime (1..1), .hasDrugPrescription (1..*)
+    // and each DrugPrescription.hasDrug (1..1); FHIR MedicationRequest has looser cardinalities.
+    // Guard: emit the event only when all three source elements are present, otherwise the
+    // event would be structurally invalid. Sources:
+    //   hasDateTime                  <- authoredOn
+    //   hasDrugPrescription          <- dosageInstruction (>= 1)
+    //   hasDrugPrescription.hasDrug  <- contained Medication (shared across all prescriptions)
+    mr where $this.authoredOn.exists()
+         and $this.dosageInstruction.exists()
+         and $this.contained.ofType(FHIR.Medication).exists()
+      -> content.DrugPrescriptionEvent = create('DrugPrescriptionEvent') as event then {
+        mr.meta as m then refSourceSystem(m, event);
+        mr.id as id -> event.id = ('MedicationRequest/' & %id);
+
+        // authoredOn -> hasDateTime (ALWAYS; 1..1). Per-administration times go on the DrugPrescription.
+        mr.authoredOn as authored -> event.hasDateTime = authored;
+        mr.encounter as encounter -> event.hasAdministrativeCase = encounter;
+
+        // One DrugPrescription per dosageInstruction (decision #1). The single contained
+        // Medication is shared, but each DrugPrescription gets its OWN Drug so the
+        // per-instruction dose/rate can be attached.
+        mr.dosageInstruction as di -> event.hasDrugPrescription = create('DrugPrescription') as presc then {
+            di -> presc.id = uuid() "presc_id";
+            mr.contained as medication where $this.ofType(FHIR.Medication) -> presc.hasDrug = create('Drug') as drug then {
+                // article / ingredient / doseForm from the Medication (shared group)
+                mr.meta as m then medication_to_drug(medication, m, drug);
+
+                // dose / rate from THIS dosageInstruction -> Drug.hasQuantity (per planned administration)
+                di.doseAndRate as dr then {
+                    dr.dose : Quantity as value where $this.system = 'http://unitsofmeasure.org' -> drug.hasQuantity as q then quantity(value, q) "doseQuantity_ucum";
+                    // orderable drug form (TAB/CAP/...) -> UCUM {#}
+                    dr.dose : Quantity as value where $this.system = 'http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm' -> drug.hasQuantity as quantity then {
+                        value.value as v -> quantity.id = uuid(), quantity.hasValue = v, quantity.hasUnit as unit then unit_number(value, unit);
+                    } "doseQuantity_orderableDrugForm";
+                    // rateQuantity (continuous infusion, pattern H) -> Drug.hasQuantity (rate unit)
+                    dr.rate : Quantity as value where $this.system = 'http://unitsofmeasure.org' -> drug.hasQuantity as q then quantity(value, q) "rateQuantity_ucum";
+                };
+            };
+
+            // route (defensive; absent in sample data) -> hasAdministrationRouteCode
+            di.route as route then {
+                route.coding first as coding where $this.system = 'http://snomed.info/sct' -> presc.hasAdministrationRouteCode as routeCode then {
+                    coding.code as code -> routeCode.termid = code as termid,
+                    routeCode.iri = append('http://snomed.info/id/', termid);
+                };
+            };
+
+            // datetime: a single point-in-time `event` (Once / Multiplan -- one planned
+            // administration) sets BOTH hasStartDateTime and hasEndDateTime to the event time.
+            // All other schemas carry no event and take their window from repeat.boundsPeriod.
+            // event and boundsPeriod are mutually exclusive, so the 0..1 date fields are never
+            // doubly assigned (bounds branch guarded by event.empty()).
+            di.timing as tim then {
+                tim.event first as ev -> presc.hasStartDateTime = ev, presc.hasEndDateTime = ev "point_from_event";
+                tim as t where $this.event.empty() then {
+                    t.repeat as r then {
+                        r.boundsPeriod as bp then {
+                            bp.start as s -> presc.hasStartDateTime = s "start_from_bounds";
+                            bp.end as e -> presc.hasEndDateTime = e "end_from_bounds";
+                        };
+                    };
+                } "bounds_window";
+            };
+
+            // TimePattern -- daily shapes (period=1, periodUnit=d). One mutually-exclusive
+            // dispatch (FML has no if/else). Excludes: interval (period>1 / periodUnit!=d),
+            // weekly (dayOfWeek), Once/Multiplan (event), PRN (asNeededBoolean=true), infusion
+            // (rateQuantity) and Once (no periodUnit). A/J therefore emit no TimePattern.
+            di where $this.timing.repeat.period = 1
+                 and $this.timing.repeat.periodUnit = 'd'
+                 and $this.timing.repeat.dayOfWeek.empty()
+                 and $this.timing.event.empty()
+                 and $this.doseAndRate.rate.empty()
+                 and $this.asNeededBoolean.where($this = true).empty() then {
+                di.timing as tim3 then {
+                    tim3.repeat as r3 then {
+
+                        // B -- Schema / day-parts: one TimePattern per `when` (freq 1 {#}/d + ToD code)
+                        r3.when as w -> presc.hasTimePattern as tp then {
+                            w -> tp.id = uuid() "B_id";
+                            w -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(w, funit) "B_freq";
+                            w as wv then when_to_time_of_day(wv, tp) "B_tod";
+                        } "B_when";
+
+                        // C -- Schedule / explicit clock (no `when`): one TimePattern per timeOfDay
+                        // (freq 1 {#}/d + ToD code; the clock time is bucketed into a day-part)
+                        r3 as rC where $this.when.empty() then {
+                            rC.timeOfDay as tod -> presc.hasTimePattern as tp then {
+                                tod -> tp.id = uuid() "C_id";
+                                tod -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(tod, funit) "C_freq";
+                                tod as todv then clock_to_time_of_day(todv, tp) "C_tod";
+                            } "C_clock";
+                        } "C_block";
+
+                        // K -- bare daily (no `when`, no timeOfDay): single TimePattern, freq 1 {#}/d
+                        r3 as rK where $this.when.empty() and $this.timeOfDay.empty() -> presc.hasTimePattern as tp, tp.id = uuid(), tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rK, funit) "K_daily";
+                    };
+                };
+            } "daily_patterns";
+
+            // E/F/I -- interval dosing (every N days/hours): period>1. One TimePattern with
+            // hasTypeCode=Intermittent + hasOffset = period <periodUnit> (+ ToD code if a
+            // canonical timeOfDay is given -- this also covers I/nDay, where each cycle step is
+            // its own dosageInstruction and the cycle phase repeat.offset is intentionally not read).
+            // Excludes daily (period=1), weekly (dayOfWeek), Once/Multiplan (event), infusion (rate), PRN.
+            di where $this.timing.repeat.period > 1
+                 and $this.timing.repeat.periodUnit.exists()
+                 and $this.timing.repeat.dayOfWeek.empty()
+                 and $this.timing.event.empty()
+                 and $this.doseAndRate.rate.empty()
+                 and $this.asNeededBoolean.where($this = true).empty() then {
+                di.timing as timI then {
+                    timI.repeat as rI -> presc.hasTimePattern as tp then {
+                        rI -> tp.id = uuid() "EF_id";
+                        rI as rt then type_intermittent(rt, tp) "EF_type";
+                        rI as ro then offset_from_period(ro, tp) "EF_offset";
+                        rI.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "I_tod";
+                    } "EF_interval";
+                };
+            } "interval_patterns";
+
+            // D -- Weekly: dayOfWeek present. Count the weekdays (FHIRPath count() via evaluate);
+            // ==7 -> treat as daily (hasFrequency 1 {#}/d, no typeCode); <7 -> hasFrequency
+            // <count> {#}/wk + Intermittent. ToD code added for a canonical timeOfDay.
+            // Loss: WHICH weekdays (no SPHN concept) -- only the count survives.
+            di where $this.timing.repeat.dayOfWeek.exists()
+                 and $this.timing.event.empty()
+                 and $this.doseAndRate.rate.empty()
+                 and $this.asNeededBoolean.where($this = true).empty() then {
+                di.timing as timD then {
+                    timD.repeat as rD then {
+                        // all 7 days -> daily
+                        rD where $this.dayOfWeek.count() = 7 -> presc.hasTimePattern as tp then {
+                            rD -> tp.id = uuid() "D7_id";
+                            rD -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = 1, freq.hasUnit as funit then unit_per_day(rD, funit) "D7_freq";
+                            rD.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "D7_tod";
+                        } "D_daily";
+                        // subset (<7) -> <count> {#}/wk + Intermittent
+                        rD where $this.dayOfWeek.count() < 7 -> presc.hasTimePattern as tp then {
+                            rD -> tp.id = uuid() "Dw_id";
+                            rD as rt then type_intermittent(rt, tp) "Dw_type";
+                            rD -> tp.hasFrequency as freq, freq.id = uuid(), freq.hasValue = evaluate(rD, dayOfWeek.count()), freq.hasUnit as funit then unit_per_week(rD, funit) "Dw_freq";
+                            rD.timeOfDay first as tod then clock_to_time_of_day(tod, tp) "Dw_tod";
+                        } "D_weekly";
+                    };
+                };
+            } "weekly_patterns";
+
+            // G -- Reserve / PRN: asNeededBoolean=true. hasTypeCode=As required,
+            // + hasOffset from the min-interval (repeat.period/periodUnit) if present.
+            di where $this.asNeededBoolean.where($this = true).exists()
+                 and $this.doseAndRate.rate.empty() -> presc.hasTimePattern as tp then {
+                di -> tp.id = uuid() "G_id";
+                di as dprn then type_as_required(dprn, tp) "G_type";
+                di.timing as timG then {
+                    timG.repeat as rG then offset_from_period(rG, tp) "G_offset";
+                };
+            } "prn_pattern";
+
+            // H -- RateSchema / continuous infusion: rateQuantity present. hasTypeCode=Continuous.
+            // (The rate itself is mapped to Drug.hasQuantity above; start/end from boundsPeriod.)
+            di where $this.doseAndRate.rate.exists() -> presc.hasTimePattern as tp then {
+                di -> tp.id = uuid() "H_id";
+                di as dcont then type_continuous(dcont, tp) "H_continuous";
+            } "H_pattern";
+        } "DrugPrescription";
+    } "DrugPrescriptionEvent";
+}
+
+// Shared, parameterised: contained Medication -> Drug (article / ingredient / doseForm).
+// Drug.hasQuantity (dose/rate) is set per-dosageInstruction by the caller.
+// Mirrors the drug logic of MedicationAdministrationToDrugAdministrationEvent.map.
+group medication_to_drug(source medication : Medication, source meta : Meta, target drug : Drug) {
+    meta as m then refSourceSystem(m, drug) "src_drug";
+    medication.id as id -> drug.id = uuid();
+
+    medication.ingredient as ingredient where $this.isActive = true then {
+        ingredient -> drug.hasActiveIngredient = create('Substance') as substance then {
+            meta as m then refSourceSystem(m, substance) "src_substance";
+            ingredient -> substance.id = uuid() "substance_id";
+
+            // Medication/ingredient/coding -> Drug/hasActiveIngredient/code
+            ingredient.item : CodeableConcept as code then {
+                code.coding first as coding where $this.system = "http://www.cas.org" -> substance.hasCode as substanceCode then {
+                    coding.code as c -> substanceCode.id = uuid(), substanceCode.hasIdentifier = c;
+                    coding.system as s -> substanceCode.hasCodingSystemAndVersion = s;
+                };
+                code.coding first as coding where $this.system = "http://snomed.info/sct" -> substance.hasCode as substanceCode then {
+                    coding.code as code -> substanceCode.termid = code as termid,
+                    substanceCode.iri = append('http://snomed.info/id/', termid);
+                };
+
+                // Medication/ingredient/text -> Drug/hasActiveIngredient/hasGenericName
+                code.text as text -> substance.hasGenericName = text;
+            };
+
+            // Medication/ingredient/strength/extension/sphn#Substance_hasQuantity -> Substance/hasQuantity
+            ingredient.strength as strength then {
+                strength.extension first as e where $this.url = "https://www.biomedit.ch/rdf/sphn-schema/sphn#Substance_hasQuantity" then {
+                    e.value : Quantity as value -> substance.hasQuantity as q then quantity(value, q);
+                } "valueQuantity";
+            };
+        } "Substance";
+    };
+
+    medication.code as code -> drug.hasArticle = create('DrugArticle') as article then {
+        meta as m then refSourceSystem(m, article) "src_article";
+        code -> article.id = uuid() "article_id";
+
+        // Medication/code/coding -> Drug/hasArticle/hasCode
+        code.coding as coding where $this.system = 'https://wwww.gs1.org/standards/id-keys/gtin' -> article.hasCode as articleCode then {
+            coding.code as c -> articleCode.id = uuid(), articleCode.hasIdentifier = c;
+            coding.system as s -> articleCode.hasCodingSystemAndVersion = s;
+        };
+
+        // Medication/code/text -> Drug/hasArticle/hasName
+        code.text as text -> article.hasName = text;
+
+        // Medication/form -> Drug/hasArticle/hasManufacturedDoseForm
+        medication.form as form then {
+            form.coding first as coding -> article.hasManufacturedDoseForm = create('PharmaceuticalDoseForm') as doseForm then {
+                coding -> doseForm.id = uuid(),
+                doseForm.hasCode as DoseFormCode then {
+                    coding.code as c -> DoseFormCode.id = uuid(), DoseFormCode.hasIdentifier = c;
+                    coding.system as s ->  DoseFormCode.hasCodingSystemAndVersion = s;
+                    coding.display as d -> DoseFormCode.hasName = d;
+                } "doseForm_code";
+            } "doseForm";
+        };
+    };
+}
+
+// FHIR Timing.repeat.period (+ periodUnit) -> TimePattern.hasOffset (Quantity, unit via
+// cm-ucum-sphn). Guarded on period.exists() so a repeat without a period adds no offset.
+// Reused by the interval (E/F) and PRN (G) branches.
+group offset_from_period(source repeat, target tp : TimePattern) {
+    repeat as r where $this.period.exists() -> tp.hasOffset as off, off.id = uuid() then {
+        r.period as p -> off.hasValue = p "offset_value";
+        r.periodUnit as pu -> off.hasUnit as ounit then unit_ucum(pu, ounit) "offset_unit";
+    } "offset_quantity";
+}
