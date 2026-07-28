@@ -1,0 +1,38 @@
+map "http://research.balgrist.ch/fhir2sphn/StructureMap/ImagingStudyToImagingProcedure" = "ImagingStudyToImagingProcedure"
+
+conceptmap "cm-acquisitionModality" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "http://snomed.info/id"
+  s:XA == t:77343006     // X-Ray Angiography -> Angiography
+  s:CT == t:77477000     // Computed Tomography
+  s:MR == t:113091000    // Magnetic Resonance -> Magnetic resonance imaging
+  s:US == t:16310003     // Ultrasound -> Medical ultrasonography
+  s:RF == t:44491008     // Radiofluoroscopy -> Fluoroscopy
+  s:DX == t:168537006    // Digital Radiography -> Plain radiography
+  s:CR == t:168537006    // Computed Radiography -> Plain radiography (same target as DX)
+  // s:ES, s:OT, s:SR, s:PR omitted: Other, SR Document, and Presentation State
+  // are not imaging acquisition procedures, so there's no valid
+  // descendant of 363679005 to map them to
+}
+
+uses "http://hl7.org/fhir/StructureDefinition/ImagingStudy" alias ImagingStudy as source
+
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ImagingProcedure" alias ImagingProcedure as target
+
+imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
+
+group imagingProcedure(source imagingStudy: ImagingStudy, target content: Content) <<types>>{
+    imagingStudy -> content.ImagingProcedure = create('ImagingProcedure') as imgproc then {
+        imagingStudy.meta as m then refSourceSystem(m, imgproc);
+        imagingStudy.identifier as id where id.use = 'secondary' -> imgproc.id = ('ImagingProcedure/' & %id.value);
+        imagingStudy.started as startDate -> imgproc.hasStartDateTime = startDate;
+        imagingStudy.modality as modality -> imgproc.hasCode = translate(modality, '#cm-acquisitionModality');
+        imagingStudy.subject as srcSub -> imgproc.hasSubjectPseudoIdentifier as subject then {
+            srcSub.reference as srcRef -> subject.id = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}_${deid}')) "test2";
+            srcSub.reference as srcRef -> subject.hasIdentifier = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}|${deid}')) "test3";
+            //imagingStudy.subject as srcRef -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
+        } "SubjectPseudoIdentifier";
+
+    } "ImagingProcedure";
+}

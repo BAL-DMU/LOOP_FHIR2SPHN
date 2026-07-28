@@ -94,6 +94,7 @@ Title: "List of SPHN concepts"
 * BilledProcedure 0..* SU BilledProcedure "" ""
 * Age 0..* SU Age "" ""
 * FluidInputOutput 0..* SU FluidInputOutput "" ""
+* ImagingProcedure 0..* SU ImagingProcedure "" ""
 
 
 Logical: Location
@@ -300,6 +301,16 @@ Id: SPHN-BodyHeightMeasurement
 Parent: MeasurementOneResult
 Title: "SPHN Body Height Measurement"
 * hasResult[x] 1..1 SU BodyHeight "" ""
+
+Logical: BodyMassIndex
+Id: SPHN-BodyMassIndex
+Parent: Concept
+Title: "SPHN Body Mass Index"
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasDeterminationDateTime 0..1 SU dateTime "" ""
+* hasQuantity 1..1 SU Quantity "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasSubjectPseudoIdentifier 1..1 SubjectPseudoIdentifier "" ""
 
 Logical: BloodPressure
 Id: SPHN-BloodPressure
@@ -588,3 +599,17 @@ Title: "SPHN Fluid Input Output"
 * hasStartDateTime 1..1 SU dateTime "" ""
 * hasEndDateTime 1..1 SU dateTime "" ""
 * hasSubstance 1..1 SU Substance "" ""
+
+Logical: ImagingProcedure
+Id: SPHN-ImagingProcedure
+Parent: MedicalProcedure
+Title: "SPHN Imaging Procedure"
+* hasDescription 0..1 SU string "" ""
+* hasImagingSeries 0..* SU string "" ""
+* hasSubjectAdministrativeSex 0..1 SU AdministrativeSex "" ""
+* hasSubjectAge 0..1 SU Age "" ""
+* hasSubjectBodyHeight 0..1 SU BodyHeight "" ""
+* hasSubjectBodyMassIndex 0..1 SU BodyMassIndex "" ""
+* hasSubjectBodyWeight 0..1 SU BodyWeight "" ""
+* hasSubjectPregnancyStatusCode 0..1 SU Code "" ""
+* hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
