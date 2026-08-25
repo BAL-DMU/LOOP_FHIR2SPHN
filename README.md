@@ -109,6 +109,16 @@ To stop the container when done:
 docker compose -f docker/docker-compose.yml down
 ```
 
+`docker/docker-compose.yml` pins no platform, so the image is built for the host
+architecture: `linux/amd64` on CI (which is what gets published) and `linux/arm64`
+natively on Apple Silicon. Building natively is considerably faster and avoids
+Rosetta emulation bugs in the IG Publisher step. To force `linux/amd64` locally --
+for example to run against the published image instead of building it -- set
+`DOCKER_DEFAULT_PLATFORM`:
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f docker/docker-compose.yml up
+```
+
 Behind a corporate proxy that intercepts TLS, drop the proxy's root CA at
 `docker/ca.crt` before building (git-ignored, optional) so the Java IG Publisher
 trusts it. Capture the self-signed root (the last cert in the chain, not the leaf):
