@@ -1034,6 +1034,14 @@ group unit_number(source vq : Quantity, target unit: Unit) {
   } "code_unitNumber";
 }
 
+// ImagingQuantity -> Unit of number
+group imaging_unit_number(source vq, target unit: Unit) {
+  vq -> unit.id = uuid(), unit.hasCode as code then {
+      vq -> translate("{#}", '#cm-ucum-sphn') as cm,
+        code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "imaging_unit_translate";
+  } "imaging_code_unitNumber";
+}
+
 // ---------------------------------------------------------------------------
 // TimePattern decoding helpers (MedicationRequest -> DrugPrescriptionEvent)
 // ---------------------------------------------------------------------------

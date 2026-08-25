@@ -15,10 +15,34 @@ conceptmap "cm-acquisitionModality" {
   // descendant of 363679005 to map them to
 }
 
+// DICOM Patient Position (0018,5100) -> SPHN BodyPosition.hasCode.
+// SPHN pins hasCode to owl:unionOf ( dcm:126830 dcm:126831 dcm:126832 dcm:126833
+// snomed:9851009 ). snomed:9851009 is "Body position finding", a hierarchy root, so any
+// descendant is allowed; the four dcm codes are CID 21 entry-orientation terms
+// (left/right/posterior/anterior first), which are a different axis and not used here.
+//
+// Note: the head-first / feet-first half of the DICOM term is table direction, not body
+// position. SPHN's BodyPosition has no slot for it (hasCode is maxCardinality 1), so it is
+// deliberately dropped - HFS and FFS both mean supine.
+conceptmap "cm-patientPosition" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "http://snomed.info/sct"
+  s:HFS == t:40199007     // head first-supine   -> Supine body position
+  s:FFS == t:40199007     // feet first-supine   -> Supine body position
+  s:HFP == t:1240000      // head first-prone    -> Prone body position
+  s:FFP == t:1240000      // feet first-prone    -> Prone body position
+  s:HFDR == t:102535000   // head first-decubitus right -> Right lateral decubitus
+  s:FFDR == t:102535000
+  s:HFDL == t:102536004   // head first-decubitus left  -> Left lateral decubitus
+  s:FFDL == t:102536004
+}
+
 uses "http://hl7.org/fhir/StructureDefinition/ImagingStudy" alias ImagingStudy as source
 
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" alias Content as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ImagingProcedure" alias ImagingProcedure as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ImagingSeries" alias ImagingSeries as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BodyPosition" alias BodyPosition as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
@@ -31,8 +55,72 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
         imagingStudy.subject as srcSub -> imgproc.hasSubjectPseudoIdentifier as subject then {
             srcSub.reference as srcRef -> subject.id = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}_${deid}')) "test2";
             srcSub.reference as srcRef -> subject.hasIdentifier = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}|${deid}')) "test3";
-            //imagingStudy.subject as srcRef -> subject.hasIdentifier = (%identifier.system & '|' & %identifier.value);
         } "SubjectPseudoIdentifier";
 
+        // The SPHN modality-specific series classes (CT, MR, PET, X-Ray) are flattened into
+        // SPHN-ImagingSeries in the logical model, so both branches create the same type and
+        // record the real SPHN class in target_concept. Only the MR branch carries
+        // hasBodyPosition, which the body-position-modality-only invariant permits.
+        imagingStudy.series as srcSeries where srcSeries.modality.code = 'MR' -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries' then {
+            // Guarded: without this, every MR series produces an empty BodyPosition whose
+            // hasCode satisfies neither branch of code-iri-or-codingSystem.
+            srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition then bodyPosition(srcSeries, tgtBodyPosition) "bodyPosition";
+            srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";
+        } "mapSeriesMR";
+        imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries' then imagingSeries(srcSeries, tgtSeries) "mapSeriesDefault";
+
     } "ImagingProcedure";
+}
+
+/*
+What to map and from where:
+DataFile: discuss
+EndDateTime: Not direct mappable, must be derivated
+ImagingFrame: Instance from ImagingStudy.series.instance
+ImagingModalityCode: Modality field from ImagingStudy.series 
+MedicalDevice: inside extension from ImagingStudy.series
+NumberOfFrames: (should be part of instance, and not series?)
+ProtocolName: check the meaning
+SourceSystem: discuss
+SubjectPseudoIdentifier: should be part of content
+*/
+group imagingSeries(source series, target tgtSeries: ImagingSeries) {
+    series.uid as uid -> tgtSeries.id = ('ImagingSeries/' & %uid);
+    series.description as seriesDesc -> tgtSeries.hasDescription = seriesDesc;
+    series.started as seriesStartdate -> tgtSeries.hasStartDateTime = seriesStartdate;
+    series.modality as modality -> tgtSeries.hasImagingModalityCode = translate(modality, '#cm-acquisitionModality');
+    series.numberOfInstances as seriesNFrames -> tgtSeries.hasNumberOfFrames as nFrames then {
+        seriesNFrames -> nFrames.id = uuid(), nFrames.hasValue = seriesNFrames, nFrames.hasUnit as unit then imaging_unit_number(nFrames, unit) "unit_rule";
+    } "valueQuantity_fhirQuantity";
+
+    //series -> tgtSeries then imagingFrames(series, tgtSeries) "frames";
+}
+
+// Reads DICOM Patient Position (0018,5100), which is the tag actually populated on the
+// series in the test data. The previously used Patient Orientation Code Sequence
+// (0054,0410) occurs on only one series in the whole bundle, and that one is DX, not MR.
+//
+// hasCodingSystemAndVersion + hasIdentifier is the branch of the code-iri-or-codingSystem
+// invariant used here (same shape as ConditionToNursingDiagnosis), so both must be set.
+group bodyPosition(source series, target tgtBodyPosition: BodyPosition) {
+    series.extension as dicomExt
+      where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM'
+        and extension.where(url = 'tag').valueString = '00185100'
+      -> tgtBodyPosition.hasCode as bodyPositionCode then {
+        dicomExt -> bodyPositionCode.id = uuid(),
+            evaluate(dicomExt, extension.where(url = 'value').valueString) as posTerm,
+            translate(posTerm, '#cm-patientPosition') as cm,
+            bodyPositionCode.hasCodingSystemAndVersion = (%cm.system),
+            bodyPositionCode.hasIdentifier = (%cm.code) "bodyPosition_rule";
+    } "hasCode";
+}
+
+// TODO: ImagingFrame mapping, from series.instance.
+// The five SPHN frame classes will be flattened the same way as the series: the base
+// ImagingFrame has 9 properties, the CT / MR / X-Ray frames are property-identical to each
+// other (base + hasContrastAgentAdministrationEvent, hasContrastAgentPhase,
+// hasSynchronization), and the PET frame is the only real outlier. So one group here is
+// enough, with target_concept distinguishing the class.
+group imagingFrames(source series, target tgtSeries: ImagingSeries) {
+    // TODO
 }

@@ -600,12 +600,23 @@ Title: "SPHN Fluid Input Output"
 * hasEndDateTime 1..1 SU dateTime "" ""
 * hasSubstance 1..1 SU Substance "" ""
 
+Logical: BodyPosition
+Id: SPHN-BodyPosition
+Parent: Concept
+Title: "SPHN Body Position"
+* hasAdministrativeCase 0..1 SU AdministrativeCase "" ""
+* hasCode 1..1 SU Code "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasSourceSystem 1..* SU SourceSystem "" ""
+* hasStartDateTime 0..1 SU dateTime "" ""
+* hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" "" 
+
 Logical: ImagingProcedure
 Id: SPHN-ImagingProcedure
 Parent: MedicalProcedure
 Title: "SPHN Imaging Procedure"
 * hasDescription 0..1 SU string "" ""
-* hasImagingSeries 0..* SU string "" ""
+* hasImagingSeries 0..* SU ImagingSeries "" ""
 * hasSubjectAdministrativeSex 0..1 SU AdministrativeSex "" ""
 * hasSubjectAge 0..1 SU Age "" ""
 * hasSubjectBodyHeight 0..1 SU BodyHeight "" ""
@@ -613,3 +624,48 @@ Title: "SPHN Imaging Procedure"
 * hasSubjectBodyWeight 0..1 SU BodyWeight "" ""
 * hasSubjectPregnancyStatusCode 0..1 SU Code "" ""
 * hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
+
+// Note: SPHN declares no inheritance between ImagingSeries and the four modality series
+// (CT, MR, PET, X-Ray). They are five independent owl:Class definitions that each re-list
+// every property in full, and they differ from the base by exactly one addition:
+// 'hasBodyPosition'. Since FML cannot reach a subtype property through a base-typed
+// element, the five are flattened into this one type and the real SPHN class is carried
+// in 'target_concept' (same approach as ReferenceRangeOrValue above).
+// The modality is independently recoverable from hasImagingModalityCode, which each
+// SPHN modality class pins (MR is restricted to dcm:MR / snomed:312250003).
+Invariant: body-position-modality-only
+Description: "hasBodyPosition is only defined on the modality-specific imaging series (CT, MR, PET, X-Ray), not on the base ImagingSeries."
+Severity: #error
+Expression: "hasBodyPosition.empty() or target_concept in ('https://biomedit.ch/rdf/sphn-schema/sphn#ComputedTomographyImagingSeries' | 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries' | 'https://biomedit.ch/rdf/sphn-schema/sphn#PositronEmissionTomographyImagingSeries' | 'https://biomedit.ch/rdf/sphn-schema/sphn#XRayImagingSeries')"
+
+Logical: ImagingSeries
+Id: SPHN-ImagingSeries
+Parent: Concept
+Title: "SPHN Imaging Series"
+* obeys body-position-modality-only
+* target_concept 1..1 SU url "" ""
+* hasAdministrativeCase 0..1 SU AdministrativeCase "" ""
+* hasBodyPosition 0..* SU BodyPosition "" ""
+* hasDataFile 0..* SU string "" "" //Change to DataFile Concept
+* hasDescription 0..1 SU string "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasImagingFrame 0..* SU string "" "" //Change to ImagingFrame Concept
+* hasImagingModalityCode 0..1 SU Code "" ""
+* hasMedicalDevice 0..1 SU string "" "" //Change to MedicalDevice Concept
+* hasNumberOfFrames 0..1 SU Quantity "" ""
+* hasProtocolName 0..1 SU string "" ""
+* hasSourceSystem  1..* SU SourceSystem "" ""
+* hasStartDateTime 0..1 SU dateTime "" ""
+* hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
+
+// Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not
+// modelled separately - see the note above ImagingSeries. Their only distinguishing
+// property, hasBodyPosition, now lives on ImagingSeries and is guarded by target_concept.
+//
+// The same flattening will be needed once ImagingFrame replaces the string placeholder on
+// hasImagingFrame: the base ImagingFrame has 9 properties; the CT, MR and X-Ray frames are
+// property-identical to each other (base + hasContrastAgentAdministrationEvent,
+// hasContrastAgentPhase, hasSynchronization); the PET frame is the only real outlier
+// (base + hasSynchronization + hasCode, hasRadiopharmaceuticalAdministrationEvent,
+// hasSubjectPhysiologicState, hasCardiacProceduralStateCode, and it drops the two
+// contrast properties). So that invariant only has two real branches.
