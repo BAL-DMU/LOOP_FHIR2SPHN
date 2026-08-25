@@ -1,11 +1,8 @@
-FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.0.1
+FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.1.13
 EXPOSE 8080 
 
 # Alpine:
 USER root
-RUN apk add --no-cache  --no-check-certificate curl wget maven jekyll nodejs npm bash jq \
-    fontconfig ttf-dejavu freetype-dev ca-certificates
-RUN java --version
 
 # Optional corporate proxy CA: drop your PEM cert at docker/ca.crt to make curl/wget
 # AND the Java IG Publisher trust an SSL-intercepting corporate network. Without it the
@@ -21,6 +18,24 @@ RUN install -m 0644 /dev/null /usr/local/share/ca-certificates/corp-ca.crt && \
       keytool -importcert -noprompt -trustcacerts -alias corp-ca \
         -file /tmp/cabuild/ca.crt -keystore "$JH/lib/security/cacerts" -storepass changeit ; \
     fi && rm -rf /tmp/cabuild
+#RUN apk add --no-cache  --no-check-certificate curl wget maven jekyll nodejs npm bash jq \
+#    fontconfig ttf-dejavu freetype-dev ca-certificates
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl wget maven ruby-full nodejs npm bash jq \
+    fontconfig fonts-dejavu-core libfreetype6-dev ca-certificates \
+    build-essential libffi-dev pkg-config \
+    # ^ build-essential: gcc/make, needed to compile native gem extensions (e.g. ffi)
+    # ^ libffi-dev: provides ffi.h, required by the ffi gem's native extension
+    # ^ pkg-config: used by some gems' extconf.rb to locate library build flags
+    netcat-openbsd \
+    # ^ netcat-openbsd: provides the `nc` binary used by build_maps.sh
+    && update-ca-certificates \
+    && gem install jekyll bundler \
+    && rm -rf /var/lib/apt/lists/*
+    
+RUN java --version
+
 
 # Node ignores the system trust store, so point it at the (possibly empty) proxy CA
 # instead of disabling TLS verification. Covers npm, sushi and the IG Publisher's node calls.
