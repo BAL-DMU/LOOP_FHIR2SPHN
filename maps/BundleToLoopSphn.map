@@ -135,11 +135,14 @@ group patient(source patient : Patient, target tgt : LoopSphn, target content: C
   };
 
   // deceased[Boolean|DateTime] -> Content.Death
-  patient.deceased as deceased where $this = true or $this is DateTime -> content.Death = create('Death') as death then {
+  // NOTE: the type check must use the FHIR type name 'dateTime' (lowercase). The System
+  // type name 'DateTime' no longer matches a FHIR dateTime element in newer FHIR core
+  // versions (matchbox >= v4.1), which silently dropped the Death mapping.
+  patient.deceased as deceased where $this = true or $this is dateTime -> content.Death = create('Death') as death then {
     patient.meta as m then refSourceSystem(m, death);
     deceased -> death.id = uuid() "id";
     // deceasedDateTime -> hasDate
-    deceased where $this is DateTime -> death.hasDate = create('DeathDate') as deathDate then {
+    deceased where $this is dateTime -> death.hasDate = create('DeathDate') as deathDate then {
       deceased -> deathDate.id = uuid() as duuid,
         deathDate.hasYear = evaluate(deceased, toString().substring(0, 4)),
         deathDate.hasMonth = evaluate(deceased, '--' & toString().substring(5, 2)),
