@@ -79,10 +79,18 @@ group adminCase(source encounter : Encounter, target content: Content) <<types>>
     };
 
     // class -> CareHandling
-    encounter.class as class -> case.hasCareHandling = create('CareHandling') as care then {
+    // Encounter.type 304903009 (Provision of day care, i.e. KISIM teilstationaer) overrides the
+    // class-derived code: v3-ActCode has no day-care concept, so the day care can only be carried
+    // in type. The override is deliberately independent of the class value - type is the more
+    // specific statement, so AMB + day care yields day care just as IMP + day care does.
+    encounter.class as class -> case.hasCareHandling = create('CareHandling') as care, care.id = uuid() then {
       encounter.meta as m then refSourceSystem(m, care);
-      class.code as code -> care.id = uuid(), translate(code, '#cm-encounter-class') as cm,
-        care.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "class";
+      encounter where $this.type.coding.where(system = 'http://snomed.info/sct' and code = '304903009').exists().not() then {
+        class.code as code -> translate(code, '#cm-encounter-class') as cm,
+          care.hasTypeCode as typeCode, typeCode.termid = (%cm.code), typeCode.iri = (%cm.system & '/' & %cm.code) "class";
+      } "no_dayCare_type";
+      encounter where $this.type.coding.where(system = 'http://snomed.info/sct' and code = '304903009').exists()
+        -> care.hasTypeCode as typeCode, typeCode.termid = '304903009', typeCode.iri = 'http://snomed.info/id/304903009' "type_dayCare";
     };
 
     // period.stop -> hasDischarge
