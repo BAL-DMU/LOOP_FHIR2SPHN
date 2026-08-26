@@ -4,6 +4,7 @@ Tests for EncounterToAdministrativeCase.map
 Tests the Encounter -> AdministrativeCase mapping including:
 - period.start/end -> Admission/Discharge
 - class -> CareHandling
+- type [304903009 day care] -> CareHandling (overrides class)
 - hospitalization.admitSource -> Admission.hasOriginLocation
 - hospitalization.extension[dischargedestination] -> Discharge.hasTargetLocation
 """
@@ -23,6 +24,7 @@ def make_encounter(
     start=None,
     end=None,
     class_code=None,
+    type_codes=None,
     admit_source=None,
     discharge_destination=None,
 ):
@@ -37,6 +39,12 @@ def make_encounter(
 
     if class_code:
         encounter["class"]["code"] = class_code
+
+    if type_codes:
+        encounter["type"] = [
+            {"coding": [{"system": "http://snomed.info/sct", "code": code}]}
+            for code in type_codes
+        ]
 
     if start or end:
         encounter["period"] = {}
@@ -284,6 +292,131 @@ class TestCareHandling:
             "content.AdministrativeCase[0].hasCareHandling.hasTypeCode",
             "371883000",
             "/371883000",
+        )
+
+
+class TestCareHandlingDayCare:
+    """Test type [304903009 day care] -> CareHandling, overriding the class-derived code.
+
+    KISIM FALLART 'T' (teilstationaer) has no v3-ActCode equivalent, so the FHIR extraction
+    emits class = IMP plus Encounter.type = SNOMED 304903009. The SPHN code must come from
+    the type, not from the class.
+    """
+
+    DAY_CARE = "304903009"
+    INPATIENT = "394656005"
+
+    def test_class_imp_without_type_is_not_day_care(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """class IMP alone (no type) stays Inpatient - no day care leaks in."""
+        encounter = make_encounter(class_code="IMP")
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AdministrativeCase[0].hasCareHandling.hasTypeCode",
+            self.INPATIENT,
+            f"/{self.INPATIENT}",
+        )
+
+    def test_class_amb_without_type_is_not_day_care(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """class AMB alone (no type) stays Outpatient - no day care leaks in."""
+        encounter = make_encounter(class_code="AMB")
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        termid = get_path(
+            result, "content.AdministrativeCase[0].hasCareHandling.hasTypeCode.termid"
+        )
+        assert termid != self.DAY_CARE, f"unexpected day care code for class AMB: {termid!r}"
+        assert termid == "371883000"
+
+    def test_type_day_care_maps_day_care(self, transform_bundle, make_bundle, base_patient):
+        """class IMP + type 304903009 maps to SNOMED 304903009, not 394656005."""
+        encounter = make_encounter(class_code="IMP", type_codes=[self.DAY_CARE])
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AdministrativeCase[0].hasCareHandling.hasTypeCode",
+            self.DAY_CARE,
+            f"/{self.DAY_CARE}",
+        )
+
+    def test_class_amb_with_day_care_type_maps_day_care(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """The type override is independent of the class value: AMB + day care is day care.
+
+        Not reachable from the KISIM extraction (FALLART 'T' always emits IMP), but type is the
+        more specific statement, so it wins over any class.
+        """
+        encounter = make_encounter(class_code="AMB", type_codes=[self.DAY_CARE])
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AdministrativeCase[0].hasCareHandling.hasTypeCode",
+            self.DAY_CARE,
+            f"/{self.DAY_CARE}",
+        )
+
+    def test_type_day_care_yields_single_type_code(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """hasTypeCode is 1..1: the day care code replaces the class code, it is not added."""
+        encounter = make_encounter(class_code="IMP", type_codes=[self.DAY_CARE])
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        type_code = get_path(result, "content.AdministrativeCase[0].hasCareHandling.hasTypeCode")
+        assert not isinstance(type_code, list), (
+            f"hasTypeCode must be a single Code, got a list: {type_code!r}"
+        )
+        assert type_code["termid"] == self.DAY_CARE
+
+    def test_unrelated_type_falls_back_to_class(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A SNOMED type other than 304903009 does not override the class-derived code."""
+        encounter = make_encounter(class_code="IMP", type_codes=["11429006"])  # Consultation
+
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AdministrativeCase[0].hasCareHandling.hasTypeCode",
+            self.INPATIENT,
+            f"/{self.INPATIENT}",
+        )
+
+    def test_day_care_among_several_types_still_wins(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """The day care code is found even when Encounter.type carries other codings too."""
+        encounter = make_encounter(class_code="IMP", type_codes=["11429006", self.DAY_CARE])
+        bundle = make_bundle(base_patient, encounter)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            "content.AdministrativeCase[0].hasCareHandling.hasTypeCode",
+            self.DAY_CARE,
+            f"/{self.DAY_CARE}",
         )
 
 
