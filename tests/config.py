@@ -30,5 +30,6 @@ MAP_UPLOAD_ORDER = [
     "MedicationRequestToDrugPrescriptionEvent.map",
     "ObservationSurveyToAssessmentEvent.map",
     "ObservationFluidToFluidInputOutput.map",
+    "ImagingStudyToImagingProcedure.map",
     "BundleToLoopSphn.map",
 ]
