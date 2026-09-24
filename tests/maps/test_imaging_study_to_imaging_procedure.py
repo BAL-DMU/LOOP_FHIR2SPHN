@@ -14,13 +14,9 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
 - series (MR only)             -> target_concept + hasBodyPosition from DICOM
                                   Patient Position (0018,5100), cm-patientPosition
 
-Note on Code shapes: hasCode is assigned a bare translate() result (map line
-54), so it comes out as a FHIR Coding ('system' + 'code') rather than the SPHN
-Code shape used everywhere else. That satisfies neither branch of the
-code-iri-or-codingSystem invariant (model/LogicalModel.fsh:8-11), so
-assert_code_mapped - which checks termid/iri - is not usable on it.
-hasImagingModalityCode uses the SPHN iri + termid shape (a dcm: code), so
-assert_code_mapped applies there. BodyPosition.hasCode uses the
+Note on Code shapes: hasCode (a list, 1..* on ImagingProcedure) and
+hasImagingModalityCode (a dcm: code) use the SPHN iri + termid shape, so
+assert_code_mapped applies to both. BodyPosition.hasCode uses the
 hasCodingSystemAndVersion + hasIdentifier branch, which assert_code_mapped
 cannot check, so it is asserted with plain paths below.
 """
@@ -105,7 +101,13 @@ def make_imaging_study(
     subject_reference=SUBJECT_REFERENCE,
     source=DICOM_SOURCE,
 ):
-    """Create an ImagingStudy resource (study.modality is an array of Coding)."""
+    """Create an ImagingStudy resource (study.modality is an array of Coding).
+
+    series=None gives one CT series, since the map skips studies without an
+    in-scope series; pass series=[] for a study with no series at all.
+    """
+    if series is None:
+        series = [make_series()]
     study = {
         "resourceType": "ImagingStudy",
         "id": study_id,
@@ -131,7 +133,7 @@ def make_imaging_study(
     if started:
         study["started"] = started
 
-    if series is not None:
+    if series:
         study["series"] = series
 
     return study
@@ -188,19 +190,19 @@ class TestImagingProcedureBasic:
             result, f"{PROCEDURE}.hasStartDateTime", "2018-07-02T09:22:11+02:00"
         )
 
-    def test_missing_started_omits_start_date_time(
+    def test_missing_started_skips_study(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A study without started still creates the procedure, without
-        hasStartDateTime - even though SPHN declares it 1..1 on MedicalProcedure
-        (model/LogicalModel.fsh:581)."""
-        study = make_imaging_study(started=None)
+        """A study without started is not mapped (SPHN hasStartDateTime is 1..1),
+        even when its series carry a started - there is no fallback to those."""
+        study = make_imaging_study(
+            started=None, series=[make_series(started="2012-01-11T12:18:56+01:00")]
+        )
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_exists(result, PROCEDURE)
-        assert get_path(result, f"{PROCEDURE}.hasStartDateTime") is None
+        assert get_path(result, PROCEDURE) is None
 
 
 class TestSourceSystem:
@@ -256,7 +258,7 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "77477000")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "77477000", "/77477000")
 
     def test_mr_maps_to_magnetic_resonance_imaging(
         self, transform_bundle, make_bundle, base_patient
@@ -267,7 +269,7 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "113091000")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "113091000", "/113091000")
 
     def test_us_maps_to_medical_ultrasonography(
         self, transform_bundle, make_bundle, base_patient
@@ -278,7 +280,7 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "16310003")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "16310003", "/16310003")
 
     def test_xa_maps_to_angiography(self, transform_bundle, make_bundle, base_patient):
         """XA maps to SNOMED 77343006 (Angiography)."""
@@ -287,7 +289,7 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "77343006")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "77343006", "/77343006")
 
     def test_rf_maps_to_fluoroscopy(self, transform_bundle, make_bundle, base_patient):
         """RF maps to SNOMED 44491008 (Fluoroscopy)."""
@@ -296,7 +298,7 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "44491008")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "44491008", "/44491008")
 
     def test_dx_maps_to_plain_radiography(
         self, transform_bundle, make_bundle, base_patient
@@ -307,7 +309,7 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "168537006")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "168537006", "/168537006")
 
     def test_cr_maps_to_plain_radiography(
         self, transform_bundle, make_bundle, base_patient
@@ -318,16 +320,19 @@ class TestAcquisitionModality:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.code", "168537006")
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "168537006", "/168537006")
 
-    def test_code_system_is_snomed(self, transform_bundle, make_bundle, base_patient):
-        """The translated code carries the cm-acquisitionModality target system."""
+    def test_code_is_snomed_iri_list(self, transform_bundle, make_bundle, base_patient):
+        """hasCode is a list of SPHN Codes whose iri is the full SNOMED id."""
         study = make_imaging_study(modality="CT")
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.hasCode.system", SNOMED_ID_SYSTEM)
+        assert_list_length(result, f"{PROCEDURE}.hasCode", 1)
+        assert_path_equals(
+            result, f"{PROCEDURE}.hasCode[0].iri", f"{SNOMED_ID_SYSTEM}/77477000"
+        )
 
 
 class TestUnmappedModality:
@@ -335,32 +340,29 @@ class TestUnmappedModality:
 
     OT, ES, SR and PR are omitted from the concept map on purpose (map lines
     13-15): they are not imaging acquisition procedures, so there is no valid
-    descendant of SNOMED 363679005 to map them to. The procedure is still
-    emitted, without hasCode - although SPHN declares hasCode 1..1 on
-    MedicalProcedure (model/LogicalModel.fsh:583).
+    descendant of SNOMED 363679005 to map them to. Without a code the study is
+    empty for SPHN (hasCode is required), so it is not mapped at all.
     """
 
-    def test_ot_yields_no_code(self, transform_bundle, make_bundle, base_patient):
-        """An OT study is still mapped, but carries no hasCode."""
-        study = make_imaging_study(modality="OT", secondary_value="ot-study")
+    def test_ot_study_is_skipped(self, transform_bundle, make_bundle, base_patient):
+        """An OT study is not mapped, even with an in-scope (CT) series."""
+        study = make_imaging_study(modality="OT", series=[make_series(modality="CT")])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{PROCEDURE}.id", "ImagingProcedure/ot-study")
-        assert get_path(result, f"{PROCEDURE}.hasCode") is None
+        assert get_path(result, PROCEDURE) is None
 
-    def test_missing_modality_yields_no_code(
+    def test_missing_modality_study_is_skipped(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A study without modality is still mapped, but carries no hasCode."""
+        """A study without modality is not mapped."""
         study = make_imaging_study(modality=None)
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_exists(result, PROCEDURE)
-        assert get_path(result, f"{PROCEDURE}.hasCode") is None
+        assert get_path(result, PROCEDURE) is None
 
 
 class TestImagingSeries:
@@ -460,18 +462,17 @@ class TestImagingSeries:
                 DICOM_SOURCE,
             )
 
-    def test_out_of_scope_series_is_skipped(
+    def test_only_out_of_scope_series_skips_study(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A series whose modality is outside SPHN's allowed DCM list (SR) is not
-        emitted; the procedure itself is still mapped."""
+        """A study whose series are all out of scope (SR) would be empty, so it is
+        not mapped at all."""
         study = make_imaging_study(series=[make_series(modality="SR")])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_exists(result, PROCEDURE)
-        assert get_path(result, f"{PROCEDURE}.hasImagingSeries") is None
+        assert get_path(result, PROCEDURE) is None
 
     def test_out_of_scope_series_leaves_others(
         self, transform_bundle, make_bundle, base_patient
@@ -806,12 +807,32 @@ class TestMultipleStudies:
             "ImagingProcedure/second",
         }
 
-    def test_study_without_series(self, transform_bundle, make_bundle, base_patient):
-        """A study with no series creates a procedure with no ImagingSeries."""
-        study = make_imaging_study(series=None)
+    def test_study_without_series_is_skipped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A study with no series at all is empty and not mapped."""
+        study = make_imaging_study(series=[])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_exists(result, PROCEDURE)
-        assert get_path(result, f"{PROCEDURE}.hasImagingSeries") is None
+        assert get_path(result, PROCEDURE) is None
+
+    def test_empty_study_leaves_others(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Skipping an empty study does not affect a complete one in the bundle."""
+        empty = make_imaging_study(
+            study_id="imaging-ot",
+            secondary_value="ot",
+            modality="OT",
+            started=None,
+            series=[make_series(modality="OT")],
+        )
+        kept = make_imaging_study(study_id="imaging-ct", secondary_value="ct")
+        bundle = make_bundle(base_patient, empty, kept)
+
+        result = transform_bundle(bundle)
+
+        assert_list_length(result, "content.ImagingProcedure", 1)
+        assert_path_equals(result, f"{PROCEDURE}.id", "ImagingProcedure/ct")

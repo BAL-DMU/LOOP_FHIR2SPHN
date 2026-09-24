@@ -60,7 +60,11 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
         imagingStudy.meta as m then refSourceSystem(m, imgproc);
         imagingStudy.identifier as id where id.use = 'secondary' -> imgproc.id = ('ImagingProcedure/' & %id.value);
         imagingStudy.started as startDate -> imgproc.hasStartDateTime = startDate;
-        imagingStudy.modality as modality -> imgproc.hasCode = translate(modality, '#cm-acquisitionModality');
+        // One SPHN Code (iri + termid) per mappable modality; hasCode is 1..* on
+        // ImagingProcedure. CR and DX share a target, so a study listing both would get the
+        // code twice; the Balgrist export carries one modality per study, so no dedup.
+        imagingStudy.modality as modality where code in ('XA' | 'CT' | 'MR' | 'US' | 'RF' | 'DX' | 'CR') -> translate(modality, '#cm-acquisitionModality') as cm,
+            imgproc.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "hasCode";
 
         // The SPHN modality-specific series classes (CT, MR, PET, X-Ray) are flattened into
         // SPHN-ImagingSeries in the logical model, so both branches create the same type and
