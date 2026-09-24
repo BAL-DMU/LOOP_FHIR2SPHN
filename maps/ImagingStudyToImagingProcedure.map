@@ -73,7 +73,11 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
         imagingStudy.series as srcSeries where srcSeries.modality.code = 'MR' -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries' then {
             // Guarded: without this, every MR series produces an empty BodyPosition whose
             // hasCode satisfies neither branch of code-iri-or-codingSystem.
-            srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition then bodyPosition(srcSeries, tgtBodyPosition) "bodyPosition";
+            srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition then {
+                // SPHN requires hasSourceSystem (1..*) on BodyPosition too; taken from the study.
+                imagingStudy.meta as m then refSourceSystem(m, tgtBodyPosition) "bodyPositionSourceSystem";
+                srcSeries -> tgtBodyPosition then bodyPosition(srcSeries, tgtBodyPosition) "bodyPositionCode";
+            } "bodyPosition";
             // SPHN requires hasSourceSystem (1..*) on every series; taken from the study.
             imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystemMR";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";

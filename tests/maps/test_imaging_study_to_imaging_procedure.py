@@ -640,6 +640,23 @@ class TestBodyPosition:
         )
         assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "40199007")
 
+    def test_body_position_source_system(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """BodyPosition takes the study's meta.source (SPHN requires it, 1..*)."""
+        study = make_imaging_study(
+            modality="MR", series=[make_series(modality="MR", patient_position="HFS")]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_reference(
+            result,
+            f"{SERIES}.hasBodyPosition[0].hasSourceSystem[0]",
+            DICOM_SOURCE,
+        )
+
     def test_ffs_maps_to_supine(self, transform_bundle, make_bundle, base_patient):
         """FFS (feet first-supine) collapses onto the same code as HFS."""
         study = make_imaging_study(
