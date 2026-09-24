@@ -6,7 +6,7 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
 - meta.source                  -> hasSourceSystem
 - started                      -> hasStartDateTime
 - modality                     -> hasCode (cm-acquisitionModality, DICOM -> SNOMED)
-- subject.reference            -> hasSubjectPseudoIdentifier
+- subject.reference            -> not mapped (no hasSubjectPseudoIdentifier)
 - series                       -> hasImagingSeries (uid, description, started,
                                   modality, numberOfInstances -> hasNumberOfFrames)
 - series (MR only)             -> target_concept + hasBodyPosition from DICOM
@@ -224,37 +224,20 @@ class TestSourceSystem:
 
 
 class TestSubjectPseudoIdentifier:
-    """Test subject.reference -> hasSubjectPseudoIdentifier."""
+    """hasSubjectPseudoIdentifier is not mapped: the connector adds the subject
+    itself and rejects the property on ImagingProcedure."""
 
-    def test_subject_pseudo_identifier_id(
+    def test_no_subject_pseudo_identifier(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """id joins the identifier system and value with '_'."""
+        """subject.reference does not produce hasSubjectPseudoIdentifier."""
         study = make_imaging_study()
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(
-            result,
-            f"{PROCEDURE}.hasSubjectPseudoIdentifier.id",
-            "RASPLOOP_KLI_82_RASPLOOP",
-        )
-
-    def test_subject_pseudo_identifier_has_identifier(
-        self, transform_bundle, make_bundle, base_patient
-    ):
-        """hasIdentifier keeps the '|' separator of the source reference."""
-        study = make_imaging_study()
-        bundle = make_bundle(base_patient, study)
-
-        result = transform_bundle(bundle)
-
-        assert_path_equals(
-            result,
-            f"{PROCEDURE}.hasSubjectPseudoIdentifier.hasIdentifier",
-            "RASPLOOP|KLI_82_RASPLOOP",
-        )
+        assert_path_exists(result, PROCEDURE)
+        assert get_path(result, f"{PROCEDURE}.hasSubjectPseudoIdentifier") is None
 
 
 class TestAcquisitionModality:

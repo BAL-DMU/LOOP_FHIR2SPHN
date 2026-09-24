@@ -52,10 +52,6 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
         imagingStudy.identifier as id where id.use = 'secondary' -> imgproc.id = ('ImagingProcedure/' & %id.value);
         imagingStudy.started as startDate -> imgproc.hasStartDateTime = startDate;
         imagingStudy.modality as modality -> imgproc.hasCode = translate(modality, '#cm-acquisitionModality');
-        imagingStudy.subject as srcSub -> imgproc.hasSubjectPseudoIdentifier as subject then {
-            srcSub.reference as srcRef -> subject.id = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}_${deid}')) "test2";
-            srcSub.reference as srcRef -> subject.hasIdentifier = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}|${deid}')) "test3";
-        } "SubjectPseudoIdentifier";
 
         // The SPHN modality-specific series classes (CT, MR, PET, X-Ray) are flattened into
         // SPHN-ImagingSeries in the logical model, so both branches create the same type and

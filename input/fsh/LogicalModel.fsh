@@ -623,7 +623,6 @@ Title: "SPHN Imaging Procedure"
 * hasSubjectBodyMassIndex 0..1 SU BodyMassIndex "" ""
 * hasSubjectBodyWeight 0..1 SU BodyWeight "" ""
 * hasSubjectPregnancyStatusCode 0..1 SU Code "" ""
-* hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
 
 // Note: SPHN declares no inheritance between ImagingSeries and the four modality series
 // (CT, MR, PET, X-Ray). They are five independent owl:Class definitions that each re-list
@@ -656,7 +655,6 @@ Title: "SPHN Imaging Series"
 * hasProtocolName 0..1 SU string "" ""
 * hasSourceSystem  1..* SU SourceSystem "" ""
 * hasStartDateTime 0..1 SU dateTime "" ""
-* hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
 
 // Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not
 // modelled separately - see the note above ImagingSeries. Their only distinguishing
