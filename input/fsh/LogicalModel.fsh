@@ -607,14 +607,23 @@ Title: "SPHN Body Position"
 * hasAdministrativeCase 0..1 SU AdministrativeCase "" ""
 * hasCode 1..1 SU Code "" ""
 * hasEndDateTime 0..1 SU dateTime "" ""
-* hasSourceSystem 1..* SU SourceSystem "" ""
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasStartDateTime 0..1 SU dateTime "" ""
 * hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" "" 
 
 Logical: ImagingProcedure
 Id: SPHN-ImagingProcedure
-Parent: MedicalProcedure
+Parent: Concept
 Title: "SPHN Imaging Procedure"
+//Copy from MedicalProcedure
+* hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
+* hasAdministrativeCase 0..1 SU Reference(AdministrativeCase) "" ""
+* hasStartDateTime 1..1 SU dateTime "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasCode 1..* SU Code "" ""
+* hasBodySite 0..1 SU BodySite "" ""
+* hasIntent 0..1 SU Intent "" ""
+//End of section
 * hasDescription 0..1 SU string "" ""
 * hasImagingSeries 0..* SU ImagingSeries "" ""
 * hasSubjectAdministrativeSex 0..1 SU AdministrativeSex "" ""
@@ -653,7 +662,7 @@ Title: "SPHN Imaging Series"
 * hasMedicalDevice 0..1 SU string "" "" //Change to MedicalDevice Concept
 * hasNumberOfFrames 0..1 SU Quantity "" ""
 * hasProtocolName 0..1 SU string "" ""
-* hasSourceSystem  1..* SU SourceSystem "" ""
+* hasSourceSystem  1..* SU Reference(SourceSystem) "" ""
 * hasStartDateTime 0..1 SU dateTime "" ""
 
 // Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not

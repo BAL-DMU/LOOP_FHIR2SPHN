@@ -47,7 +47,16 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BodyPositio
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
 group imagingProcedure(source imagingStudy: ImagingStudy, target content: Content) <<types>>{
-    imagingStudy -> content.ImagingProcedure = create('ImagingProcedure') as imgproc then {
+    // Empty studies are not mapped. A study is skipped unless it has all three of:
+    // - started (SPHN hasStartDateTime is 1..1), with no fallback to series[].started;
+    // - a study modality in cm-acquisitionModality (SPHN hasCode is 1..*), keep this list in
+    //   sync with the concept map;
+    // - at least one in-scope series, i.e. one the series rules below would emit (same DCM
+    //   list as the non-MR series rule).
+    imagingStudy where started.exists()
+        and modality.where(code in ('XA' | 'CT' | 'MR' | 'US' | 'RF' | 'DX' | 'CR')).exists()
+        and series.where(modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC')).exists()
+      -> content.ImagingProcedure = create('ImagingProcedure') as imgproc then {
         imagingStudy.meta as m then refSourceSystem(m, imgproc);
         imagingStudy.identifier as id where id.use = 'secondary' -> imgproc.id = ('ImagingProcedure/' & %id.value);
         imagingStudy.started as startDate -> imgproc.hasStartDateTime = startDate;
@@ -61,9 +70,17 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
             // Guarded: without this, every MR series produces an empty BodyPosition whose
             // hasCode satisfies neither branch of code-iri-or-codingSystem.
             srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition then bodyPosition(srcSeries, tgtBodyPosition) "bodyPosition";
+            // SPHN requires hasSourceSystem (1..*) on every series; taken from the study.
+            imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystemMR";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";
         } "mapSeriesMR";
-        imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries' then imagingSeries(srcSeries, tgtSeries) "mapSeriesDefault";
+        // Series whose modality is outside the DCM part of SPHN's hasImagingModalityCode union
+        // (e.g. OT, SR, PR) are out of scope and skipped entirely. MR is in the list, so the
+        // MR branch above needs no such filter.
+        imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' and srcSeries.modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC') -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries' then {
+            imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystem";
+            srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "defaultSeries";
+        } "mapSeriesDefault";
 
     } "ImagingProcedure";
 }
@@ -84,7 +101,9 @@ group imagingSeries(source series, target tgtSeries: ImagingSeries) {
     series.uid as uid -> tgtSeries.id = ('ImagingSeries/' & %uid);
     series.description as seriesDesc -> tgtSeries.hasDescription = seriesDesc;
     series.started as seriesStartdate -> tgtSeries.hasStartDateTime = seriesStartdate;
-    series.modality as modality -> tgtSeries.hasImagingModalityCode = translate(modality, '#cm-acquisitionModality');
+    // The DICOM modality is kept as a dcm: code in SPHN Code shape (MR series are pinned to
+    // dcm:MR). The calling rules only pass series whose modality SPHN allows.
+    series.modality as modality -> tgtSeries.hasImagingModalityCode as code, code.termid = (%modality.code), code.iri = ('http://dicom.nema.org/resources/ontology/DCM/' & %modality.code) "modalityCode";
     series.numberOfInstances as seriesNFrames -> tgtSeries.hasNumberOfFrames as nFrames then {
         seriesNFrames -> nFrames.id = uuid(), nFrames.hasValue = seriesNFrames, nFrames.hasUnit as unit then imaging_unit_number(nFrames, unit) "unit_rule";
     } "valueQuantity_fhirQuantity";

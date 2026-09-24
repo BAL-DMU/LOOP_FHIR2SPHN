@@ -8,21 +8,25 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
 - modality                     -> hasCode (cm-acquisitionModality, DICOM -> SNOMED)
 - subject.reference            -> not mapped (no hasSubjectPseudoIdentifier)
 - series                       -> hasImagingSeries (uid, description, started,
-                                  modality, numberOfInstances -> hasNumberOfFrames)
+                                  modality -> dcm: hasImagingModalityCode,
+                                  numberOfInstances -> hasNumberOfFrames,
+                                  study meta.source -> hasSourceSystem)
 - series (MR only)             -> target_concept + hasBodyPosition from DICOM
                                   Patient Position (0018,5100), cm-patientPosition
 
-Note on Code shapes: hasCode and hasImagingModalityCode are assigned a bare
-translate() result (map lines 54 and 91), so they come out as a FHIR Coding
-('system' + 'code') rather than the SPHN Code shape used everywhere else. That
-satisfies neither branch of the code-iri-or-codingSystem invariant
-(model/LogicalModel.fsh:8-11), so assert_code_mapped - which checks termid/iri -
-is not usable on them. BodyPosition.hasCode does use a valid branch
-(hasCodingSystemAndVersion + hasIdentifier), which assert_code_mapped also
-cannot check. Both are asserted with plain paths below.
+Note on Code shapes: hasCode is assigned a bare translate() result (map line
+54), so it comes out as a FHIR Coding ('system' + 'code') rather than the SPHN
+Code shape used everywhere else. That satisfies neither branch of the
+code-iri-or-codingSystem invariant (model/LogicalModel.fsh:8-11), so
+assert_code_mapped - which checks termid/iri - is not usable on it.
+hasImagingModalityCode uses the SPHN iri + termid shape (a dcm: code), so
+assert_code_mapped applies there. BodyPosition.hasCode uses the
+hasCodingSystemAndVersion + hasIdentifier branch, which assert_code_mapped
+cannot check, so it is asserted with plain paths below.
 """
 
 from tests.helpers import (
+    assert_code_mapped,
     assert_list_length,
     assert_path_equals,
     assert_path_exists,
@@ -405,28 +409,91 @@ class TestImagingSeries:
         )
 
     def test_series_modality_code(self, transform_bundle, make_bundle, base_patient):
-        """series.modality maps to hasImagingModalityCode via cm-acquisitionModality."""
+        """series.modality is kept as a dcm: code (iri + termid), not translated."""
         study = make_imaging_study(series=[make_series(modality="US")])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{SERIES}.hasImagingModalityCode.code", "16310003")
+        assert_code_mapped(result, f"{SERIES}.hasImagingModalityCode", "US")
         assert_path_equals(
-            result, f"{SERIES}.hasImagingModalityCode.system", SNOMED_ID_SYSTEM
+            result, f"{SERIES}.hasImagingModalityCode.iri", f"{DICOM_SYSTEM}/US"
         )
 
-    def test_unmapped_series_modality_omits_code(
+    def test_mr_series_modality_code(self, transform_bundle, make_bundle, base_patient):
+        """An MR series carries dcm:MR, the code SPHN pins MR series to."""
+        study = make_imaging_study(modality="MR", series=[make_series(modality="MR")])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(result, f"{SERIES}.hasImagingModalityCode", "MR", "/DCM/MR")
+
+    def test_series_modality_not_in_concept_map_keeps_code(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A series whose modality has no concept map entry (SR) keeps no code."""
+        """NM has no cm-acquisitionModality entry but is an allowed DCM series code."""
+        study = make_imaging_study(series=[make_series(modality="NM")])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(result, f"{SERIES}.hasImagingModalityCode", "NM", "/DCM/NM")
+
+    def test_series_source_system(self, transform_bundle, make_bundle, base_patient):
+        """Every series, MR or not, takes the study's meta.source (SPHN: 1..*)."""
+        study = make_imaging_study(
+            source=f"{DICOM_SOURCE}#4711",
+            series=[
+                make_series(uid="series-ct", modality="CT"),
+                make_series(uid="series-mr", modality="MR"),
+            ],
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        for i in range(2):
+            assert_reference(
+                result,
+                f"{PROCEDURE}.hasImagingSeries[{i}].hasSourceSystem[0]",
+                DICOM_SOURCE,
+            )
+
+    def test_out_of_scope_series_is_skipped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A series whose modality is outside SPHN's allowed DCM list (SR) is not
+        emitted; the procedure itself is still mapped."""
         study = make_imaging_study(series=[make_series(modality="SR")])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_exists(result, SERIES)
-        assert get_path(result, f"{SERIES}.hasImagingModalityCode") is None
+        assert_path_exists(result, PROCEDURE)
+        assert get_path(result, f"{PROCEDURE}.hasImagingSeries") is None
+
+    def test_out_of_scope_series_leaves_others(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Only the out-of-scope series (OT, PR) are dropped from a mixed study."""
+        study = make_imaging_study(
+            series=[
+                make_series(uid="series-ct", modality="CT"),
+                make_series(uid="series-ot", modality="OT"),
+                make_series(uid="series-pr", modality="PR"),
+                make_series(uid="series-mr", modality="MR"),
+            ]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        series_list = get_path(result, f"{PROCEDURE}.hasImagingSeries")
+        assert {s.get("id") for s in series_list} == {
+            "ImagingSeries/series-ct",
+            "ImagingSeries/series-mr",
+        }
 
     def test_multiple_series(self, transform_bundle, make_bundle, base_patient):
         """Each series creates its own ImagingSeries."""
