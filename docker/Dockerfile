@@ -66,7 +66,7 @@ RUN ./_updatePublisher.sh -y
 RUN ./_genonce.sh -no-sushi
 
 # purge cache
-RUN rm -rf /home/matchbox/.fhir
+# RUN rm -rf /home/matchbox/.fhir
 
 USER root
 WORKDIR /
