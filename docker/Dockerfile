@@ -75,7 +75,7 @@ RUN cp /home/matchbox/fhir2sphn/output/package.tgz /package.tgz
 RUN chown -R matchbox:matchbox /package.tgz
 
 USER matchbox
-#RUN rm -rf /tmp/fhir2sphn
+RUN rm -rf /tmp/fhir2sphn
 
 # Compile maps to load all needed components from the Internet
 ENV MAPS_DIR="/home/matchbox/fhir2sphn/maps"
