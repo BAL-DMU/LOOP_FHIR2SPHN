@@ -664,6 +664,8 @@ Title: "SPHN Imaging Series"
 * hasProtocolName 0..1 SU string "" ""
 * hasSourceSystem  1..* SU Reference(SourceSystem) "" ""
 * hasStartDateTime 0..1 SU dateTime "" ""
+// Nested, so the connector does not inject it (unlike on ImagingProcedure).
+* hasSubjectPseudoIdentifier 1..1 SU SubjectPseudoIdentifier "" ""
 
 // Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not
 // modelled separately - see the note above ImagingSeries. Their only distinguishing

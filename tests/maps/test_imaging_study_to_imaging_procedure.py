@@ -6,11 +6,13 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
 - meta.source                  -> hasSourceSystem
 - started                      -> hasStartDateTime
 - modality                     -> hasCode (cm-acquisitionModality, DICOM -> SNOMED)
-- subject.reference            -> not mapped (no hasSubjectPseudoIdentifier)
+- subject.reference            -> not mapped on the procedure (connector injects it);
+                                  hasSubjectPseudoIdentifier on every series and BodyPosition
 - series                       -> hasImagingSeries (uid, description, started,
                                   modality -> dcm: hasImagingModalityCode,
                                   numberOfInstances -> hasNumberOfFrames,
-                                  study meta.source -> hasSourceSystem)
+                                  study meta.source -> hasSourceSystem,
+                                  study subject -> hasSubjectPseudoIdentifier)
 - series (MR only)             -> target_concept + hasBodyPosition from DICOM
                                   Patient Position (0018,5100), cm-patientPosition
 
@@ -230,13 +232,20 @@ class TestSourceSystem:
 
 
 class TestSubjectPseudoIdentifier:
-    """hasSubjectPseudoIdentifier is not mapped: the connector adds the subject
-    itself and rejects the property on ImagingProcedure."""
+    """subject.reference -> hasSubjectPseudoIdentifier on the nested concepts.
 
-    def test_no_subject_pseudo_identifier(
+    SPHN requires it (1..1) on ImagingSeries and BodyPosition, and the connector
+    only injects it on top-level concepts. On ImagingProcedure the connector adds
+    the subject itself and rejects the property, so it is not mapped there.
+    """
+
+    EXPECTED_ID = "RASPLOOP_KLI_82_RASPLOOP"
+    EXPECTED_IDENTIFIER = "RASPLOOP|KLI_82_RASPLOOP"
+
+    def test_no_subject_pseudo_identifier_on_procedure(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """subject.reference does not produce hasSubjectPseudoIdentifier."""
+        """subject.reference does not produce hasSubjectPseudoIdentifier on the procedure."""
         study = make_imaging_study()
         bundle = make_bundle(base_patient, study)
 
@@ -244,6 +253,67 @@ class TestSubjectPseudoIdentifier:
 
         assert_path_exists(result, PROCEDURE)
         assert get_path(result, f"{PROCEDURE}.hasSubjectPseudoIdentifier") is None
+
+    def test_series_subject_pseudo_identifier(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A non-MR series gets <system>_<deid> as id and <system>|<deid> as identifier."""
+        study = make_imaging_study()
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{SERIES}.hasSubjectPseudoIdentifier.id", self.EXPECTED_ID
+        )
+        assert_path_equals(
+            result,
+            f"{SERIES}.hasSubjectPseudoIdentifier.hasIdentifier",
+            self.EXPECTED_IDENTIFIER,
+        )
+
+    def test_mr_series_and_body_position_subject_pseudo_identifier(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """The MR series and its BodyPosition both carry the subject."""
+        study = make_imaging_study(
+            modality="MR", series=[make_series(modality="MR", patient_position="HFS")]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{SERIES}.hasSubjectPseudoIdentifier.id", self.EXPECTED_ID
+        )
+        assert_path_equals(
+            result,
+            f"{SERIES}.hasBodyPosition[0].hasSubjectPseudoIdentifier.id",
+            self.EXPECTED_ID,
+        )
+        assert_path_equals(
+            result,
+            f"{SERIES}.hasBodyPosition[0].hasSubjectPseudoIdentifier.hasIdentifier",
+            self.EXPECTED_IDENTIFIER,
+        )
+
+    def test_series_subject_matches_root_subject(self, transform_bundle, make_bundle):
+        """The series' id equals the root SubjectPseudoIdentifier.id built from the Patient."""
+        patient = {
+            "resourceType": "Patient",
+            "id": "test-patient-1",
+            "meta": {"source": "http://example.org/ehr"},
+            "identifier": [{"system": "RASPLOOP", "value": "KLI_82_RASPLOOP"}],
+        }
+        study = make_imaging_study()
+        bundle = make_bundle(patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(result, "SubjectPseudoIdentifier.id", self.EXPECTED_ID)
+        assert_path_equals(
+            result, f"{SERIES}.hasSubjectPseudoIdentifier.id", self.EXPECTED_ID
+        )
 
 
 class TestAcquisitionModality:

@@ -76,10 +76,12 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
             srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition then {
                 // SPHN requires hasSourceSystem (1..*) on BodyPosition too; taken from the study.
                 imagingStudy.meta as m then refSourceSystem(m, tgtBodyPosition) "bodyPositionSourceSystem";
+                imagingStudy -> tgtBodyPosition then subjectPseudoIdentifier(imagingStudy, tgtBodyPosition) "bodyPositionSubject";
                 srcSeries -> tgtBodyPosition then bodyPosition(srcSeries, tgtBodyPosition) "bodyPositionCode";
             } "bodyPosition";
             // SPHN requires hasSourceSystem (1..*) on every series; taken from the study.
             imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystemMR";
+            imagingStudy -> tgtSeries then subjectPseudoIdentifier(imagingStudy, tgtSeries) "seriesSubjectMR";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";
         } "mapSeriesMR";
         // Series whose modality is outside the DCM part of SPHN's hasImagingModalityCode union
@@ -87,6 +89,7 @@ group imagingProcedure(source imagingStudy: ImagingStudy, target content: Conten
         // MR branch above needs no such filter.
         imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' and srcSeries.modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC') -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries' then {
             imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystem";
+            imagingStudy -> tgtSeries then subjectPseudoIdentifier(imagingStudy, tgtSeries) "seriesSubject";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "defaultSeries";
         } "mapSeriesDefault";
 
@@ -103,8 +106,22 @@ MedicalDevice: inside extension from ImagingStudy.series
 NumberOfFrames: (should be part of instance, and not series?)
 ProtocolName: check the meaning
 SourceSystem: discuss
-SubjectPseudoIdentifier: should be part of content
+SubjectPseudoIdentifier: set on every series and BodyPosition (SPHN 1..1); not on the
+  ImagingProcedure, where the connector injects it and rejects an explicit one
 */
+
+// ImagingStudy.subject -> hasSubjectPseudoIdentifier. SPHN requires it (1..1) on ImagingSeries,
+// the CT/MR/PET/X-Ray series and BodyPosition. The connector only injects it on top-level
+// concepts, so these nested ones must carry it. The id is built from the subject's conditional
+// reference (Patient?identifier=<system>|<deid>) the same way BundleToLoopSphn.map builds the
+// root SubjectPseudoIdentifier.id (<system>_<deid>), so both resolve to the same node.
+group subjectPseudoIdentifier(source study: ImagingStudy, target tgt) {
+    study.subject as srcSub -> tgt.hasSubjectPseudoIdentifier as subject then {
+        srcSub.reference as srcRef -> subject.id = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}_${deid}')) "subjectId";
+        srcSub.reference as srcRef -> subject.hasIdentifier = (%srcRef.replaceMatches('.*=(?<system>[^|]+)\\|(?<deid>.*)', '${system}|${deid}')) "subjectIdentifier";
+    } "subject";
+}
+
 group imagingSeries(source series, target tgtSeries: ImagingSeries) {
     series.uid as uid -> tgtSeries.id = ('ImagingSeries/' & %uid);
     series.description as seriesDesc -> tgtSeries.hasDescription = seriesDesc;
