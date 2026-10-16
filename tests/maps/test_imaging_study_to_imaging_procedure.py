@@ -6,21 +6,20 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
 - meta.source                  -> hasSourceSystem
 - started                      -> hasStartDateTime
 - modality                     -> hasCode (cm-acquisitionModality, DICOM -> SNOMED)
-- subject.reference            -> not mapped on the procedure (connector injects it);
-                                  hasSubjectPseudoIdentifier on every series and BodyPosition
+- bundle Patient.identifier     -> not mapped on the procedure (connector injects it);
+                                  hasSubjectPseudoIdentifier reference on every series and
+                                  BodyPosition
 - series                       -> hasImagingSeries (uid, description, started,
                                   modality -> dcm: hasImagingModalityCode,
                                   numberOfInstances -> hasNumberOfFrames,
                                   study meta.source -> hasSourceSystem,
-                                  study subject -> hasSubjectPseudoIdentifier)
+                                  Patient -> hasSubjectPseudoIdentifier)
 - series (MR only)             -> target_concept + hasBodyPosition from DICOM
                                   Patient Position (0018,5100), cm-patientPosition
 
-Note on Code shapes: hasCode (a list, 1..* on ImagingProcedure) and
-hasImagingModalityCode (a dcm: code) use the SPHN iri + termid shape, so
-assert_code_mapped applies to both. BodyPosition.hasCode uses the
-hasCodingSystemAndVersion + hasIdentifier branch, which assert_code_mapped
-cannot check, so it is asserted with plain paths below.
+Note on Code shapes: hasCode (a list, 1..* on ImagingProcedure),
+hasImagingModalityCode (a dcm: code) and BodyPosition.hasCode (a snomed: code)
+all use the SPHN iri + termid shape, so assert_code_mapped applies to all three.
 """
 
 from tests.helpers import (
@@ -36,7 +35,6 @@ from tests.helpers import (
 DICOM_SYSTEM = "http://dicom.nema.org/resources/ontology/DCM"
 DICOM_EXTENSION_URL = "https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM"
 SNOMED_ID_SYSTEM = "http://snomed.info/id"
-SNOMED_SCT_SYSTEM = "http://snomed.info/sct"
 PATIENT_POSITION_TAG = "00185100"
 DICOM_SOURCE = "https://research.balgrist.ch/HDR/DICOM"
 SUBJECT_REFERENCE = "Patient?identifier=RASPLOOP|KLI_82_RASPLOOP"
@@ -232,20 +230,30 @@ class TestSourceSystem:
 
 
 class TestSubjectPseudoIdentifier:
-    """subject.reference -> hasSubjectPseudoIdentifier on the nested concepts.
+    """Bundle Patient -> hasSubjectPseudoIdentifier on the nested concepts.
 
     SPHN requires it (1..1) on ImagingSeries and BodyPosition, and the connector
-    only injects it on top-level concepts. On ImagingProcedure the connector adds
+    only injects it on top-level concepts. It is a reference to the root
+    SubjectPseudoIdentifier, built from the Patient's identifier like the root id,
+    whatever form ImagingStudy.subject has. On ImagingProcedure the connector adds
     the subject itself and rejects the property, so it is not mapped there.
     """
 
     EXPECTED_ID = "RASPLOOP_KLI_82_RASPLOOP"
-    EXPECTED_IDENTIFIER = "RASPLOOP|KLI_82_RASPLOOP"
+
+    @staticmethod
+    def make_patient():
+        return {
+            "resourceType": "Patient",
+            "id": "195084035",
+            "meta": {"source": "http://example.org/ehr"},
+            "identifier": [{"system": "RASPLOOP", "value": "KLI_82_RASPLOOP"}],
+        }
 
     def test_no_subject_pseudo_identifier_on_procedure(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """subject.reference does not produce hasSubjectPseudoIdentifier on the procedure."""
+        """No hasSubjectPseudoIdentifier on the procedure."""
         study = make_imaging_study()
         bundle = make_bundle(base_patient, study)
 
@@ -254,66 +262,54 @@ class TestSubjectPseudoIdentifier:
         assert_path_exists(result, PROCEDURE)
         assert get_path(result, f"{PROCEDURE}.hasSubjectPseudoIdentifier") is None
 
-    def test_series_subject_pseudo_identifier(
-        self, transform_bundle, make_bundle, base_patient
-    ):
-        """A non-MR series gets <system>_<deid> as id and <system>|<deid> as identifier."""
-        study = make_imaging_study()
-        bundle = make_bundle(base_patient, study)
-
-        result = transform_bundle(bundle)
-
-        assert_path_equals(
-            result, f"{SERIES}.hasSubjectPseudoIdentifier.id", self.EXPECTED_ID
-        )
-        assert_path_equals(
-            result,
-            f"{SERIES}.hasSubjectPseudoIdentifier.hasIdentifier",
-            self.EXPECTED_IDENTIFIER,
-        )
-
-    def test_mr_series_and_body_position_subject_pseudo_identifier(
-        self, transform_bundle, make_bundle, base_patient
-    ):
-        """The MR series and its BodyPosition both carry the subject."""
-        study = make_imaging_study(
-            modality="MR", series=[make_series(modality="MR", patient_position="HFS")]
-        )
-        bundle = make_bundle(base_patient, study)
-
-        result = transform_bundle(bundle)
-
-        assert_path_equals(
-            result, f"{SERIES}.hasSubjectPseudoIdentifier.id", self.EXPECTED_ID
-        )
-        assert_path_equals(
-            result,
-            f"{SERIES}.hasBodyPosition[0].hasSubjectPseudoIdentifier.id",
-            self.EXPECTED_ID,
-        )
-        assert_path_equals(
-            result,
-            f"{SERIES}.hasBodyPosition[0].hasSubjectPseudoIdentifier.hasIdentifier",
-            self.EXPECTED_IDENTIFIER,
-        )
-
-    def test_series_subject_matches_root_subject(self, transform_bundle, make_bundle):
-        """The series' id equals the root SubjectPseudoIdentifier.id built from the Patient."""
-        patient = {
-            "resourceType": "Patient",
-            "id": "test-patient-1",
-            "meta": {"source": "http://example.org/ehr"},
-            "identifier": [{"system": "RASPLOOP", "value": "KLI_82_RASPLOOP"}],
-        }
-        study = make_imaging_study()
-        bundle = make_bundle(patient, study)
+    def test_series_references_root_subject(self, transform_bundle, make_bundle):
+        """A non-MR series references the root SubjectPseudoIdentifier, id only."""
+        bundle = make_bundle(self.make_patient(), make_imaging_study())
 
         result = transform_bundle(bundle)
 
         assert_path_equals(result, "SubjectPseudoIdentifier.id", self.EXPECTED_ID)
-        assert_path_equals(
-            result, f"{SERIES}.hasSubjectPseudoIdentifier.id", self.EXPECTED_ID
+        assert_reference(result, f"{SERIES}.hasSubjectPseudoIdentifier", self.EXPECTED_ID)
+        assert "hasIdentifier" not in get_path(result, f"{SERIES}.hasSubjectPseudoIdentifier")
+
+    def test_mr_series_and_body_position_reference_root_subject(
+        self, transform_bundle, make_bundle
+    ):
+        """The MR series and its BodyPosition both reference the root subject."""
+        study = make_imaging_study(
+            modality="MR", series=[make_series(modality="MR", patient_position="HFS")]
         )
+        bundle = make_bundle(self.make_patient(), study)
+
+        result = transform_bundle(bundle)
+
+        assert_reference(result, f"{SERIES}.hasSubjectPseudoIdentifier", self.EXPECTED_ID)
+        assert_reference(
+            result,
+            f"{SERIES}.hasBodyPosition[0].hasSubjectPseudoIdentifier",
+            self.EXPECTED_ID,
+        )
+
+    def test_literal_reference_uses_patient_identifier(
+        self, transform_bundle, make_bundle
+    ):
+        """A literal Patient/<id> reference (pipeline bundles) does not leak the FHIR id."""
+        study = make_imaging_study(subject_reference="Patient/195084035")
+        bundle = make_bundle(self.make_patient(), study)
+
+        result = transform_bundle(bundle)
+
+        assert_reference(result, f"{SERIES}.hasSubjectPseudoIdentifier", self.EXPECTED_ID)
+
+    def test_missing_subject_uses_patient_identifier(self, transform_bundle, make_bundle):
+        """A study without subject (as KLI_31) still references the bundle's Patient."""
+        study = make_imaging_study()
+        del study["subject"]
+        bundle = make_bundle(self.make_patient(), study)
+
+        result = transform_bundle(bundle)
+
+        assert_reference(result, f"{SERIES}.hasSubjectPseudoIdentifier", self.EXPECTED_ID)
 
 
 class TestAcquisitionModality:
@@ -693,7 +689,8 @@ class TestBodyPosition:
     The head-first / feet-first half of the DICOM term is table direction, not
     body position, and SPHN has no slot for it (hasCode is 1..1), so each pair
     collapses onto a single SNOMED body position code. BodyPosition.hasCode uses
-    the hasCodingSystemAndVersion + hasIdentifier branch of code-iri-or-codingSystem.
+    the iri + termid shape: SPHN's union there has no sphn:Code, so the
+    hasCodingSystemAndVersion + hasIdentifier shape is rejected.
     """
 
     def test_hfs_maps_to_supine(self, transform_bundle, make_bundle, base_patient):
@@ -705,10 +702,12 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(
-            result, f"{BODY_POSITION_CODE}.hasCodingSystemAndVersion", SNOMED_SCT_SYSTEM
+        assert_code_mapped(
+            result, BODY_POSITION_CODE, "40199007", f"{SNOMED_ID_SYSTEM}/40199007"
         )
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "40199007")
+        code = get_path(result, BODY_POSITION_CODE)
+        assert "hasCodingSystemAndVersion" not in code
+        assert "hasIdentifier" not in code
 
     def test_body_position_source_system(
         self, transform_bundle, make_bundle, base_patient
@@ -736,7 +735,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "40199007")
+        assert_code_mapped(result, BODY_POSITION_CODE, "40199007")
 
     def test_hfp_maps_to_prone(self, transform_bundle, make_bundle, base_patient):
         """HFP (head first-prone) maps to SNOMED 1240000 (Prone body position)."""
@@ -747,7 +746,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "1240000")
+        assert_code_mapped(result, BODY_POSITION_CODE, "1240000")
 
     def test_ffp_maps_to_prone(self, transform_bundle, make_bundle, base_patient):
         """FFP (feet first-prone) collapses onto the same code as HFP."""
@@ -758,7 +757,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "1240000")
+        assert_code_mapped(result, BODY_POSITION_CODE, "1240000")
 
     def test_hfdr_maps_to_right_lateral_decubitus(
         self, transform_bundle, make_bundle, base_patient
@@ -771,7 +770,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "102535000")
+        assert_code_mapped(result, BODY_POSITION_CODE, "102535000")
 
     def test_ffdr_maps_to_right_lateral_decubitus(
         self, transform_bundle, make_bundle, base_patient
@@ -784,7 +783,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "102535000")
+        assert_code_mapped(result, BODY_POSITION_CODE, "102535000")
 
     def test_hfdl_maps_to_left_lateral_decubitus(
         self, transform_bundle, make_bundle, base_patient
@@ -797,7 +796,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "102536004")
+        assert_code_mapped(result, BODY_POSITION_CODE, "102536004")
 
     def test_ffdl_maps_to_left_lateral_decubitus(
         self, transform_bundle, make_bundle, base_patient
@@ -810,7 +809,7 @@ class TestBodyPosition:
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(result, f"{BODY_POSITION_CODE}.hasIdentifier", "102536004")
+        assert_code_mapped(result, BODY_POSITION_CODE, "102536004")
 
 
 class TestBodyPositionGuards:
