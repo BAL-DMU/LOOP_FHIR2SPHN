@@ -1050,6 +1050,14 @@ group imaging_unit_mm(source vq, target unit: Unit) {
   } "imaging_code_unitMm";
 }
 
+// ImagingQuantity -> Unit of ratio
+group imaging_unit_ratio(source vq, target unit: Unit) {
+  vq -> unit.id = uuid(), unit.hasCode as code then {
+      vq -> translate('{ratio}', '#cm-ucum-sphn') as cm,
+        code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "imaging_unit_ratio_translate";
+  } "imaging_code_unitRatio";
+}
+
 // ---------------------------------------------------------------------------
 // TimePattern decoding helpers (MedicationRequest -> DrugPrescriptionEvent)
 // ---------------------------------------------------------------------------

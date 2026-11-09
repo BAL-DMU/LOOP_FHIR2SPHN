@@ -697,20 +697,17 @@ class TestSeriesTargetConcept:
             "https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries",
         )
 
-    def test_non_mr_series_target_concept(
+    def test_non_mr_series_has_no_target_concept(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A non-MR series is tagged as the base ImagingSeries."""
+        """A non-MR series carries no target_concept (connector test, 2026-11-09)."""
         study = make_imaging_study(series=[make_series(modality="CT")])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(
-            result,
-            f"{SERIES}.target_concept",
-            "https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries",
-        )
+        assert_path_exists(result, SERIES)
+        assert "target_concept" not in get_path(result, SERIES)
 
     def test_mixed_series_get_distinct_target_concepts(
         self, transform_bundle, make_bundle, base_patient
@@ -732,9 +729,7 @@ class TestSeriesTargetConcept:
         assert by_id["ImagingSeries/series-mr"] == (
             "https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries"
         )
-        assert by_id["ImagingSeries/series-ct"] == (
-            "https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries"
-        )
+        assert by_id["ImagingSeries/series-ct"] is None
 
 
 class TestBodyPosition:
@@ -1029,19 +1024,16 @@ class TestImagingFrame:
             "https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingFrame",
         )
 
-    def test_non_mr_frame_target_concept(
+    def test_non_mr_frame_has_no_target_concept(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A frame of a non-MR series is tagged as the base ImagingFrame."""
+        """A frame of a non-MR series carries no target_concept (connector test, 2026-11-09)."""
         bundle = make_bundle(base_patient, make_frame_study(modality="CT"))
 
         result = transform_bundle(bundle)
 
-        assert_path_equals(
-            result,
-            f"{FRAME}.target_concept",
-            "https://biomedit.ch/rdf/sphn-schema/sphn#ImagingFrame",
-        )
+        assert_path_exists(result, FRAME)
+        assert "target_concept" not in get_path(result, FRAME)
 
     def test_multiple_instances_carry_only_ids(
         self, transform_bundle, make_bundle, base_patient
@@ -1564,7 +1556,7 @@ class TestDataCompressionAlgorithm:
             result, f"{algorithm}.hasType.iri", INDIVIDUAL + "LossyCompression"
         )
         assert_path_equals(result, f"{algorithm}.hasMethod.iri", INDIVIDUAL + "ISO109181")
-        assert_quantity_mapped(result, f"{algorithm}.hasRatio", 13.793, "cblnbcbr")
+        assert_quantity_mapped(result, f"{algorithm}.hasRatio", 13.793, "cblratiocbr")
 
     def test_two_digit_part_method(self, transform_bundle, make_bundle, base_patient):
         """ISO_14496_10 keeps all digits: ISO1449610."""

@@ -467,14 +467,18 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
             // One frame per listed instance; frame classes are flattened like the series ones.
             srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame, tgtFrame.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingFrame' then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesMR";
         } "mapSeriesMR";
+        // TEST (2026-11-09): no target_concept on plain series or their frames. Hypothesis: the
+        // connector rejects target_concept where the range is a class plus its own subclasses
+        // (as for Assessment in 2025.2, commit 8a184e6); hasImagingSeries ranges over
+        // sphn:ImagingSeries only. The MR branch keeps it as the control.
         // Series whose modality is outside the DCM part of SPHN's hasImagingModalityCode union
         // (e.g. OT, SR, PR) are out of scope and skipped entirely. MR is in the list, so the
         // MR branch above needs no such filter.
-        imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' and srcSeries.modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC') -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries' then {
+        imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' and srcSeries.modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC') -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries then {
             imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystem";
             bundle -> tgtSeries then subjectPseudoIdentifier(bundle, tgtSeries) "seriesSubject";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "defaultSeries";
-            srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame, tgtFrame.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingFrame' then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesDefault";
+            srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesDefault";
         } "mapSeriesDefault";
 
     } "ImagingProcedure";
@@ -692,6 +696,11 @@ group imagingCountQuantity(source n, target q) {
     n -> q.id = uuid(), q.hasValue = n, q.hasUnit as unit then imaging_unit_number(n, unit) "countQuantity";
 }
 
+// SPHN pins DataCompressionAlgorithm.hasRatio to ucum:cblratiocbr ({ratio}), not {#}.
+group imagingRatioQuantity(source n, target q) {
+    n -> q.id = uuid(), q.hasValue = n, q.hasUnit as unit then imaging_unit_ratio(n, unit) "ratioQuantity";
+}
+
 group imagingMillimetreQuantity(source n, target q) {
     n -> q.id = uuid(), q.hasValue = n, q.hasUnit as unit then imaging_unit_mm(n, unit) "mmQuantity";
 }
@@ -796,7 +805,7 @@ group imagingFrameCompression(source series, target tgtFrame: ImagingFrame) {
         alg.hasType as algType, algType.iri = 'https://biomedit.ch/rdf/sphn-schema/sphn/individual#LossyCompression' then {
         series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00282112' then {
             dicomExt.extension as v where url = 'value' then {
-                v.value as r where $this > 0 -> alg.hasRatio as q then imagingCountQuantity(r, q) "ratioValue";
+                v.value as r where $this > 0 -> alg.hasRatio as q then imagingRatioQuantity(r, q) "ratioValue";
             } "ratioExt";
         } "ratio";
         series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00282114'

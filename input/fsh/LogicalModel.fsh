@@ -652,7 +652,7 @@ Id: SPHN-ImagingSeries
 Parent: Concept
 Title: "SPHN Imaging Series"
 * obeys body-position-modality-only
-* target_concept 1..1 SU url "" ""
+* target_concept 0..1 SU url "" "" // TEST 2026-11-09: absent on plain ImagingSeries (connector hypothesis)
 * hasAdministrativeCase 0..1 SU AdministrativeCase "" ""
 * hasBodyPosition 0..* SU BodyPosition "" ""
 * hasDataFile 0..* SU string "" "" //Change to DataFile Concept
@@ -687,7 +687,7 @@ Logical: ImagingFrame
 Id: SPHN-ImagingFrame
 Parent: Concept
 Title: "SPHN Imaging Frame"
-* target_concept 1..1 SU url "" ""
+* target_concept 0..1 SU url "" "" // TEST 2026-11-09: absent on plain ImagingFrame (connector hypothesis)
 * hasAlgorithm 0..* SU DataCompressionAlgorithm "" ""
 * hasAnatomicalProjection 0..1 SU AnatomicalProjection "" ""
 * hasBodySite 0..* SU BodySite "" ""
