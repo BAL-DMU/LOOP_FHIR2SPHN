@@ -658,7 +658,7 @@ Title: "SPHN Imaging Series"
 * hasDataFile 0..* SU string "" "" //Change to DataFile Concept
 * hasDescription 0..1 SU string "" ""
 * hasEndDateTime 0..1 SU dateTime "" ""
-* hasImagingFrame 0..* SU string "" "" //Change to ImagingFrame Concept
+* hasImagingFrame 0..* SU ImagingFrame "" ""
 * hasImagingModalityCode 0..1 SU Code "" ""
 * hasMedicalDevice 0..1 SU string "" "" //Change to MedicalDevice Concept
 * hasNumberOfFrames 0..1 SU Quantity "" ""
@@ -672,11 +672,99 @@ Title: "SPHN Imaging Series"
 // Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not
 // modelled separately - see the note above ImagingSeries. Their only distinguishing
 // property, hasBodyPosition, now lives on ImagingSeries and is guarded by target_concept.
-//
-// The same flattening will be needed once ImagingFrame replaces the string placeholder on
-// hasImagingFrame: the base ImagingFrame has 9 properties; the CT, MR and X-Ray frames are
-// property-identical to each other (base + hasContrastAgentAdministrationEvent,
+
+// Note: the five SPHN frame classes are flattened the same way into ImagingFrame, with the real
+// class in target_concept. The base ImagingFrame has 9 properties; the CT, MR and X-Ray frames
+// are property-identical to each other (base + hasContrastAgentAdministrationEvent,
 // hasContrastAgentPhase, hasSynchronization); the PET frame is the only real outlier
 // (base + hasSynchronization + hasCode, hasRadiopharmaceuticalAdministrationEvent,
-// hasSubjectPhysiologicState, hasCardiacProceduralStateCode, and it drops the two
-// contrast properties). So that invariant only has two real branches.
+// hasSubjectPhysiologicState, hasCardiacProceduralStateCode, and it drops the two contrast
+// properties). Only the base properties are modelled, so no invariant is needed yet; one with
+// two real branches will be once the modality-specific ones are added (hasSynchronization,
+// hasContrastAgent*, and the PET ones), which the Balgrist export has no usable source for.
+// SPHN defines neither hasSourceSystem nor hasSubjectPseudoIdentifier on any frame class.
+Logical: ImagingFrame
+Id: SPHN-ImagingFrame
+Parent: Concept
+Title: "SPHN Imaging Frame"
+* target_concept 1..1 SU url "" ""
+* hasAlgorithm 0..* SU DataCompressionAlgorithm "" ""
+* hasAnatomicalProjection 0..1 SU AnatomicalProjection "" ""
+* hasBodySite 0..* SU BodySite "" ""
+* hasContentQualification 0..1 SU ImagingFrameContentQualification "" ""
+* hasEndDateTime 0..1 SU dateTime "" ""
+* hasImageDimensions 0..1 SU ImageDimensions "" ""
+* hasImagingMetric 0..1 SU ImagingMetric "" ""
+* hasStartDateTime 0..1 SU dateTime "" ""
+* hasType 0..* SU ImagingFrameType "" ""
+
+// SPHN value sets of named individuals, sent as an iri like Comparator.
+Logical: ImagingFrameType
+Id: SPHN-ImagingFrameType
+Parent: Concept
+Title: "SPHN Imaging Frame type ValueSet"
+* iri 1..1 SU string "" ""
+
+Logical: ImagingFrameContentQualification
+Id: SPHN-ImagingFrameContentQualification
+Parent: Concept
+Title: "SPHN Imaging Frame content qualification ValueSet"
+* iri 1..1 SU string "" ""
+
+Logical: ImageDimensions
+Id: SPHN-ImageDimensions
+Parent: Concept
+Title: "SPHN Image Dimensions"
+* hasNumberOfColumns 0..1 SU Quantity "" ""
+* hasNumberOfRows 0..1 SU Quantity "" ""
+* hasNumberOfSlices 0..1 SU Quantity "" ""
+* hasPixelDimensions 0..1 SU PixelDimensions "" ""
+* hasSliceSpacing 0..1 SU Quantity "" ""
+* hasSliceThickness 0..1 SU Quantity "" ""
+
+Logical: PixelDimensions
+Id: SPHN-PixelDimensions
+Parent: Concept
+Title: "SPHN Pixel Dimensions"
+* hasColumnSpacing 0..1 SU Quantity "" ""
+* hasRowSpacing 0..1 SU Quantity "" ""
+
+Logical: AnatomicalProjection
+Id: SPHN-AnatomicalProjection
+Parent: Concept
+Title: "SPHN Anatomical Projection"
+* hasCode 1..1 SU Code "" ""
+* hasModifierCode 0..* SU Code "" ""
+
+// SPHN: subclass of Algorithm.
+Logical: DataCompressionAlgorithm
+Id: SPHN-DataCompressionAlgorithm
+Parent: Concept
+Title: "SPHN Data Compression Algorithm"
+* hasDescription 0..1 SU string "" ""
+* hasMethod 0..1 SU DataCompressionAlgorithmMethod "" ""
+* hasName 0..1 SU string "" ""
+* hasRatio 0..1 SU Quantity "" ""
+* hasType 0..1 SU DataCompressionAlgorithmType "" ""
+* hasUniformResourceLocator 0..1 SU uri "" ""
+* hasVersion 0..1 SU string "" ""
+
+Logical: DataCompressionAlgorithmType
+Id: SPHN-DataCompressionAlgorithmType
+Parent: Concept
+Title: "SPHN Data Compression Algorithm type ValueSet"
+* iri 1..1 SU string "" ""
+
+Logical: DataCompressionAlgorithmMethod
+Id: SPHN-DataCompressionAlgorithmMethod
+Parent: Concept
+Title: "SPHN Data Compression Algorithm method ValueSet"
+* iri 1..1 SU string "" ""
+
+Logical: ImagingMetric
+Id: SPHN-ImagingMetric
+Parent: Concept
+Title: "SPHN Imaging Metric"
+* hasDescription 0..1 SU string "" ""
+* hasTypeCode 0..1 SU Code "" ""
+* hasUnit 0..1 SU Unit "" ""

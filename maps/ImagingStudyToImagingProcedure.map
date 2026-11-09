@@ -37,6 +37,385 @@ conceptmap "cm-patientPosition" {
   s:FFDL == t:102536004
 }
 
+// DICOM Image Type (0008,0008) value -> SPHN ImagingFrame_type individual.
+// Generated from the SPHN 2026.1 schema (all 171 individuals). The individual names are the
+// DICOM defined terms in CamelCase, so the source key is the term upper-cased with spaces and
+// underscores removed; the map normalizes the DICOM value the same way before translating.
+conceptmap "cm-imagingFrameType" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "https://biomedit.ch/rdf/sphn-schema/sphn/individual"
+  s:"2DIMAGING" == t:"2DImaging"
+  s:"3DRENDERING" == t:"3DRendering"
+  s:"ABDOMINAL" == t:"Abdominal"
+  s:"ADDITION" == t:"Addition"
+  s:"ANGIO" == t:"Angio"
+  s:"ANGIOTIME" == t:"AngioTime"
+  s:"ASL" == t:"ASL"
+  s:"ATTENUATION" == t:"Attenuation"
+  s:"AXIAL" == t:"Axial"
+  s:"BIPLANEA" == t:"BiplaneA"
+  s:"BIPLANEB" == t:"BiplaneB"
+  s:"BLANK" == t:"Blank"
+  s:"BREAST" == t:"Breast"
+  s:"CARDIAC" == t:"Cardiac"
+  s:"CARDIACCASCORE" == t:"CardiacCascore"
+  s:"CARDIACCTA" == t:"CardiacCTA"
+  s:"CARDIACGATED" == t:"CardiacGated"
+  s:"CARDRESPGATED" == t:"CardrespGated"
+  s:"CHEST" == t:"Chest"
+  s:"CINE" == t:"Cine"
+  s:"COLORDOPPLER" == t:"ColorDoppler"
+  s:"COLORMMODE" == t:"ColorMMode"
+  s:"COLORPOWERMODE" == t:"ColorPowerMode"
+  s:"CORNEALTOPO" == t:"CornealTopo"
+  s:"CWDOPPLER" == t:"CWDoppler"
+  s:"DENSITYMAP" == t:"DensityMap"
+  s:"DERIVED" == t:"Derived"
+  s:"DIFFUSION" == t:"Diffusion"
+  s:"DIFFUSIONMAP" == t:"DiffusionMap"
+  s:"DIVISION" == t:"Division"
+  s:"DIXON" == t:"Dixon"
+  s:"DRR" == t:"DRR"
+  s:"DYNAMIC" == t:"Dynamic"
+  s:"EFFATOMICNUM" == t:"EffAtomicNum"
+  s:"ELECTRONDENSITY" == t:"ElectronDensity"
+  s:"EMISSION" == t:"Emission"
+  s:"ENDOCAVITARY" == t:"Endocavitary"
+  s:"ENDORECTAL" == t:"Endorectal"
+  s:"ENDOVAGINAL" == t:"Endovaginal"
+  s:"ENERGYPROPWT" == t:"EnergyPropWt"
+  s:"EPICARDIAL" == t:"Epicardial"
+  s:"FETALHEART" == t:"FetalHeart"
+  s:"FILTERED" == t:"Filtered"
+  s:"FLOWENCODED" == t:"FlowEncoded"
+  s:"FLUENCE" == t:"Fluence"
+  s:"FLUIDATTENUATED" == t:"FluidAttenuated"
+  s:"FLUOROSCOPY" == t:"Fluoroscopy"
+  s:"FMRI" == t:"FMRI"
+  s:"GATED" == t:"Gated"
+  s:"GATEDTOMO" == t:"GatedTomo"
+  s:"GENERATED2D" == t:"Generated2D"
+  s:"GYNECOLOGY" == t:"Gynecology"
+  s:"HIGHENERGY" == t:"HighEnergy"
+  s:"IMAGEADDITION" == t:"ImageAddition"
+  s:"INTRACARDIAC" == t:"Intracardiac"
+  s:"INTRAOPERATIVE" == t:"Intraoperative"
+  s:"INTRAVASCULAR" == t:"Intravascular"
+  s:"LABEL" == t:"Label"
+  s:"LOCALIZER" == t:"Localizer"
+  s:"LONGITUDINAL" == t:"Longitudinal"
+  s:"LOWENERGY" == t:"LowEnergy"
+  s:"MASKED" == t:"Masked"
+  s:"MATFRACTIONAL" == t:"MatFractional"
+  s:"MATMODIFIED" == t:"MatModified"
+  s:"MATREMOVED" == t:"MatRemoved"
+  s:"MATSPECIFIC" == t:"MatSpecific"
+  s:"MATVALUEBASED" == t:"MatValueBased"
+  s:"MAXIMUM" == t:"Maximum"
+  s:"MAXIP" == t:"MaxIP"
+  s:"MEAN" == t:"Mean"
+  s:"MEDIAN" == t:"Median"
+  s:"METABOLITEMAP" == t:"MetaboliteMap"
+  s:"MINIMUM" == t:"Minimum"
+  s:"MINIP" == t:"MinIP"
+  s:"MIXED" == t:"Mixed"
+  s:"MMODE" == t:"MMode"
+  s:"MODULUSSUBTRACT" == t:"ModulusSubtract"
+  s:"MONTAGE" == t:"Montage"
+  s:"MOTION" == t:"Motion"
+  s:"MPR" == t:"MPR"
+  s:"MULTIECHO" == t:"Multiecho"
+  s:"MULTIPLICATION" == t:"Multiplication"
+  s:"MUSCULOSKELETAL" == t:"Musculoskeletal"
+  s:"NEONATALHEAD" == t:"NeonatalHead"
+  s:"NONE" == t:"None"
+  s:"NONPARALLEL" == t:"NonParallel"
+  s:"OBSTETRICAL" == t:"Obstetrical"
+  s:"ONH" == t:"ONH"
+  s:"OPHTHALMIC" == t:"Ophthalmic"
+  s:"ORIGINAL" == t:"Original"
+  s:"OTHER" == t:"Other"
+  s:"OVERVIEW" == t:"Overview"
+  s:"PARALLEL" == t:"Parallel"
+  s:"PEDIATRIC" == t:"Pediatric"
+  s:"PELVIC" == t:"Pelvic"
+  s:"PERFUSION" == t:"Perfusion"
+  s:"PHASEMAP" == t:"PhaseMap"
+  s:"PHASESUBTRACT" == t:"PhaseSubtract"
+  s:"PORTAL" == t:"Portal"
+  s:"POSTBIOPSY" == t:"Postbiopsy"
+  s:"POSTBIOPSYMINUS" == t:"PostbiopsyMinus"
+  s:"POSTBIOPSYPLUS" == t:"PostbiopsyPlus"
+  s:"POSTCONTRAST" == t:"PostContrast"
+  s:"POSTFIRE" == t:"Postfire"
+  s:"POSTFIREMINUS" == t:"PostfireMinus"
+  s:"POSTFIREPLUS" == t:"PostfirePlus"
+  s:"POSTMARKER" == t:"Postmarker"
+  s:"POSTMARKERMINUS" == t:"PostmarkerMinus"
+  s:"POSTMARKERPLUS" == t:"PostmarkerPlus"
+  s:"PRECONTRAST" == t:"PreContrast"
+  s:"PREFIRE" == t:"Prefire"
+  s:"PREFIREMINUS" == t:"PrefireMinus"
+  s:"PREFIREPLUS" == t:"PrefirePlus"
+  s:"PRIMARY" == t:"Primary"
+  s:"PROJECTIONIMAGE" == t:"ProjectionImage"
+  s:"PROTONDENSITY" == t:"ProtonDensity"
+  s:"PWDOPPLER" == t:"PWDoppler"
+  s:"QUANTITY" == t:"Quantity"
+  s:"RADIOGRAPH" == t:"Radiograph"
+  s:"REALTIME" == t:"Realtime"
+  s:"RECONGATEDTOMO" == t:"ReconGatedTomo"
+  s:"RECONTOMO" == t:"ReconTomo"
+  s:"REFERENCE" == t:"Reference"
+  s:"RESAMPLED" == t:"Resampled"
+  s:"RESPGATED" == t:"RespGated"
+  s:"REST" == t:"Rest"
+  s:"RETINALTHICK" == t:"RetinalThick"
+  s:"RETROPERITONEAL" == t:"Retroperitoneal"
+  s:"SCROTAL" == t:"Scrotal"
+  s:"SECONDARY" == t:"Secondary"
+  s:"SIMULATOR" == t:"Simulator"
+  s:"SINGLEPLANE" == t:"SinglePlane"
+  s:"SMALLPARTS" == t:"SmallParts"
+  s:"SPATIALLYRELATEDFRAMES" == t:"SpatiallyRelatedFrames"
+  s:"SPECTROSCOPY" == t:"Spectroscopy"
+  s:"STATIC" == t:"Static"
+  s:"STDDEVIATION" == t:"StdDeviation"
+  s:"STEREOL" == t:"StereoL"
+  s:"STEREOMINUS" == t:"StereoMinus"
+  s:"STEREOPLUS" == t:"StereoPlus"
+  s:"STEREOR" == t:"StereoR"
+  s:"STEREOSCOUT" == t:"StereoScout"
+  s:"STIR" == t:"STIR"
+  s:"STRESS" == t:"Stress"
+  s:"SUBTRACTION" == t:"Subtraction"
+  s:"T1" == t:"T1"
+  s:"T1MAP" == t:"T1Map"
+  s:"T2" == t:"T2"
+  s:"T2MAP" == t:"T2Map"
+  s:"T2STAR" == t:"T2Star"
+  s:"TAGGING" == t:"Tagging"
+  s:"TEE" == t:"TEE"
+  s:"TEMPERATURE" == t:"Temperature"
+  s:"THUMBNAIL" == t:"Thumbnail"
+  s:"THYROID" == t:"Thyroid"
+  s:"TISSUECHARACTERIZATION" == t:"TissueCharacterization"
+  s:"TOF" == t:"TOF"
+  s:"TOMO" == t:"Tomo"
+  s:"TOMOPROJ" == t:"TomoProj"
+  s:"TOMOSCOUT" == t:"TomoScout"
+  s:"TOMOSYNTHESIS" == t:"Tomosynthesis"
+  s:"TRANSCRANIAL" == t:"Transcranial"
+  s:"TRANSMISSION" == t:"Transmission"
+  s:"TTE" == t:"TTE"
+  s:"USBIOPSY" == t:"USBiopsy"
+  s:"VASCULAR" == t:"Vascular"
+  s:"VELOCITY" == t:"Velocity"
+  s:"VELOCITYMAP" == t:"VelocityMap"
+  s:"VMI" == t:"VMI"
+  s:"VOLUME" == t:"Volume"
+  s:"WHOLEBODY" == t:"WholeBody"
+}
+
+// DICOM Content Qualification (0018,9004) -> SPHN ImagingFrame_contentQualification individual.
+conceptmap "cm-imagingFrameContentQualification" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "https://biomedit.ch/rdf/sphn-schema/sphn/individual"
+  s:PRODUCT == t:Product
+  s:RESEARCH == t:Research
+  s:SERVICE == t:Service
+}
+
+// View Code Sequence (0054,0220) code value -> SNOMED CT, for AnatomicalProjection.hasCode.
+// Generated from DICOM PS3.16 CID 4010 "DX View" (legacy SNOMED RT id -> SCT concept id); the
+// export carries the legacy SRT / SNM3 ids. Keep in sync with the list in imagingFrameProjection.
+conceptmap "cm-viewCode" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "http://snomed.info/id"
+  s:"G-8300" == t:"119376003"    // tissue specimen
+  s:"G-A145" == t:"30730003"    // sagittal
+  s:"R-10202" == t:"399033003"    // frontal
+  s:"R-10204" == t:"399160007"    // frontal oblique
+  s:"R-10206" == t:"399348003"    // antero-posterior
+  s:"R-10208" == t:"399312000"    // antero-posterior oblique
+  s:"R-10210" == t:"399038007"    // right posterior oblique
+  s:"R-10212" == t:"399006002"    // left posterior oblique
+  s:"R-10214" == t:"272479007"    // postero-anterior: pre-2008 code, replaced by R-40888 (not in CID 4010 or Annex O)
+  s:"R-10216" == t:"399059000"    // postero-anterior oblique
+  s:"R-10220" == t:"399135007"    // left anterior oblique
+  s:"R-10224" == t:"399260004"    // medial-lateral
+  s:"R-10226" == t:"399368009"    // medio-lateral oblique
+  s:"R-10228" == t:"399352003"    // lateral-medial
+  s:"R-10230" == t:"399099002"    // latero-medial oblique
+  s:"R-10232" == t:"399198007"    // right lateral
+  s:"R-10234" == t:"399236003"    // right oblique
+  s:"R-10236" == t:"399173006"    // left lateral
+  s:"R-10238" == t:"399184004"    // left oblique
+  s:"R-10241" == t:"399061009"    // axial
+  s:"R-10242" == t:"399162004"    // cranio-caudal
+  s:"R-10244" == t:"399196006"    // caudo-cranial
+  s:"R-10246" == t:"399004004"    // oblique axial
+  s:"R-10248" == t:"399288005"    // oblique cranio-caudal
+  s:"R-10250" == t:"399225005"    // oblique caudo-cranial
+  s:"R-10252" == t:"399132005"    // frontal-oblique axial
+  s:"R-10254" == t:"399325008"    // sagittal-oblique axial
+  s:"R-10256" == t:"399255003"    // submentovertical
+  s:"R-10257" == t:"399360002"    // verticosubmental
+  s:"R-102C1" == t:"399182000"    // oblique
+  s:"R-102C2" == t:"399110001"    // tangential
+  s:"R-102C3" == t:"399071006"    // plantodorsal
+  s:"R-102C4" == t:"399335002"    // dorsoplantar
+  s:"R-102C5" == t:"399272005"    // parietoacanthial
+  s:"R-102C6" == t:"399242004"    // acanthioparietal
+  s:"R-102C7" == t:"399351005"    // orbitoparietal
+  s:"R-102C8" == t:"399316002"    // parieto-orbital
+  s:"R-102CD" == t:"399067008"    // lateral
+  s:"R-40782" == t:"260426006"    // medial oblique
+  s:"R-40783" == t:"260427002"    // lateral oblique
+  s:"R-40810" == t:"260499007"    // Occlusal projection
+  s:"R-40888" == t:"272479007"    // postero-anterior
+  s:"R-40985" == t:"399356000"    // right anterior oblique
+}
+
+// View Position (0018,5101) -> SNOMED CT (same CID 4010 concepts), used when there is no View
+// Code Sequence. The oblique (RLO, LLO) and decubitus (RLD, LLD) terms are left out: CID 4010
+// has no single "lateral oblique" concept per side, and decubitus is a patient position.
+conceptmap "cm-viewPosition" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "http://snomed.info/id"
+  s:AP == t:399348003     // antero-posterior
+  s:PA == t:272479007     // postero-anterior
+  s:LL == t:399173006     // left lateral
+  s:RL == t:399198007     // right lateral
+}
+
+// Anatomic Region Sequence (0008,2218) code value -> SNOMED CT, for BodySite.hasCode.
+// Generated from DICOM PS3.16 CID 4031 "Common Anatomic Regions" (legacy id -> SCT concept id).
+// Keep in sync with the list in imagingFrameBodySite.
+conceptmap "cm-anatomicRegion" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "http://snomed.info/id"
+  s:"R-FAB52" == t:"417437006"    // Neck and Chest
+  s:"R-FAB53" == t:"416152001"    // Neck, Chest and Abdomen
+  s:"R-FAB54" == t:"416319003"    // Neck, Chest, Abdomen and Pelvis
+  s:"R-FAB55" == t:"416550000"    // Chest and Abdomen
+  s:"R-FAB56" == t:"416775004"    // Chest, Abdomen and Pelvis
+  s:"T-04000" == t:"76752008"    // Breast
+  s:"T-11011" == t:"110517009"    // Vertebral column and cranium
+  s:"T-11100" == t:"89546000"    // Skull
+  s:"T-11102" == t:"55024004"    // Optic canal
+  s:"T-11133" == t:"59066005"    // Mastoid bone
+  s:"T-11149" == t:"74386004"    // Nasal bone
+  s:"T-11166" == t:"13881006"    // Zygoma
+  s:"T-11170" == t:"70925003"    // Maxilla
+  s:"T-11180" == t:"91609006"    // Mandible
+  s:"T-11196" == t:"91397008"    // Facial bones
+  s:"T-11210" == t:"56873002"    // Sternum
+  s:"T-11300" == t:"113197003"    // Rib
+  s:"T-11501" == t:"122494005"    // Cervical spine
+  s:"T-11502" == t:"122495006"    // Thoracic spine
+  s:"T-11503" == t:"122496007"    // Lumbar spine
+  s:"T-11AD0" == t:"54735007"    // Sacrum
+  s:"T-11BF0" == t:"64688005"    // Coccyx
+  s:"T-12280" == t:"79601000"    // Scapula
+  s:"T-12310" == t:"51299004"    // Clavicle
+  s:"T-12340" == t:"22356005"    // Ilium
+  s:"T-12410" == t:"85050009"    // Humerus
+  s:"T-12700" == t:"72001000"    // Bone of lower limb
+  s:"T-12710" == t:"71341001"    // Femur
+  s:"T-12730" == t:"64234005"    // Patella
+  s:"T-12750" == t:"87342007"    // Fibula
+  s:"T-12770" == t:"80144004"    // Calcaneus
+  s:"T-12980" == t:"58742003"    // Sesamoid bones of foot
+  s:"T-13600" == t:"30608006"    // Muscle of upper limb
+  s:"T-14668" == t:"102292000"    // Muscle of lower limb
+  s:"T-15290" == t:"53620006"    // Temporomandibular joint
+  s:"T-15420" == t:"85856004"    // Acromioclavicular joint
+  s:"T-15430" == t:"16953009"    // Elbow joint
+  s:"T-15460" == t:"74670003"    // Wrist joint
+  s:"T-15610" == t:"7844006"    // Sternoclavicular joint
+  s:"T-15680" == t:"39723000"    // Sacroiliac joint
+  s:"T-15710" == t:"24136001"    // Hip Joint
+  s:"T-15750" == t:"70258002"    // Ankle joint
+  s:"T-15770" == t:"27949001"    // Tarsal joint
+  s:"T-22000" == t:"2095001"    // Paranasal sinus
+  s:"T-24100" == t:"4596009"    // Larynx
+  s:"T-25000" == t:"44567001"    // Trachea
+  s:"T-26000" == t:"955009"    // Bronchus
+  s:"T-280A0" == t:"86598002"    // Apex of Lung
+  s:"T-30000" == t:"113257007"    // Cardiovascular system
+  s:"T-32000" == t:"80891009"    // Heart
+  s:"T-50007" == t:"303270005"    // Liver and biliary structure
+  s:"T-56000" == t:"32849002"    // Esophagus
+  s:"T-57000" == t:"69695003"    // Stomach
+  s:"T-58000" == t:"30315005"    // Small intestine
+  s:"T-58200" == t:"38848004"    // Duodenum
+  s:"T-58400" == t:"21306003"    // Jejunum
+  s:"T-58600" == t:"34516001"    // Ileum
+  s:"T-59000" == t:"14742008"    // Large intestine
+  s:"T-59300" == t:"71854001"    // Colon
+  s:"T-59600" == t:"34402009"    // Rectum
+  s:"T-59900" == t:"53505006"    // Anus
+  s:"T-60600" == t:"34707002"    // Biliary tract
+  s:"T-60610" == t:"28273000"    // Bile duct
+  s:"T-61100" == t:"45289007"    // Parotid gland
+  s:"T-61300" == t:"54019009"    // Submandibular gland
+  s:"T-63000" == t:"28231008"    // Gallbladder
+  s:"T-64500" == t:"79741001"    // Common bile duct
+  s:"T-65000" == t:"15776009"    // Pancreas
+  s:"T-65010" == t:"69930009"    // Pancreatic duct
+  s:"T-65600" == t:"110621006"    // Pancreatic duct and bile duct systems
+  s:"T-7000B" == t:"431491007"    // Upper urinary tract
+  s:"T-73000" == t:"87953007"    // Ureter
+  s:"T-74000" == t:"89837001"    // Bladder
+  s:"T-75000" == t:"13648007"    // Urethra
+  s:"T-88920" == t:"110639002"    // Uterus and fallopian tubes
+  s:"T-92000" == t:"41216001"    // Prostate
+  s:"T-AA000" == t:"81745001"    // Eye
+  s:"T-AB959" == t:"361078006"    // Internal Auditory Canal
+  s:"T-D0010" == t:"38266002"    // Entire body
+  s:"T-D0146" == t:"421060004"    // Spine: not in CID 4031 or Annex O; mapped like T-D04FF on its CodeMeaning
+  s:"T-D0300" == t:"66019005"    // Extremity
+  s:"T-D04FF" == t:"421060004"    // Spine
+  s:"T-D0801" == t:"371398005"    // Eye region
+  s:"T-D0821" == t:"371195002"    // Bone of upper limb
+  s:"T-D1000" == t:"774007"    // Head and Neck
+  s:"T-D1100" == t:"69536005"    // Head
+  s:"T-D1213" == t:"661005"    // Jaw region
+  s:"T-D1460" == t:"42575006"    // Sella turcica
+  s:"T-D14AE" == t:"363654007"    // Orbital structure
+  s:"T-D1600" == t:"45048000"    // Neck
+  s:"T-D2000" == t:"22943007"    // Trunk
+  s:"T-D2010" == t:"67734004"    // Upper trunk
+  s:"T-D2020" == t:"63337009"    // Lower trunk
+  s:"T-D2220" == t:"16982005"    // Shoulder
+  s:"T-D2500" == t:"29836001"    // Hip
+  s:"T-D3300" == t:"72410000"    // Mediastinum
+  s:"T-D8000" == t:"53120007"    // Upper limb
+  s:"T-D8200" == t:"40983000"    // Upper arm
+  s:"T-D8500" == t:"14975008"    // Forearm
+  s:"T-D8700" == t:"85562004"    // Hand
+  s:"T-D8800" == t:"7569003"    // Finger
+  s:"T-D8810" == t:"76505004"    // Thumb
+  s:"T-D9000" == t:"61685007"    // Lower limb
+  s:"T-D9100" == t:"68367000"    // Thigh
+  s:"T-D9200" == t:"72696002"    // Knee
+  s:"T-D9400" == t:"30021000"    // Lower leg
+  s:"T-D9700" == t:"56459004"    // Foot
+  s:"T-D9800" == t:"29707007"    // Toe
+  s:"T-DD163" == t:"110861005"    // Esophagus, stomach and duodenum
+}
+
+// Image Laterality (0020,0062) -> SNOMED CT laterality, as allowed by SPHN Laterality.hasCode.
+// U (unpaired body part) is not a laterality and is left out.
+conceptmap "cm-imageLaterality" {
+  prefix s = "http://dicom.nema.org/resources/ontology/DCM"
+  prefix t = "http://snomed.info/id"
+  s:L == t:7771000        // Left
+  s:R == t:24028007       // Right
+  s:B == t:51440002       // Right and left
+}
+
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
 uses "http://hl7.org/fhir/StructureDefinition/ImagingStudy" alias ImagingStudy as source
 
@@ -44,6 +423,7 @@ uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-Content" al
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ImagingProcedure" alias ImagingProcedure as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ImagingSeries" alias ImagingSeries as target
 uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-BodyPosition" alias BodyPosition as target
+uses "http://research.balgrist.ch/fhir2sphn/StructureDefinition/SPHN-ImagingFrame" alias ImagingFrame as target
 
 imports "http://research.balgrist.ch/fhir2sphn/StructureMap/Utils"
 
@@ -84,6 +464,8 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
             imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystemMR";
             bundle -> tgtSeries then subjectPseudoIdentifier(bundle, tgtSeries) "seriesSubjectMR";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";
+            // One frame per listed instance; frame classes are flattened like the series ones.
+            srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame, tgtFrame.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingFrame' then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesMR";
         } "mapSeriesMR";
         // Series whose modality is outside the DCM part of SPHN's hasImagingModalityCode union
         // (e.g. OT, SR, PR) are out of scope and skipped entirely. MR is in the list, so the
@@ -92,6 +474,7 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
             imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystem";
             bundle -> tgtSeries then subjectPseudoIdentifier(bundle, tgtSeries) "seriesSubject";
             srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "defaultSeries";
+            srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame, tgtFrame.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingFrame' then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesDefault";
         } "mapSeriesDefault";
 
     } "ImagingProcedure";
@@ -137,7 +520,6 @@ group imagingSeries(source series, target tgtSeries: ImagingSeries) {
         seriesNFrames -> nFrames.id = uuid(), nFrames.hasValue = seriesNFrames, nFrames.hasUnit as unit then imaging_unit_number(nFrames, unit) "unit_rule";
     } "valueQuantity_fhirQuantity";
 
-    //series -> tgtSeries then imagingFrames(series, tgtSeries) "frames";
 }
 
 // Reads DICOM Patient Position (0018,5100), which is the tag actually populated on the
@@ -159,12 +541,277 @@ group bodyPosition(source series, target tgtBodyPosition: BodyPosition) {
     } "hasCode";
 }
 
-// TODO: ImagingFrame mapping, from series.instance.
-// The five SPHN frame classes will be flattened the same way as the series: the base
-// ImagingFrame has 9 properties, the CT / MR / X-Ray frames are property-identical to each
-// other (base + hasContrastAgentAdministrationEvent, hasContrastAgentPhase,
-// hasSynchronization), and the PET frame is the only real outlier. So one group here is
-// enough, with target_concept distinguishing the class.
-group imagingFrames(source series, target tgtSeries: ImagingSeries) {
-    // TODO
+// series.instance -> ImagingFrame. Only uid is on the instance itself; the frame attributes
+// come from the DICOM tags on the series (the export flags them imaging_frame_concept), which
+// are the header of the one instance the export lists per series. With more than one instance
+// that header cannot be attributed to a frame, so the frames then carry only their id.
+group imagingFrame(source instance, source series, source imagingStudy: ImagingStudy, target tgtFrame: ImagingFrame) {
+    instance.uid as uid -> tgtFrame.id = ('ImagingFrame/' & %uid) "frameId";
+    series as s where instance.count() = 1 then {
+        s -> tgtFrame then imagingFrameType(s, tgtFrame) "type";
+        s -> tgtFrame then imagingFrameContentQualification(s, tgtFrame) "contentQualification";
+        s -> tgtFrame then imagingFrameStartDateTime(s, imagingStudy, tgtFrame) "startDateTime";
+        s -> tgtFrame then imagingFrameDimensions(s, tgtFrame) "dimensions";
+        s -> tgtFrame then imagingFrameProjection(s, tgtFrame) "projection";
+        s -> tgtFrame then imagingFrameBodySite(s, tgtFrame) "bodySite";
+        s -> tgtFrame then imagingFrameCompression(s, tgtFrame) "compression";
+        s -> tgtFrame then imagingFrameMetric(s, tgtFrame) "metric";
+    } "header";
+}
+
+// Image Type (0008,0008) -> hasType. Only values 1-3 are mapped: 1 (ORIGINAL / DERIVED) and
+// 2 (PRIMARY / SECONDARY) are fixed by DICOM, 3 holds the modality's defined terms; values 4+
+// are vendor-specific and may collide with SPHN names by accident (e.g. DERIVED, PARALLEL).
+// Values outside cm-imagingFrameType (empty, M, RAD, ...) are dropped.
+group imagingFrameType(source series, target tgtFrame: ImagingFrame) {
+    series.extension as dicomExt
+      where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM'
+        and extension.where(url = 'tag').valueString = '00080008'
+      then {
+        dicomExt where extension.where(url = 'value').valueString.split('|')[0].length() > 0
+          -> evaluate(dicomExt, extension.where(url = 'value').valueString.split('|')[0].upper().replace(' ', '').replace('_', '')) as term
+          then imagingFrameTypeTerm(term, tgtFrame) "value1";
+        dicomExt where extension.where(url = 'value').valueString.split('|')[1].length() > 0
+          -> evaluate(dicomExt, extension.where(url = 'value').valueString.split('|')[1].upper().replace(' ', '').replace('_', '')) as term
+          then imagingFrameTypeTerm(term, tgtFrame) "value2";
+        dicomExt where extension.where(url = 'value').valueString.split('|')[2].length() > 0
+          -> evaluate(dicomExt, extension.where(url = 'value').valueString.split('|')[2].upper().replace(' ', '').replace('_', '')) as term
+          then imagingFrameTypeTerm(term, tgtFrame) "value3";
+    } "imageType";
+}
+
+// translate leaves cm empty for a value outside the map, so the value is checked against the
+// map's source keys first (same list as cm-imagingFrameType, keep the two in sync).
+group imagingFrameTypeTerm(source term, target tgtFrame: ImagingFrame) {
+    term where $this in (
+            '2DIMAGING' | '3DRENDERING' | 'ABDOMINAL' | 'ADDITION' | 'ANGIO' | 'ANGIOTIME' | 'ASL' | 'ATTENUATION' | 'AXIAL' | 'BIPLANEA' |
+            'BIPLANEB' | 'BLANK' | 'BREAST' | 'CARDIAC' | 'CARDIACCASCORE' | 'CARDIACCTA' | 'CARDIACGATED' | 'CARDRESPGATED' | 'CHEST' | 'CINE' |
+            'COLORDOPPLER' | 'COLORMMODE' | 'COLORPOWERMODE' | 'CORNEALTOPO' | 'CWDOPPLER' | 'DENSITYMAP' | 'DERIVED' | 'DIFFUSION' | 'DIFFUSIONMAP' | 'DIVISION' |
+            'DIXON' | 'DRR' | 'DYNAMIC' | 'EFFATOMICNUM' | 'ELECTRONDENSITY' | 'EMISSION' | 'ENDOCAVITARY' | 'ENDORECTAL' | 'ENDOVAGINAL' | 'ENERGYPROPWT' |
+            'EPICARDIAL' | 'FETALHEART' | 'FILTERED' | 'FLOWENCODED' | 'FLUENCE' | 'FLUIDATTENUATED' | 'FLUOROSCOPY' | 'FMRI' | 'GATED' | 'GATEDTOMO' |
+            'GENERATED2D' | 'GYNECOLOGY' | 'HIGHENERGY' | 'IMAGEADDITION' | 'INTRACARDIAC' | 'INTRAOPERATIVE' | 'INTRAVASCULAR' | 'LABEL' | 'LOCALIZER' | 'LONGITUDINAL' |
+            'LOWENERGY' | 'MASKED' | 'MATFRACTIONAL' | 'MATMODIFIED' | 'MATREMOVED' | 'MATSPECIFIC' | 'MATVALUEBASED' | 'MAXIMUM' | 'MAXIP' | 'MEAN' |
+            'MEDIAN' | 'METABOLITEMAP' | 'MINIMUM' | 'MINIP' | 'MIXED' | 'MMODE' | 'MODULUSSUBTRACT' | 'MONTAGE' | 'MOTION' | 'MPR' |
+            'MULTIECHO' | 'MULTIPLICATION' | 'MUSCULOSKELETAL' | 'NEONATALHEAD' | 'NONE' | 'NONPARALLEL' | 'OBSTETRICAL' | 'ONH' | 'OPHTHALMIC' | 'ORIGINAL' |
+            'OTHER' | 'OVERVIEW' | 'PARALLEL' | 'PEDIATRIC' | 'PELVIC' | 'PERFUSION' | 'PHASEMAP' | 'PHASESUBTRACT' | 'PORTAL' | 'POSTBIOPSY' |
+            'POSTBIOPSYMINUS' | 'POSTBIOPSYPLUS' | 'POSTCONTRAST' | 'POSTFIRE' | 'POSTFIREMINUS' | 'POSTFIREPLUS' | 'POSTMARKER' | 'POSTMARKERMINUS' | 'POSTMARKERPLUS' | 'PRECONTRAST' |
+            'PREFIRE' | 'PREFIREMINUS' | 'PREFIREPLUS' | 'PRIMARY' | 'PROJECTIONIMAGE' | 'PROTONDENSITY' | 'PWDOPPLER' | 'QUANTITY' | 'RADIOGRAPH' | 'REALTIME' |
+            'RECONGATEDTOMO' | 'RECONTOMO' | 'REFERENCE' | 'RESAMPLED' | 'RESPGATED' | 'REST' | 'RETINALTHICK' | 'RETROPERITONEAL' | 'SCROTAL' | 'SECONDARY' |
+            'SIMULATOR' | 'SINGLEPLANE' | 'SMALLPARTS' | 'SPATIALLYRELATEDFRAMES' | 'SPECTROSCOPY' | 'STATIC' | 'STDDEVIATION' | 'STEREOL' | 'STEREOMINUS' | 'STEREOPLUS' |
+            'STEREOR' | 'STEREOSCOUT' | 'STIR' | 'STRESS' | 'SUBTRACTION' | 'T1' | 'T1MAP' | 'T2' | 'T2MAP' | 'T2STAR' |
+            'TAGGING' | 'TEE' | 'TEMPERATURE' | 'THUMBNAIL' | 'THYROID' | 'TISSUECHARACTERIZATION' | 'TOF' | 'TOMO' | 'TOMOPROJ' | 'TOMOSCOUT' |
+            'TOMOSYNTHESIS' | 'TRANSCRANIAL' | 'TRANSMISSION' | 'TTE' | 'USBIOPSY' | 'VASCULAR' | 'VELOCITY' | 'VELOCITYMAP' | 'VMI' | 'VOLUME' |
+            'WHOLEBODY')
+      -> translate(term, '#cm-imagingFrameType') as cm,
+        tgtFrame.hasType as frameType, frameType.iri = (%cm.system & '#' & %cm.code) "frameType";
+}
+
+// Content Qualification (0018,9004) -> hasContentQualification.
+group imagingFrameContentQualification(source series, target tgtFrame: ImagingFrame) {
+    series.extension as dicomExt
+      where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM'
+        and extension.where(url = 'tag').valueString = '00189004'
+        and extension.where(url = 'value').valueString in ('PRODUCT' | 'RESEARCH' | 'SERVICE')
+      -> evaluate(dicomExt, extension.where(url = 'value').valueString) as term,
+        translate(term, '#cm-imagingFrameContentQualification') as cm,
+        tgtFrame.hasContentQualification as qualification, qualification.iri = (%cm.system & '#' & %cm.code) "contentQualification";
+}
+
+// Acquisition DateTime (0008,002A), else Acquisition Date (0008,0022) + Time (0008,0032),
+// -> hasStartDateTime. Both are brought to one DICOM DT string (YYYYMMDDHHMMSS[.F][&ZZXX]);
+// partial values (no seconds) are skipped.
+group imagingFrameStartDateTime(source series, source imagingStudy: ImagingStudy, target tgtFrame: ImagingFrame) {
+    series.extension as dicomExt
+      where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM'
+        and extension.where(url = 'tag').valueString = '0008002A'
+      -> evaluate(dicomExt, extension.where(url = 'value').valueString) as dt
+      then dicomDateTime(dt, imagingStudy, tgtFrame) "acquisitionDateTime";
+    series where extension.where(extension.where(url = 'tag').valueString = '0008002A').empty()
+        and extension.where(extension.where(url = 'tag').valueString = '00080022').exists()
+        and extension.where(extension.where(url = 'tag').valueString = '00080032').exists()
+      -> evaluate(series, extension.where(extension.where(url = 'tag').valueString = '00080022').extension.where(url = 'value').valueString
+          & extension.where(extension.where(url = 'tag').valueString = '00080032').extension.where(url = 'value').valueString) as dt
+      then dicomDateTime(dt, imagingStudy, tgtFrame) "acquisitionDateAndTime";
+}
+
+// DICOM DT -> dateTime. FHIR requires an offset once a time is given: the value's own offset
+// is used if present, else the study's (DICOM local time, same site and day as the study).
+group dicomDateTime(source dt, source imagingStudy: ImagingStudy, target tgtFrame: ImagingFrame) {
+    dt where $this.matches('^[0-9]{14}([.][0-9]{1,6})?[+-][0-9]{4}$')
+      -> tgtFrame.hasStartDateTime = (%dt.replaceMatches('^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([.][0-9]{1,6})?([+-][0-9]{2})([0-9]{2})$', '$1-$2-$3T$4:$5:$6$7$8:$9')) "ownOffset";
+    dt where $this.matches('^[0-9]{14}([.][0-9]{1,6})?$')
+        and %imagingStudy.started.toString().matches('^.*([+-][0-9]{2}:[0-9]{2}|Z)$')
+      -> tgtFrame.hasStartDateTime = (%dt.replaceMatches('^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([.][0-9]{1,6})?$', '$1-$2-$3T$4:$5:$6$7')
+          & %imagingStudy.started.toString().replaceMatches('^.*([+-][0-9]{2}:[0-9]{2}|Z)$', '$1')) "studyOffset";
+}
+
+// Rows (0028,0010), Columns (0028,0011), Slice Thickness (0018,0050), Spacing Between Slices
+// (0018,0088) and Pixel Spacing (0028,0030) -> hasImageDimensions. Zero values (a slice
+// thickness of 0 on projection images) carry no dimension and are dropped; the guard on the
+// whole concept checks the same, so no empty ImageDimensions is created. hasNumberOfSlices has
+// no per-frame source (Number of Frames is series-level and goes to hasNumberOfFrames).
+group imagingFrameDimensions(source series, target tgtFrame: ImagingFrame) {
+    series where extension.where(url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM'
+            and ((extension.where(url = 'tag').valueString in ('00280010' | '00280011' | '00180050' | '00180088') and extension.where(url = 'value').value > 0)
+              or (extension.where(url = 'tag').valueString = '00280030' and extension.where(url = 'value').valueString.matches('^[0-9]+([.][0-9]+)?[|][0-9]+([.][0-9]+)?$')))).exists()
+      -> tgtFrame.hasImageDimensions as dims, dims.id = uuid() then {
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00280010' then {
+            dicomExt.extension as v where url = 'value' then {
+                v.value as n where $this > 0 -> dims.hasNumberOfRows as q then imagingCountQuantity(n, q) "rowsValue";
+            } "rowsExt";
+        } "rows";
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00280011' then {
+            dicomExt.extension as v where url = 'value' then {
+                v.value as n where $this > 0 -> dims.hasNumberOfColumns as q then imagingCountQuantity(n, q) "columnsValue";
+            } "columnsExt";
+        } "columns";
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00180050' then {
+            dicomExt.extension as v where url = 'value' then {
+                v.value as n where $this > 0 -> dims.hasSliceThickness as q then imagingMillimetreQuantity(n, q) "thicknessValue";
+            } "thicknessExt";
+        } "sliceThickness";
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00180088' then {
+            dicomExt.extension as v where url = 'value' then {
+                v.value as n where $this > 0 -> dims.hasSliceSpacing as q then imagingMillimetreQuantity(n, q) "spacingValue";
+            } "spacingExt";
+        } "sliceSpacing";
+        // Pixel Spacing is "row spacing|column spacing": value 1 is the distance between the
+        // centres of adjacent rows, which is SPHN's hasRowSpacing.
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00280030'
+            and extension.where(url = 'value').valueString.matches('^[0-9]+([.][0-9]+)?[|][0-9]+([.][0-9]+)?$')
+          -> dims.hasPixelDimensions as px, px.id = uuid() then {
+            dicomExt -> evaluate(dicomExt, extension.where(url = 'value').valueString.split('|')[0].toDecimal()) as r,
+                px.hasRowSpacing as q then imagingMillimetreQuantity(r, q) "rowSpacing";
+            dicomExt -> evaluate(dicomExt, extension.where(url = 'value').valueString.split('|')[1].toDecimal()) as c,
+                px.hasColumnSpacing as q then imagingMillimetreQuantity(c, q) "columnSpacing";
+        } "pixelSpacing";
+    } "imageDimensions";
+}
+
+group imagingCountQuantity(source n, target q) {
+    n -> q.id = uuid(), q.hasValue = n, q.hasUnit as unit then imaging_unit_number(n, unit) "countQuantity";
+}
+
+group imagingMillimetreQuantity(source n, target q) {
+    n -> q.id = uuid(), q.hasValue = n, q.hasUnit as unit then imaging_unit_mm(n, unit) "mmQuantity";
+}
+
+// View Code Sequence (0054,0220), else View Position (0018,5101) -> hasAnatomicalProjection.
+// The export flattens each sequence item to one attribute per item (CodeValue, Coding Scheme
+// Designator and Code Meaning are sibling items), so the code value is looked up on its own:
+// a legacy SRT / SNM3 id through cm-viewCode, or taken as is when the scheme is SCT.
+// View Position is only used without a View Code Sequence; a sequence with a code outside the
+// map gives no projection rather than a possibly inconsistent one from View Position.
+group imagingFrameProjection(source series, target tgtFrame: ImagingFrame) {
+    series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00540220' then {
+        dicomExt.extension as seq where url = 'sequence' then {
+            seq.extension as item where url = 'item' then {
+                item.extension as attr where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00080100'
+                    and extension.where(url = 'value').valueString in (
+            'G-8300' | 'G-A145' | 'R-10202' | 'R-10204' | 'R-10206' | 'R-10208' | 'R-10210' | 'R-10212' |
+            'R-10214' | 'R-10216' | 'R-10220' | 'R-10224' | 'R-10226' | 'R-10228' | 'R-10230' | 'R-10232' |
+            'R-10234' | 'R-10236' | 'R-10238' | 'R-10241' | 'R-10242' | 'R-10244' | 'R-10246' | 'R-10248' |
+            'R-10250' | 'R-10252' | 'R-10254' | 'R-10256' | 'R-10257' | 'R-102C1' | 'R-102C2' | 'R-102C3' |
+            'R-102C4' | 'R-102C5' | 'R-102C6' | 'R-102C7' | 'R-102C8' | 'R-102CD' | 'R-40782' | 'R-40783' |
+            'R-40810' | 'R-40888' | 'R-40985')
+                  -> evaluate(attr, extension.where(url = 'value').valueString) as c,
+                    translate(c, '#cm-viewCode') as cm,
+                    tgtFrame.hasAnatomicalProjection as proj, proj.id = uuid(),
+                    proj.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "legacyCode";
+                item.extension as attr where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00080100'
+                    and extension.where(url = 'value').valueString.matches('^[0-9]+$')
+                    and %seq.extension.where(url = 'item').extension.where(extension.where(url = 'tag').valueString = '00080102').extension.where(url = 'value').valueString = 'SCT'
+                  -> evaluate(attr, extension.where(url = 'value').valueString) as c,
+                    tgtFrame.hasAnatomicalProjection as proj, proj.id = uuid(),
+                    proj.hasCode as code, code.termid = c, code.iri = ('http://snomed.info/id/' & %c) "sctCode";
+            } "item";
+        } "sequence";
+    } "viewCode";
+    series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00185101'
+        and extension.where(url = 'value').valueString in ('AP' | 'PA' | 'LL' | 'RL')
+        and %series.extension.where(extension.where(url = 'tag').valueString = '00540220').empty()
+      -> evaluate(dicomExt, extension.where(url = 'value').valueString) as c,
+        translate(c, '#cm-viewPosition') as cm,
+        tgtFrame.hasAnatomicalProjection as proj, proj.id = uuid(),
+        proj.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "viewPosition";
+}
+
+// Anatomic Region Sequence (0008,2218) -> hasBodySite, with Image Laterality (0020,0062) as its
+// hasLaterality. Same flattened sequence and code lookup as imagingFrameProjection. SPHN's
+// BodySite requires hasCode, so a laterality without a region is not mapped.
+group imagingFrameBodySite(source series, target tgtFrame: ImagingFrame) {
+    series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00082218' then {
+        dicomExt.extension as seq where url = 'sequence' then {
+            seq.extension as item where url = 'item' then {
+                item.extension as attr where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00080100'
+                    and extension.where(url = 'value').valueString in (
+            'R-FAB52' | 'R-FAB53' | 'R-FAB54' | 'R-FAB55' | 'R-FAB56' | 'T-04000' | 'T-11011' | 'T-11100' |
+            'T-11102' | 'T-11133' | 'T-11149' | 'T-11166' | 'T-11170' | 'T-11180' | 'T-11196' | 'T-11210' |
+            'T-11300' | 'T-11501' | 'T-11502' | 'T-11503' | 'T-11AD0' | 'T-11BF0' | 'T-12280' | 'T-12310' |
+            'T-12340' | 'T-12410' | 'T-12700' | 'T-12710' | 'T-12730' | 'T-12750' | 'T-12770' | 'T-12980' |
+            'T-13600' | 'T-14668' | 'T-15290' | 'T-15420' | 'T-15430' | 'T-15460' | 'T-15610' | 'T-15680' |
+            'T-15710' | 'T-15750' | 'T-15770' | 'T-22000' | 'T-24100' | 'T-25000' | 'T-26000' | 'T-280A0' |
+            'T-30000' | 'T-32000' | 'T-50007' | 'T-56000' | 'T-57000' | 'T-58000' | 'T-58200' | 'T-58400' |
+            'T-58600' | 'T-59000' | 'T-59300' | 'T-59600' | 'T-59900' | 'T-60600' | 'T-60610' | 'T-61100' |
+            'T-61300' | 'T-63000' | 'T-64500' | 'T-65000' | 'T-65010' | 'T-65600' | 'T-7000B' | 'T-73000' |
+            'T-74000' | 'T-75000' | 'T-88920' | 'T-92000' | 'T-AA000' | 'T-AB959' | 'T-D0010' | 'T-D0146' |
+            'T-D0300' | 'T-D04FF' | 'T-D0801' | 'T-D0821' | 'T-D1000' | 'T-D1100' | 'T-D1213' | 'T-D1460' |
+            'T-D14AE' | 'T-D1600' | 'T-D2000' | 'T-D2010' | 'T-D2020' | 'T-D2220' | 'T-D2500' | 'T-D3300' |
+            'T-D8000' | 'T-D8200' | 'T-D8500' | 'T-D8700' | 'T-D8800' | 'T-D8810' | 'T-D9000' | 'T-D9100' |
+            'T-D9200' | 'T-D9400' | 'T-D9700' | 'T-D9800' | 'T-DD163')
+                  -> evaluate(attr, extension.where(url = 'value').valueString) as c,
+                    translate(c, '#cm-anatomicRegion') as cm,
+                    tgtFrame.hasBodySite as site, site.id = uuid(),
+                    site.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code)
+                  then imagingFrameLaterality(series, site) "legacyCode";
+                item.extension as attr where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00080100'
+                    and extension.where(url = 'value').valueString.matches('^[0-9]+$')
+                    and %seq.extension.where(url = 'item').extension.where(extension.where(url = 'tag').valueString = '00080102').extension.where(url = 'value').valueString = 'SCT'
+                  -> evaluate(attr, extension.where(url = 'value').valueString) as c,
+                    tgtFrame.hasBodySite as site, site.id = uuid(),
+                    site.hasCode as code, code.termid = c, code.iri = ('http://snomed.info/id/' & %c)
+                  then imagingFrameLaterality(series, site) "sctCode";
+            } "item";
+        } "sequence";
+    } "anatomicRegion";
+}
+
+group imagingFrameLaterality(source series, target site) {
+    series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00200062'
+        and extension.where(url = 'value').valueString in ('L' | 'R' | 'B')
+      -> evaluate(dicomExt, extension.where(url = 'value').valueString) as l,
+        translate(l, '#cm-imageLaterality') as cm,
+        site.hasLaterality as lat, lat.id = uuid(),
+        lat.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "laterality";
+}
+
+// Lossy Image Compression (0028,2110) = 01 -> hasAlgorithm (type LossyCompression), with the
+// ratio (0028,2112) and method (0028,2114). 00 only says the image was never lossy compressed,
+// not that it was compressed losslessly, so it gives no algorithm. Ratio and method are taken
+// only when single-valued (one compression step). The DICOM method terms are the SPHN
+// individual names without underscores (ISO_10918_1 -> ISO109181).
+group imagingFrameCompression(source series, target tgtFrame: ImagingFrame) {
+    series where extension.where(url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00282110' and extension.where(url = 'value').valueString = '01').exists()
+      -> tgtFrame.hasAlgorithm as alg, alg.id = uuid(),
+        alg.hasType as algType, algType.iri = 'https://biomedit.ch/rdf/sphn-schema/sphn/individual#LossyCompression' then {
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00282112' then {
+            dicomExt.extension as v where url = 'value' then {
+                v.value as r where $this > 0 -> alg.hasRatio as q then imagingCountQuantity(r, q) "ratioValue";
+            } "ratioExt";
+        } "ratio";
+        series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00282114'
+            and extension.where(url = 'value').valueString in ('ISO_10918_1' | 'ISO_13818_2' | 'ISO_14495_1' | 'ISO_14496_10' | 'ISO_15444_1' | 'ISO_15444_15' | 'ISO_18181_1' | 'ISO_23008_2')
+          -> evaluate(dicomExt, extension.where(url = 'value').valueString.replace('_', '')) as m,
+            alg.hasMethod as method, method.iri = ('https://biomedit.ch/rdf/sphn-schema/sphn/individual#' & %m) "method";
+    } "lossy";
+}
+
+// Rescale Type (0028,1054) = HU -> hasImagingMetric with type code dcm:112031 (Attenuation
+// Coefficient, whose unit in DICOM CID 7180 is the Hounsfield unit). SPHN's UCUM units have no
+// [hnsf'U], so hasUnit is left out. US (unspecified) and PVAL say nothing about the quantity.
+group imagingFrameMetric(source series, target tgtFrame: ImagingFrame) {
+    series.extension as dicomExt where url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM' and extension.where(url = 'tag').valueString = '00281054'
+        and extension.where(url = 'value').valueString = 'HU'
+      -> tgtFrame.hasImagingMetric as metric, metric.id = uuid(),
+        metric.hasTypeCode as code, code.termid = '112031', code.iri = 'http://dicom.nema.org/resources/ontology/DCM/112031' "hounsfield";
 }

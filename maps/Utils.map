@@ -1042,6 +1042,14 @@ group imaging_unit_number(source vq, target unit: Unit) {
   } "imaging_code_unitNumber";
 }
 
+// ImagingQuantity -> Unit of millimetre
+group imaging_unit_mm(source vq, target unit: Unit) {
+  vq -> unit.id = uuid(), unit.hasCode as code then {
+      vq -> translate('mm', '#cm-ucum-sphn') as cm,
+        code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "imaging_unit_mm_translate";
+  } "imaging_code_unitMm";
+}
+
 // ---------------------------------------------------------------------------
 // TimePattern decoding helpers (MedicationRequest -> DrugPrescriptionEvent)
 // ---------------------------------------------------------------------------

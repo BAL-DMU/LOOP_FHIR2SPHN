@@ -16,6 +16,14 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
                                   Patient -> hasSubjectPseudoIdentifier)
 - series (MR only)             -> target_concept + hasBodyPosition from DICOM
                                   Patient Position (0018,5100), cm-patientPosition
+- series.instance              -> hasImagingFrame (uid -> id, target_concept per
+                                  series branch); with exactly one instance, the
+                                  series DICOM tags give hasType (Image Type,
+                                  cm-imagingFrameType), hasContentQualification
+                                  and hasStartDateTime (Acquisition DateTime, or
+                                  Date + Time), and the nested hasImageDimensions,
+                                  hasAnatomicalProjection, hasBodySite,
+                                  hasAlgorithm and hasImagingMetric
 
 Note on Code shapes: hasCode (a list, 1..* on ImagingProcedure),
 hasImagingModalityCode (a dcm: code) and BodyPosition.hasCode (a snomed: code)
@@ -42,16 +50,48 @@ SUBJECT_REFERENCE = "Patient?identifier=RASPLOOP|KLI_82_RASPLOOP"
 PROCEDURE = "content.ImagingProcedure[0]"
 SERIES = "content.ImagingProcedure[0].hasImagingSeries[0]"
 BODY_POSITION_CODE = "content.ImagingProcedure[0].hasImagingSeries[0].hasBodyPosition[0].hasCode"
+FRAME = "content.ImagingProcedure[0].hasImagingSeries[0].hasImagingFrame[0]"
+DIMENSIONS = f"{FRAME}.hasImageDimensions"
+INDIVIDUAL = "https://biomedit.ch/rdf/sphn-schema/sphn/individual#"
+SECONDARY_CAPTURE = "1.2.840.10008.5.1.4.1.1.7"
 
 
 def make_dicom_extension(tag, value, name=None):
-    """Create one DICOM tag/value extension, as carried on ImagingStudy.series."""
+    """Create one DICOM tag/value extension, as carried on ImagingStudy.series.
+
+    The value type follows the export: int -> valueInteger, float -> valueDecimal,
+    str -> valueString, and a list of (tag, value) pairs -> a code sequence, which
+    the export flattens to one attribute per item.
+    """
     nested = [{"url": "tag", "valueString": tag}]
     if name:
         nested.append({"url": "name", "valueString": name})
-    nested.append({"url": "value", "valueString": value})
+    if isinstance(value, list):
+        nested.append(
+            {
+                "url": "sequence",
+                "extension": [
+                    {"url": "item", "extension": [make_dicom_extension(t, v)]}
+                    for t, v in value
+                ],
+            }
+        )
+    elif isinstance(value, bool) or not isinstance(value, (int, float)):
+        nested.append({"url": "value", "valueString": value})
+    elif isinstance(value, int):
+        nested.append({"url": "value", "valueInteger": value})
+    else:
+        nested.append({"url": "value", "valueDecimal": value})
 
     return {"url": DICOM_EXTENSION_URL, "extension": nested}
+
+
+def code_sequence(code_value, scheme="SRT", meaning=None):
+    """A one-item code sequence value: CodeValue, Coding Scheme Designator, Code Meaning."""
+    items = [("00080100", code_value), ("00080102", scheme)]
+    if meaning:
+        items.append(("00080104", meaning))
+    return items
 
 
 def make_series(
@@ -62,12 +102,26 @@ def make_series(
     description=None,
     patient_position=None,
     extensions=None,
+    instances=None,
 ):
-    """Create an ImagingStudy.series entry (series.modality is a single Coding)."""
+    """Create an ImagingStudy.series entry (series.modality is a single Coding).
+
+    instances is a list of instance uids; the Balgrist export lists one per series.
+    """
     series = {
         "uid": uid,
         "modality": {"system": DICOM_SYSTEM, "code": modality},
     }
+
+    if instances:
+        series["instance"] = [
+            {
+                "uid": instance_uid,
+                "sopClass": {"system": DICOM_SYSTEM, "code": SECONDARY_CAPTURE},
+                "number": number,
+            }
+            for number, instance_uid in enumerate(instances, start=1)
+        ]
 
     if number_of_instances is not None:
         series["numberOfInstances"] = number_of_instances
@@ -922,3 +976,653 @@ class TestMultipleStudies:
 
         assert_list_length(result, "content.ImagingProcedure", 1)
         assert_path_equals(result, f"{PROCEDURE}.id", "ImagingProcedure/ct")
+
+
+def make_frame_study(*tags, modality="CT", instances=("instance-1",), **study_kwargs):
+    """Create a study with one series listing the given instances.
+
+    tags are (tag, value) pairs set as DICOM extensions on the series.
+    """
+    extensions = [make_dicom_extension(tag, value) for tag, value in tags]
+    series = make_series(
+        modality=modality, extensions=extensions, instances=list(instances)
+    )
+    return make_imaging_study(modality=modality, series=[series], **study_kwargs)
+
+
+def frame_type_iris(result):
+    return [t["iri"] for t in get_path(result, f"{FRAME}.hasType") or []]
+
+
+class TestImagingFrame:
+    """Test series.instance -> hasImagingFrame (id and target_concept)."""
+
+    def test_instance_creates_frame(self, transform_bundle, make_bundle, base_patient):
+        """Each listed instance becomes a frame with an id from its uid."""
+        bundle = make_bundle(base_patient, make_frame_study())
+
+        result = transform_bundle(bundle)
+
+        assert_list_length(result, f"{SERIES}.hasImagingFrame", 1)
+        assert_path_equals(result, f"{FRAME}.id", "ImagingFrame/instance-1")
+
+    def test_series_without_instance_has_no_frame(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A series that lists no instance gets no frame."""
+        bundle = make_bundle(base_patient, make_imaging_study())
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, SERIES)
+        assert get_path(result, f"{SERIES}.hasImagingFrame") is None
+
+    def test_mr_frame_target_concept(self, transform_bundle, make_bundle, base_patient):
+        """A frame of an MR series is tagged as MagneticResonanceImagingFrame."""
+        bundle = make_bundle(base_patient, make_frame_study(modality="MR"))
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result,
+            f"{FRAME}.target_concept",
+            "https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingFrame",
+        )
+
+    def test_non_mr_frame_target_concept(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A frame of a non-MR series is tagged as the base ImagingFrame."""
+        bundle = make_bundle(base_patient, make_frame_study(modality="CT"))
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result,
+            f"{FRAME}.target_concept",
+            "https://biomedit.ch/rdf/sphn-schema/sphn#ImagingFrame",
+        )
+
+    def test_multiple_instances_carry_only_ids(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """With several instances the series header cannot be attributed to a frame."""
+        study = make_frame_study(
+            ("00080008", "ORIGINAL|PRIMARY"),
+            ("0008002A", "20171123165915+0100"),
+            instances=("instance-1", "instance-2"),
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        frames = get_path(result, f"{SERIES}.hasImagingFrame")
+        assert [f["id"] for f in frames] == [
+            "ImagingFrame/instance-1",
+            "ImagingFrame/instance-2",
+        ]
+        for frame in frames:
+            assert "hasType" not in frame
+            assert "hasStartDateTime" not in frame
+
+
+class TestImagingFrameType:
+    """Test Image Type (0008,0008) values 1-3 -> hasType (cm-imagingFrameType)."""
+
+    def test_three_values_map_to_individuals(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """ORIGINAL|PRIMARY|AXIAL maps to the three SPHN individuals, in order."""
+        study = make_frame_study(("00080008", "ORIGINAL|PRIMARY|AXIAL"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert frame_type_iris(result) == [
+            INDIVIDUAL + "Original",
+            INDIVIDUAL + "Primary",
+            INDIVIDUAL + "Axial",
+        ]
+
+    def test_single_value(self, transform_bundle, make_bundle, base_patient):
+        """A one-value Image Type maps to one individual."""
+        study = make_frame_study(("00080008", "DERIVED"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert frame_type_iris(result) == [INDIVIDUAL + "Derived"]
+
+    def test_multi_word_value_is_normalized(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """SINGLE PLANE (with a space) maps to SinglePlane."""
+        study = make_frame_study(("00080008", "DERIVED|SECONDARY|SINGLE PLANE"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert INDIVIDUAL + "SinglePlane" in frame_type_iris(result)
+
+    def test_underscore_value_is_normalized(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """SMALL_PARTS (with an underscore) maps to SmallParts."""
+        study = make_frame_study(("00080008", "ORIGINAL|PRIMARY|SMALL_PARTS"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert INDIVIDUAL + "SmallParts" in frame_type_iris(result)
+
+    def test_empty_and_unknown_values_dropped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """An empty value 3 and a value outside the SPHN set are dropped."""
+        study = make_frame_study(("00080008", "ORIGINAL|M||RAD"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert frame_type_iris(result) == [INDIVIDUAL + "Original"]
+
+    def test_values_after_third_not_mapped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Value 4+ is vendor-specific, even when it spells an SPHN name."""
+        study = make_frame_study(("00080008", "ORIGINAL|PRIMARY|AXIAL|DERIVED|PARALLEL"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert frame_type_iris(result) == [
+            INDIVIDUAL + "Original",
+            INDIVIDUAL + "Primary",
+            INDIVIDUAL + "Axial",
+        ]
+
+    def test_no_image_type(self, transform_bundle, make_bundle, base_patient):
+        """Without Image Type the frame has no hasType."""
+        bundle = make_bundle(base_patient, make_frame_study())
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasType") is None
+
+
+class TestImagingFrameContentQualification:
+    """Test Content Qualification (0018,9004) -> hasContentQualification."""
+
+    def test_product(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(("00189004", "PRODUCT"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasContentQualification.iri", INDIVIDUAL + "Product"
+        )
+
+    def test_research(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(("00189004", "RESEARCH"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasContentQualification.iri", INDIVIDUAL + "Research"
+        )
+
+    def test_unknown_value_dropped(self, transform_bundle, make_bundle, base_patient):
+        """A value that is not a DICOM defined term is not mapped."""
+        study = make_frame_study(("00189004", "OTHER"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasContentQualification") is None
+
+
+class TestImagingFrameStartDateTime:
+    """Test Acquisition DateTime, or Acquisition Date + Time -> hasStartDateTime.
+
+    DICOM times are local; without an offset of their own they take the
+    study's (make_imaging_study defaults started to +01:00).
+    """
+
+    def test_acquisition_datetime_with_offset(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("0008002A", "20171123165915+0100"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasStartDateTime", "2017-11-23T16:59:15+01:00"
+        )
+
+    def test_acquisition_datetime_takes_study_offset(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A fractional DT without offset keeps its fraction and gets the study offset."""
+        study = make_frame_study(
+            ("0008002A", "20190620105023.307500"),
+            started="2019-06-20T10:45:00+02:00",
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasStartDateTime", "2019-06-20T10:50:23.307500+02:00"
+        )
+
+    def test_acquisition_date_and_time(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00080022", "20171123"), ("00080032", "154923"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasStartDateTime", "2017-11-23T15:49:23+01:00"
+        )
+
+    def test_acquisition_datetime_preferred(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """With both, Acquisition DateTime wins and only one value is mapped."""
+        study = make_frame_study(
+            ("00080022", "20171123"),
+            ("00080032", "154923"),
+            ("0008002A", "20171123165915+0100"),
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasStartDateTime", "2017-11-23T16:59:15+01:00"
+        )
+
+    def test_partial_time_skipped(self, transform_bundle, make_bundle, base_patient):
+        """A time without seconds is too imprecise for a dateTime and is skipped."""
+        study = make_frame_study(("00080022", "20171123"), ("00080032", "1549"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasStartDateTime") is None
+
+    def test_date_without_time_skipped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00080022", "20171123"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasStartDateTime") is None
+
+
+class TestImageDimensions:
+    """Test Rows, Columns, Slice Thickness / Spacing and Pixel Spacing -> hasImageDimensions."""
+
+    def test_rows_and_columns_are_counts(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00280010", 512), ("00280011", 1024))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_quantity_mapped(result, f"{DIMENSIONS}.hasNumberOfRows", 512, "cblnbcbr")
+        assert_quantity_mapped(
+            result, f"{DIMENSIONS}.hasNumberOfColumns", 1024, "cblnbcbr"
+        )
+
+    def test_slice_thickness_and_spacing_in_mm(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00180050", 0.6), ("00180088", 3.84))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_quantity_mapped(result, f"{DIMENSIONS}.hasSliceThickness", 0.6, "mm")
+        assert_quantity_mapped(result, f"{DIMENSIONS}.hasSliceSpacing", 3.84, "mm")
+
+    def test_pixel_spacing_row_then_column(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Pixel Spacing value 1 is the row spacing, value 2 the column spacing."""
+        study = make_frame_study(("00280030", "0.5|0.25"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_quantity_mapped(
+            result, f"{DIMENSIONS}.hasPixelDimensions.hasRowSpacing", 0.5, "mm"
+        )
+        assert_quantity_mapped(
+            result, f"{DIMENSIONS}.hasPixelDimensions.hasColumnSpacing", 0.25, "mm"
+        )
+
+    def test_zero_slice_thickness_dropped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A thickness of 0 is dropped, and alone it creates no ImageDimensions."""
+        study = make_frame_study(("00180050", 0.0))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, DIMENSIONS) is None
+
+    def test_zero_thickness_beside_rows(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00280010", 512), ("00180050", 0.0))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_quantity_mapped(result, f"{DIMENSIONS}.hasNumberOfRows", 512)
+        assert get_path(result, f"{DIMENSIONS}.hasSliceThickness") is None
+
+    def test_malformed_pixel_spacing_dropped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A Pixel Spacing without two numbers creates no ImageDimensions."""
+        study = make_frame_study(("00280030", "0.5"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, DIMENSIONS) is None
+
+
+class TestAnatomicalProjection:
+    """Test View Code Sequence, else View Position -> hasAnatomicalProjection."""
+
+    def test_view_code_legacy_id(self, transform_bundle, make_bundle, base_patient):
+        """The legacy SRT id is translated to SNOMED CT (CID 4010)."""
+        study = make_frame_study(
+            ("00540220", code_sequence("R-10206", meaning="antero-posterior"))
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            f"{FRAME}.hasAnatomicalProjection.hasCode",
+            "399348003",
+            f"{SNOMED_ID_SYSTEM}/399348003",
+        )
+
+    def test_pre_2008_postero_anterior(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """SNM3 R-10214, the code PA had before R-40888, is mapped too."""
+        study = make_frame_study(("00540220", code_sequence("R-10214", "SNM3")))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result, f"{FRAME}.hasAnatomicalProjection.hasCode", "272479007"
+        )
+
+    def test_view_code_sct_taken_as_is(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00540220", code_sequence("399198007", "SCT")))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            f"{FRAME}.hasAnatomicalProjection.hasCode",
+            "399198007",
+            f"{SNOMED_ID_SYSTEM}/399198007",
+        )
+
+    def test_view_position_fallback(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(("00185101", "RL"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result, f"{FRAME}.hasAnatomicalProjection.hasCode", "399198007"
+        )
+
+    def test_view_code_wins_over_view_position(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(
+            ("00540220", code_sequence("R-10236")), ("00185101", "AP")
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result, f"{FRAME}.hasAnatomicalProjection.hasCode", "399173006"
+        )
+
+    def test_unmapped_view_code_blocks_view_position(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A View Code Sequence outside the map gives no projection at all."""
+        study = make_frame_study(
+            ("00540220", code_sequence("R-99999")), ("00185101", "AP")
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasAnatomicalProjection") is None
+
+    def test_oblique_view_position_dropped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00185101", "LLO"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasAnatomicalProjection") is None
+
+
+class TestFrameBodySite:
+    """Test Anatomic Region Sequence (+ Image Laterality) -> hasBodySite."""
+
+    def test_region_legacy_id(self, transform_bundle, make_bundle, base_patient):
+        """The legacy SRT id is translated to SNOMED CT (CID 4031)."""
+        study = make_frame_study(("00082218", code_sequence("T-D9400", meaning="Leg")))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_list_length(result, f"{FRAME}.hasBodySite", 1)
+        assert_code_mapped(
+            result,
+            f"{FRAME}.hasBodySite[0].hasCode",
+            "30021000",
+            f"{SNOMED_ID_SYSTEM}/30021000",
+        )
+
+    def test_non_standard_spine_id(self, transform_bundle, make_bundle, base_patient):
+        """T-D0146 (Spine), outside CID 4031, maps like T-D04FF."""
+        study = make_frame_study(("00082218", code_sequence("T-D0146", meaning="Spine")))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(result, f"{FRAME}.hasBodySite[0].hasCode", "421060004")
+
+    def test_region_sct_taken_as_is(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(("00082218", code_sequence("72696002", "SCT")))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(result, f"{FRAME}.hasBodySite[0].hasCode", "72696002")
+
+    def test_unmapped_region_dropped(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(("00082218", code_sequence("T-99999")))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasBodySite") is None
+
+    def test_bilateral_laterality(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(
+            ("00082218", code_sequence("T-26000", "SNM3")), ("00200062", "B")
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            f"{FRAME}.hasBodySite[0].hasLaterality.hasCode",
+            "51440002",
+            f"{SNOMED_ID_SYSTEM}/51440002",
+        )
+
+    def test_left_laterality(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(
+            ("00082218", code_sequence("T-D9200")), ("00200062", "L")
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result, f"{FRAME}.hasBodySite[0].hasLaterality.hasCode", "7771000"
+        )
+
+    def test_unpaired_laterality_dropped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """U (unpaired body part) is not a laterality."""
+        study = make_frame_study(
+            ("00082218", code_sequence("T-D0010")), ("00200062", "U")
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, f"{FRAME}.hasBodySite[0].hasCode")
+        assert get_path(result, f"{FRAME}.hasBodySite[0].hasLaterality") is None
+
+    def test_laterality_without_region(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """BodySite requires hasCode, so a laterality alone creates none."""
+        study = make_frame_study(("00200062", "R"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasBodySite") is None
+
+
+class TestDataCompressionAlgorithm:
+    """Test Lossy Image Compression (+ ratio, method) -> hasAlgorithm."""
+
+    def test_lossy_with_ratio_and_method(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(
+            ("00282110", "01"), ("00282112", 13.793), ("00282114", "ISO_10918_1")
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_list_length(result, f"{FRAME}.hasAlgorithm", 1)
+        algorithm = f"{FRAME}.hasAlgorithm[0]"
+        assert_path_equals(
+            result, f"{algorithm}.hasType.iri", INDIVIDUAL + "LossyCompression"
+        )
+        assert_path_equals(result, f"{algorithm}.hasMethod.iri", INDIVIDUAL + "ISO109181")
+        assert_quantity_mapped(result, f"{algorithm}.hasRatio", 13.793, "cblnbcbr")
+
+    def test_two_digit_part_method(self, transform_bundle, make_bundle, base_patient):
+        """ISO_14496_10 keeps all digits: ISO1449610."""
+        study = make_frame_study(("00282110", "01"), ("00282114", "ISO_14496_10"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result, f"{FRAME}.hasAlgorithm[0].hasMethod.iri", INDIVIDUAL + "ISO1449610"
+        )
+
+    def test_unknown_method_dropped(self, transform_bundle, make_bundle, base_patient):
+        study = make_frame_study(("00282110", "01"), ("00282114", "ISO_10918_1|ISO_14495_1"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, f"{FRAME}.hasAlgorithm[0].hasType")
+        assert get_path(result, f"{FRAME}.hasAlgorithm[0].hasMethod") is None
+
+    def test_never_lossy_compressed(self, transform_bundle, make_bundle, base_patient):
+        """00 does not mean lossless compression, so no algorithm is created."""
+        study = make_frame_study(("00282110", "00"), ("00282112", 1.0))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasAlgorithm") is None
+
+
+class TestImagingMetric:
+    """Test Rescale Type (0028,1054) -> hasImagingMetric."""
+
+    def test_hounsfield_is_attenuation_coefficient(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00281054", "HU"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(
+            result,
+            f"{FRAME}.hasImagingMetric.hasTypeCode",
+            "112031",
+            f"{DICOM_SYSTEM}/112031",
+        )
+        assert get_path(result, f"{FRAME}.hasImagingMetric.hasUnit") is None
+
+    def test_unspecified_rescale_type_dropped(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        study = make_frame_study(("00281054", "US"))
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, FRAME)
+        assert get_path(result, f"{FRAME}.hasImagingMetric") is None
