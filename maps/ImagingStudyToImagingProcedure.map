@@ -453,8 +453,9 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
         // hasBodyPosition, which the body-position-modality-only invariant permits.
         imagingStudy.series as srcSeries where srcSeries.modality.code = 'MR' -> imgproc.hasImagingSeries = create('ImagingSeries') as tgtSeries, tgtSeries.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries' then {
             // Guarded: without this, every MR series produces an empty BodyPosition whose
-            // hasCode satisfies neither branch of code-iri-or-codingSystem.
-            srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition then {
+            // hasCode satisfies neither branch of code-iri-or-codingSystem. BodyPosition is a
+            // full SPHN concept, so it gets an id like the other nested concepts.
+            srcSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() -> tgtSeries.hasBodyPosition = create('BodyPosition') as tgtBodyPosition, tgtBodyPosition.id = uuid() then {
                 // SPHN requires hasSourceSystem (1..*) on BodyPosition too; taken from the study.
                 imagingStudy.meta as m then refSourceSystem(m, tgtBodyPosition) "bodyPositionSourceSystem";
                 bundle -> tgtBodyPosition then subjectPseudoIdentifier(bundle, tgtBodyPosition) "bodyPositionSubject";

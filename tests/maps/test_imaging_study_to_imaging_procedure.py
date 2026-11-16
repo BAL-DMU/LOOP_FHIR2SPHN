@@ -775,6 +775,26 @@ class TestBodyPosition:
             DICOM_SOURCE,
         )
 
+    def test_body_position_has_unique_id(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Each BodyPosition carries its own id, like the other nested concepts."""
+        study = make_imaging_study(
+            modality="MR",
+            series=[
+                make_series(uid="series-1", modality="MR", patient_position="HFS"),
+                make_series(uid="series-2", modality="MR", patient_position="HFS"),
+            ],
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        series = get_path(result, "content.ImagingProcedure[0].hasImagingSeries")
+        ids = [s["hasBodyPosition"][0].get("id") for s in series]
+        assert all(ids)
+        assert ids[0] != ids[1]
+
     def test_ffs_maps_to_supine(self, transform_bundle, make_bundle, base_patient):
         """FFS (feet first-supine) collapses onto the same code as HFS."""
         study = make_imaging_study(
