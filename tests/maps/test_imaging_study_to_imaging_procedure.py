@@ -30,6 +30,8 @@ hasImagingModalityCode (a dcm: code) and BodyPosition.hasCode (a snomed: code)
 all use the SPHN iri + termid shape, so assert_code_mapped applies to all three.
 """
 
+import pytest
+
 from tests.helpers import (
     assert_code_mapped,
     assert_list_length,
@@ -50,6 +52,10 @@ SUBJECT_REFERENCE = "Patient?identifier=RASPLOOP|KLI_82_RASPLOOP"
 PROCEDURE = "content.ImagingProcedure[0]"
 SERIES = "content.ImagingProcedure[0].hasImagingSeries[0]"
 BODY_POSITION_CODE = "content.ImagingProcedure[0].hasImagingSeries[0].hasBodyPosition[0].hasCode"
+
+# TEST (2026-11-16): the map switches BodyPosition off to see whether MR series pass
+# SHACL with target_concept alone. Drop these skips when the map rule is restored.
+body_position_off = pytest.mark.skip(reason="BodyPosition switched off in the map (connector test)")
 FRAME = "content.ImagingProcedure[0].hasImagingSeries[0].hasImagingFrame[0]"
 DIMENSIONS = f"{FRAME}.hasImageDimensions"
 INDIVIDUAL = "https://biomedit.ch/rdf/sphn-schema/sphn/individual#"
@@ -326,6 +332,7 @@ class TestSubjectPseudoIdentifier:
         assert_reference(result, f"{SERIES}.hasSubjectPseudoIdentifier", self.EXPECTED_ID)
         assert "hasIdentifier" not in get_path(result, f"{SERIES}.hasSubjectPseudoIdentifier")
 
+    @body_position_off
     def test_mr_series_and_body_position_reference_root_subject(
         self, transform_bundle, make_bundle
     ):
@@ -697,6 +704,24 @@ class TestSeriesTargetConcept:
             "https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries",
         )
 
+    def test_mr_series_keeps_target_concept_without_body_position(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """TEST 2026-11-16: an MR series with Patient Position keeps target_concept but no BodyPosition."""
+        study = make_imaging_study(
+            modality="MR", series=[make_series(modality="MR", patient_position="HFS")]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_equals(
+            result,
+            f"{SERIES}.target_concept",
+            "https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries",
+        )
+        assert get_path(result, f"{SERIES}.hasBodyPosition") is None
+
     def test_non_mr_series_has_no_target_concept(
         self, transform_bundle, make_bundle, base_patient
     ):
@@ -732,6 +757,7 @@ class TestSeriesTargetConcept:
         assert by_id["ImagingSeries/series-ct"] is None
 
 
+@body_position_off
 class TestBodyPosition:
     """Test DICOM Patient Position (0018,5100) -> BodyPosition.hasCode.
 
