@@ -1,4 +1,4 @@
-FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.1.13
+FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.1.21
 EXPOSE 8080 
 
 # Alpine:
