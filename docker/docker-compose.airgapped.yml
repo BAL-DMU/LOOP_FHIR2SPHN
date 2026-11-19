@@ -1,0 +1,13 @@
+# Override for simulating an airgapped deployment (used in CI).
+#
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.airgapped.yml up -d
+#
+# Gives the compose network a fixed Linux bridge name so the host firewall can
+# block all outbound traffic from it (see the "Block internet access" step in
+# .github/workflows/ci.yml). An `internal: true` network is not used because
+# Docker does not publish ports on internal networks, and the tests reach
+# Matchbox from the host via localhost:8080.
+networks:
+  default:
+    driver_opts:
+      com.docker.network.bridge.name: br-airgapped
