@@ -53,6 +53,13 @@ jobs:
 
       - name: Verify container has no internet access
         run: |
+          # Without this check, a container that already exited would make every
+          # `exec` below fail and wrongly count as "unreachable".
+          if [ -z "$(docker compose ps -q --status running fhir2sphn)" ]; then
+            echo "::error::fhir2sphn container is not running"
+            docker compose ps -a
+            exit 1
+          fi
           for url in https://packages.fhir.org https://github.com http://1.1.1.1; do
             if docker compose exec -T fhir2sphn curl -sS --max-time 10 -o /dev/null "$url"; then
               echo "::error::Container reached $url - airgap is not in effect"
