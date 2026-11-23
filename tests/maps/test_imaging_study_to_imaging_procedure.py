@@ -6,17 +6,19 @@ Tests the ImagingStudy -> ImagingProcedure mapping including:
                                   id falls back to 'ImagingStudy/' + resource id
 - meta.source                  -> hasSourceSystem
 - started                      -> hasStartDateTime
-- modality                     -> hasCode (cm-acquisitionModality, DICOM -> SNOMED)
+- modality                     -> hasCode (cm-acquisitionModality, DICOM -> SNOMED);
+                                  studies with no mapped modality are skipped
 - bundle Patient.identifier     -> not mapped anywhere: the procedure, series and
                                   BodyPosition are top-level, so the connector injects it
-- series                       -> top-level content.ImagingSeries (MR:
-                                  content.MagneticResonanceImagingSeries), linked from
+- series                       -> top-level content.<SPHN series class> (CT, MR,
+                                  PET, X-ray by modality; anything else in scope:
+                                  content.ImagingSeries), linked from
                                   hasImagingSeries as {id, target_concept}; uid -> id,
                                   description, started, modality -> dcm:
                                   hasImagingModalityCode, numberOfInstances ->
                                   hasNumberOfFrames, study meta.source -> hasSourceSystem;
                                   series without uid are skipped
-- series (MR only)             -> top-level content.BodyPosition from DICOM Patient
+- series (CT/MR/PET/X-ray)     -> top-level content.BodyPosition from DICOM Patient
                                   Position (0018,5100), cm-patientPosition, linked from
                                   the series as hasBodyPosition {id}
 - series.instance              -> hasImagingFrame nested in the series (uid -> id, no
@@ -32,6 +34,8 @@ Note on Code shapes: hasCode (a list, 1..* on ImagingProcedure),
 hasImagingModalityCode (a dcm: code) and BodyPosition.hasCode (a snomed: code)
 all use the SPHN iri + termid shape, so assert_code_mapped applies to all three.
 """
+
+import pytest
 
 from tests.helpers import (
     assert_code_mapped,
@@ -51,11 +55,32 @@ DICOM_SOURCE = "https://research.balgrist.ch/HDR/DICOM"
 SUBJECT_REFERENCE = "Patient?identifier=RASPLOOP|KLI_82_RASPLOOP"
 
 PROCEDURE = "content.ImagingProcedure[0]"
-# Series and BodyPosition are top-level content concepts; the procedure and the MR series
-# only link to them by id (the connector reads them only from the top level).
+# Series and BodyPosition are top-level content concepts; the procedure and the modality
+# series only link to them by id (the connector reads them only from the top level). Each
+# SPHN series class has its own content key. The helpers default to CT, so SERIES is the CT
+# key; PLAIN_SERIES is for modalities without a class of their own (e.g. US).
 SERIES_LINK = f"{PROCEDURE}.hasImagingSeries[0]"
-SERIES = "content.ImagingSeries[0]"
+SERIES = "content.ComputedTomographyImagingSeries[0]"
+PLAIN_SERIES = "content.ImagingSeries[0]"
 MR_SERIES = "content.MagneticResonanceImagingSeries[0]"
+PET_SERIES = "content.PositronEmissionTomographyImagingSeries[0]"
+XRAY_SERIES = "content.XRayImagingSeries[0]"
+# SPHN series class per DICOM modality (from the hasImagingModalityCode restriction of
+# each class); any other in-scope modality is a plain ImagingSeries.
+XRAY_MODALITIES = ("BMD", "CR", "DX", "IO", "MG", "PX", "RF", "RG", "XA")
+SERIES_CLASS = {
+    "CT": "ComputedTomographyImagingSeries",
+    "MR": "MagneticResonanceImagingSeries",
+    "PT": "PositronEmissionTomographyImagingSeries",
+    **{code: "XRayImagingSeries" for code in XRAY_MODALITIES},
+}
+SERIES_KEYS = (
+    "ImagingSeries",
+    "ComputedTomographyImagingSeries",
+    "MagneticResonanceImagingSeries",
+    "PositronEmissionTomographyImagingSeries",
+    "XRayImagingSeries",
+)
 BODY_POSITION = "content.BodyPosition[0]"
 BODY_POSITION_CODE = f"{BODY_POSITION}.hasCode"
 SPHN = "https://biomedit.ch/rdf/sphn-schema/sphn#"
@@ -441,6 +466,28 @@ class TestAcquisitionModality:
 
         assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "168537006", "/168537006")
 
+    def test_pt_maps_to_positron_emission_tomography(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A PET-only study maps to SNOMED 82918005 and gets its PET series."""
+        study = make_imaging_study(modality="PT", series=[make_series(modality="PT")])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "82918005", "/82918005")
+        assert_path_exists(result, PET_SERIES)
+
+    def test_mg_maps_to_mammography(self, transform_bundle, make_bundle, base_patient):
+        """A mammography-only study maps to SNOMED 71651007 and gets its X-ray series."""
+        study = make_imaging_study(modality="MG", series=[make_series(modality="MG")])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_code_mapped(result, f"{PROCEDURE}.hasCode[0]", "71651007", "/71651007")
+        assert_path_exists(result, XRAY_SERIES)
+
     def test_code_is_snomed_iri_list(self, transform_bundle, make_bundle, base_patient):
         """hasCode is a list of SPHN Codes whose iri is the full SNOMED id."""
         study = make_imaging_study(modality="CT")
@@ -536,9 +583,9 @@ class TestImagingSeries:
 
         result = transform_bundle(bundle)
 
-        assert_code_mapped(result, f"{SERIES}.hasImagingModalityCode", "US")
+        assert_code_mapped(result, f"{PLAIN_SERIES}.hasImagingModalityCode", "US")
         assert_path_equals(
-            result, f"{SERIES}.hasImagingModalityCode.iri", f"{DICOM_SYSTEM}/US"
+            result, f"{PLAIN_SERIES}.hasImagingModalityCode.iri", f"{DICOM_SYSTEM}/US"
         )
 
     def test_mr_series_modality_code(self, transform_bundle, make_bundle, base_patient):
@@ -559,7 +606,9 @@ class TestImagingSeries:
 
         result = transform_bundle(bundle)
 
-        assert_code_mapped(result, f"{SERIES}.hasImagingModalityCode", "NM", "/DCM/NM")
+        assert_code_mapped(
+            result, f"{PLAIN_SERIES}.hasImagingModalityCode", "NM", "/DCM/NM"
+        )
 
     def test_series_source_system(self, transform_bundle, make_bundle, base_patient):
         """Every series, MR or not, takes the study's meta.source (SPHN: 1..*)."""
@@ -625,7 +674,7 @@ class TestImagingSeries:
         result = transform_bundle(bundle)
 
         assert_list_length(result, f"{PROCEDURE}.hasImagingSeries", 3)
-        assert_list_length(result, "content.ImagingSeries", 3)
+        assert_list_length(result, "content.ComputedTomographyImagingSeries", 3)
 
     def test_series_are_top_level_not_nested(
         self, transform_bundle, make_bundle, base_patient
@@ -639,7 +688,7 @@ class TestImagingSeries:
 
         assert get_path(result, SERIES_LINK) == {
             "id": "ImagingSeries/series-a",
-            "target_concept": f"{SPHN}ImagingSeries",
+            "target_concept": f"{SPHN}ComputedTomographyImagingSeries",
         }
         assert_path_equals(result, f"{SERIES}.id", "ImagingSeries/series-a")
         assert_path_equals(result, f"{SERIES}.hasDescription", "desc")
@@ -653,6 +702,8 @@ class TestImagingSeries:
             series=[
                 make_series(uid="series-ct", modality="CT"),
                 make_series(uid="series-mr", modality="MR"),
+                make_series(uid="series-pt", modality="PT"),
+                make_series(uid="series-dx", modality="DX"),
                 make_series(uid="series-us", modality="US"),
             ]
         )
@@ -660,15 +711,18 @@ class TestImagingSeries:
 
         result = transform_bundle(bundle)
 
-        content_key = {
-            f"{SPHN}ImagingSeries": "ImagingSeries",
-            f"{SPHN}MagneticResonanceImagingSeries": "MagneticResonanceImagingSeries",
-        }
         links = get_path(result, f"{PROCEDURE}.hasImagingSeries")
-        assert len(links) == 3
+        assert len(links) == 5
         for link in links:
-            series = get_path(result, f"content.{content_key[link['target_concept']]}")
+            # The content key is the SPHN class name that target_concept names.
+            key = link["target_concept"].removeprefix(SPHN)
+            series = get_path(result, f"content.{key}")
             assert link["id"] in {s["id"] for s in series}
+        # Each series appears exactly once, under one key.
+        all_ids = [
+            s["id"] for key in SERIES_KEYS for s in (get_path(result, f"content.{key}") or [])
+        ]
+        assert sorted(all_ids) == sorted(link["id"] for link in links)
 
     def test_series_without_uid_is_skipped(
         self, transform_bundle, make_bundle, base_patient
@@ -682,7 +736,7 @@ class TestImagingSeries:
         result = transform_bundle(bundle)
 
         assert_list_length(result, f"{PROCEDURE}.hasImagingSeries", 1)
-        assert_list_length(result, "content.ImagingSeries", 1)
+        assert_list_length(result, "content.ComputedTomographyImagingSeries", 1)
 
 
 class TestNumberOfFrames:
@@ -752,59 +806,90 @@ class TestSeriesTargetConcept:
         assert_path_exists(result, MR_SERIES)
         assert get_path(result, SERIES) is None
 
-    def test_non_mr_series_link_target_concept(
-        self, transform_bundle, make_bundle, base_patient
+    @pytest.mark.parametrize("modality", ["CT", "PT", *XRAY_MODALITIES])
+    def test_modality_series_link_target_concept(
+        self, modality, transform_bundle, make_bundle, base_patient
     ):
-        """A non-MR series is linked as plain ImagingSeries (required on every link)."""
-        study = make_imaging_study(series=[make_series(modality="CT")])
+        """CT, PET and every X-ray modality go to their own SPHN class: the link's
+        target_concept and the content key both name it, and no other key is used."""
+        study = make_imaging_study(series=[make_series(modality=modality)])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        series_class = SERIES_CLASS[modality]
+        assert_path_equals(result, f"{SERIES_LINK}.target_concept", f"{SPHN}{series_class}")
+        assert_list_length(result, f"content.{series_class}", 1)
+        for key in SERIES_KEYS:
+            if key != series_class:
+                assert get_path(result, f"content.{key}") is None
+
+    @pytest.mark.parametrize("modality", ["US", "NM", "ES"])
+    def test_plain_series_link_target_concept(
+        self, modality, transform_bundle, make_bundle, base_patient
+    ):
+        """A modality without a class of its own (SPHN has no US class) is linked as
+        plain ImagingSeries (target_concept is required on every link)."""
+        study = make_imaging_study(series=[make_series(modality=modality)])
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
         assert_path_equals(result, f"{SERIES_LINK}.target_concept", f"{SPHN}ImagingSeries")
-        assert_path_exists(result, SERIES)
-        assert get_path(result, MR_SERIES) is None
+        assert_list_length(result, "content.ImagingSeries", 1)
+        for key in SERIES_KEYS[1:]:
+            assert get_path(result, f"content.{key}") is None
 
     def test_series_carry_no_target_concept(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """Neither top-level series kind carries target_concept itself."""
+        """No top-level series carries target_concept itself."""
         study = make_imaging_study(
             series=[
                 make_series(uid="series-mr", modality="MR"),
                 make_series(uid="series-ct", modality="CT"),
+                make_series(uid="series-pt", modality="PT"),
+                make_series(uid="series-dx", modality="DX"),
+                make_series(uid="series-us", modality="US"),
             ]
         )
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert "target_concept" not in get_path(result, SERIES)
-        assert "target_concept" not in get_path(result, MR_SERIES)
+        for series in (SERIES, MR_SERIES, PET_SERIES, XRAY_SERIES, PLAIN_SERIES):
+            assert "target_concept" not in get_path(result, series)
 
     def test_mixed_series_get_distinct_target_concepts(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """MR and non-MR series in one study each take their own branch exactly once."""
+        """Series of different classes in one study each take their own rule exactly
+        once."""
         study = make_imaging_study(
             series=[
                 make_series(uid="series-mr", modality="MR"),
                 make_series(uid="series-ct", modality="CT"),
+                make_series(uid="series-pt", modality="PT"),
+                make_series(uid="series-xa", modality="XA"),
+                make_series(uid="series-us", modality="US"),
             ]
         )
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_list_length(result, f"{PROCEDURE}.hasImagingSeries", 2)
+        assert_list_length(result, f"{PROCEDURE}.hasImagingSeries", 5)
         series_list = get_path(result, f"{PROCEDURE}.hasImagingSeries")
         by_id = {s.get("id"): s.get("target_concept") for s in series_list}
         assert by_id == {
             "ImagingSeries/series-mr": f"{SPHN}MagneticResonanceImagingSeries",
-            "ImagingSeries/series-ct": f"{SPHN}ImagingSeries",
+            "ImagingSeries/series-ct": f"{SPHN}ComputedTomographyImagingSeries",
+            "ImagingSeries/series-pt": f"{SPHN}PositronEmissionTomographyImagingSeries",
+            "ImagingSeries/series-xa": f"{SPHN}XRayImagingSeries",
+            "ImagingSeries/series-us": f"{SPHN}ImagingSeries",
         }
-        assert_list_length(result, "content.MagneticResonanceImagingSeries", 1)
-        assert_list_length(result, "content.ImagingSeries", 1)
+        for key in SERIES_KEYS:
+            assert_list_length(result, f"content.{key}", 1)
 
 
 class TestBodyPosition:
@@ -971,11 +1056,64 @@ class TestBodyPosition:
         assert_code_mapped(result, BODY_POSITION_CODE, "102536004")
 
 
+    @pytest.mark.parametrize("modality", ["CT", "PT", "DX"])
+    def test_modality_series_get_body_position(
+        self, modality, transform_bundle, make_bundle, base_patient
+    ):
+        """CT, PET and X-ray series get a BodyPosition like MR: a top-level concept the
+        series links to by id, with the same code mapping."""
+        study = make_imaging_study(
+            series=[make_series(uid="series-1", modality=modality, patient_position="HFS")]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        series = f"content.{SERIES_CLASS[modality]}[0]"
+        assert get_path(result, f"{series}.hasBodyPosition") == [
+            {"id": "BodyPosition/series-1"}
+        ]
+        assert_list_length(result, "content.BodyPosition", 1)
+        assert_path_equals(result, f"{BODY_POSITION}.id", "BodyPosition/series-1")
+        assert_code_mapped(result, BODY_POSITION_CODE, "40199007", "/40199007")
+        assert_reference(result, f"{BODY_POSITION}.hasSourceSystem[0]", DICOM_SOURCE)
+
+    def test_every_body_position_link_resolves(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Across classes, each hasBodyPosition link matches exactly one top-level
+        BodyPosition and no BodyPosition is left unlinked."""
+        study = make_imaging_study(
+            series=[
+                make_series(uid="series-mr", modality="MR", patient_position="HFP"),
+                make_series(uid="series-ct", modality="CT", patient_position="HFS"),
+                make_series(uid="series-ct2", modality="CT"),
+                make_series(uid="series-us", modality="US", patient_position="HFS"),
+            ]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        links = [
+            link["id"]
+            for key in SERIES_KEYS
+            for series in (get_path(result, f"content.{key}") or [])
+            for link in series.get("hasBodyPosition", [])
+        ]
+        ids = [bp["id"] for bp in get_path(result, "content.BodyPosition")]
+        assert sorted(links) == sorted(ids) == [
+            "BodyPosition/series-ct",
+            "BodyPosition/series-mr",
+        ]
+
+
 class TestBodyPositionGuards:
     """Test when BodyPosition is deliberately not created.
 
-    Only the MR branch links a BodyPosition (SPHN defines hasBodyPosition on the
-    modality series, not on plain ImagingSeries), and it is guarded on the
+    Only the modality-class rules (CT, MR, PET, X-ray) link a BodyPosition (SPHN
+    defines hasBodyPosition on the modality series, not on plain ImagingSeries), and
+    it is guarded on the
     0018,5100 tag being present so that an empty BodyPosition - whose hasCode
     would satisfy neither branch of code-iri-or-codingSystem - is never emitted.
     """
@@ -1018,19 +1156,35 @@ class TestBodyPositionGuards:
         assert get_path(result, f"{MR_SERIES}.hasBodyPosition") is None
         assert get_path(result, "content.BodyPosition") is None
 
-    def test_non_mr_series_with_patient_position(
+    def test_plain_series_with_patient_position(
         self, transform_bundle, make_bundle, base_patient
     ):
-        """A non-MR series drops the patient position, since only MR carries it."""
+        """A plain ImagingSeries (e.g. US) drops the patient position: SPHN's
+        ImagingSeries has no hasBodyPosition."""
         study = make_imaging_study(
-            series=[make_series(modality="CT", patient_position="HFS")]
+            modality="US", series=[make_series(modality="US", patient_position="HFS")]
         )
         bundle = make_bundle(base_patient, study)
 
         result = transform_bundle(bundle)
 
-        assert_path_exists(result, SERIES)
-        assert get_path(result, f"{SERIES}.hasBodyPosition") is None
+        assert_path_exists(result, PLAIN_SERIES)
+        assert get_path(result, f"{PLAIN_SERIES}.hasBodyPosition") is None
+        assert get_path(result, "content.BodyPosition") is None
+
+    @pytest.mark.parametrize("modality", ["CT", "PT", "DX"])
+    def test_modality_series_without_patient_position(
+        self, modality, transform_bundle, make_bundle, base_patient
+    ):
+        """The guard applies to CT, PET and X-ray as well: no tag, no BodyPosition."""
+        study = make_imaging_study(series=[make_series(modality=modality)])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        series = f"content.{SERIES_CLASS[modality]}[0]"
+        assert_path_exists(result, series)
+        assert get_path(result, f"{series}.hasBodyPosition") is None
         assert get_path(result, "content.BodyPosition") is None
 
 
@@ -1147,6 +1301,22 @@ class TestImagingFrame:
 
         assert_path_exists(result, FRAME)
         assert "target_concept" not in get_path(result, FRAME)
+
+    @pytest.mark.parametrize("modality", ["PT", "DX"])
+    def test_pet_and_xray_frames_nested_without_target_concept(
+        self, modality, transform_bundle, make_bundle, base_patient
+    ):
+        """PET and X-ray frames are nested in their own series class, with the same
+        frame mapping and no target_concept."""
+        study = make_frame_study(("00080008", "ORIGINAL|PRIMARY"), modality=modality)
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        frame = f"content.{SERIES_CLASS[modality]}[0].hasImagingFrame[0]"
+        assert_path_equals(result, f"{frame}.id", "ImagingFrame/instance-1")
+        assert "target_concept" not in get_path(result, frame)
+        assert_path_exists(result, f"{frame}.hasType")
 
     def test_multiple_instances_carry_only_ids(
         self, transform_bundle, make_bundle, base_patient

@@ -97,10 +97,13 @@ Title: "List of SPHN concepts"
 * ImagingProcedure 0..* SU ImagingProcedure "" ""
 // The connector only reads series and BodyPosition from the top level of content
 // (RML iterators $.content.sphn:<Class>[*]); ImagingProcedure and the MR series only link
-// to them by id. The content key names the SPHN class, so the MR series use the same
-// flattened ImagingSeries type under their own key.
+// to them by id. The content key names the SPHN class, so every modality class uses the
+// same flattened ImagingSeries type under its own key.
 * ImagingSeries 0..* SU ImagingSeries "" ""
+* ComputedTomographyImagingSeries 0..* SU ImagingSeries "" ""
 * MagneticResonanceImagingSeries 0..* SU ImagingSeries "" ""
+* PositronEmissionTomographyImagingSeries 0..* SU ImagingSeries "" ""
+* XRayImagingSeries 0..* SU ImagingSeries "" ""
 * BodyPosition 0..* SU BodyPosition "" ""
 
 
@@ -663,10 +666,12 @@ Title: "SPHN Imaging Procedure"
 // every property in full, and they differ from the base by exactly one addition:
 // 'hasBodyPosition'. Since FML cannot reach a subtype property through a base-typed
 // element, the five are flattened into this one type. The real SPHN class is given by the
-// Content key the series is put under (ImagingSeries, MagneticResonanceImagingSeries) and by
-// target_concept on the ImagingProcedure link; the series itself carries no target_concept
-// (the connector's JSON schema does not allow one there). hasBodyPosition is only filled
-// for MR series; the map guarantees that.
+// Content key the series is put under (ImagingSeries, ComputedTomographyImagingSeries,
+// MagneticResonanceImagingSeries, PositronEmissionTomographyImagingSeries, XRayImagingSeries)
+// and by target_concept on the ImagingProcedure link; the series itself carries no
+// target_concept (the connector's JSON schema does not allow one there). hasBodyPosition is
+// only filled for the four modality classes, never for plain ImagingSeries; the map
+// guarantees that.
 Logical: ImagingSeries
 Id: SPHN-ImagingSeries
 Parent: Concept
@@ -686,8 +691,8 @@ Title: "SPHN Imaging Series"
 // No hasSubjectPseudoIdentifier: series are top-level content concepts, so the connector
 // injects it.
 
-// Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not
-// modelled separately - see the note above ImagingSeries.
+// Note: the CT, MR, PET and X-Ray series classes are not modelled separately - they share
+// the ImagingSeries type under their own Content key, see the note above ImagingSeries.
 
 // Note: the five SPHN frame classes are flattened the same way into ImagingFrame. Frames stay
 // nested in their series and carry no target_concept: each series class allows exactly one

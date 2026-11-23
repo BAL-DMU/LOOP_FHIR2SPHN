@@ -10,6 +10,8 @@ conceptmap "cm-acquisitionModality" {
   s:RF == t:44491008     // Radiofluoroscopy -> Fluoroscopy
   s:DX == t:168537006    // Digital Radiography -> Plain radiography
   s:CR == t:168537006    // Computed Radiography -> Plain radiography (same target as DX)
+  s:PT == t:82918005     // Positron emission tomography
+  s:MG == t:71651007     // Mammography
   // s:ES, s:OT, s:SR, s:PR omitted: Other, SR Document, and Presentation State
   // are not imaging acquisition procedures, so there's no valid
   // descendant of 363679005 to map them to
@@ -434,10 +436,10 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
     // - started (SPHN hasStartDateTime is 1..1), with no fallback to series[].started;
     // - a study modality in cm-acquisitionModality (SPHN hasCode is 1..*), keep this list in
     //   sync with the concept map;
-    // - at least one in-scope series, i.e. one the series rules below would emit (same DCM
-    //   list as the non-MR series rule).
+    // - at least one in-scope series, i.e. one the series rules below would emit (the DCM
+    //   part of SPHN's hasImagingModalityCode union, which the per-class rules split up).
     imagingStudy where started.exists()
-        and modality.where(code in ('XA' | 'CT' | 'MR' | 'US' | 'RF' | 'DX' | 'CR')).exists()
+        and modality.where(code in ('XA' | 'CT' | 'MR' | 'US' | 'RF' | 'DX' | 'CR' | 'PT' | 'MG')).exists()
         and series.where(modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC')).exists()
       -> content.ImagingProcedure = create('ImagingProcedure') as imgproc then {
         imagingStudy.meta as m then refSourceSystem(m, imgproc);
@@ -452,7 +454,7 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
         // One SPHN Code (iri + termid) per mappable modality; hasCode is 1..* on
         // ImagingProcedure. CR and DX share a target, so a study listing both would get the
         // code twice; the Balgrist export carries one modality per study, so no dedup.
-        imagingStudy.modality as modality where code in ('XA' | 'CT' | 'MR' | 'US' | 'RF' | 'DX' | 'CR') -> translate(modality, '#cm-acquisitionModality') as cm,
+        imagingStudy.modality as modality where code in ('XA' | 'CT' | 'MR' | 'US' | 'RF' | 'DX' | 'CR' | 'PT' | 'MG') -> translate(modality, '#cm-acquisitionModality') as cm,
             imgproc.hasCode as code, code.termid = (%cm.code), code.iri = (%cm.system & '/' & %cm.code) "hasCode";
 
         // Series are emitted as top-level content concepts: the connector reads them only from
@@ -462,47 +464,58 @@ group imagingProcedure(source imagingStudy: ImagingStudy, source bundle: Bundle,
         // e.g. KLI_31 on 2026-11-16) or, without target_concept, was dropped silently.
         // The link id and the series id are both 'ImagingSeries/' + uid, so the pipeline rewrites
         // them to the same value; series without a uid can't be linked and are skipped.
-        // The four modality classes are flattened into the ImagingSeries type (see the logical
-        // model); MR is the only one mapped separately, as it is the only one with BodyPosition.
+        // Each SPHN modality class has its own Content key and its own rule; the allowed DCM
+        // codes per class come from the SPHN schema (hasImagingModalityCode restriction):
+        // CT -> ComputedTomography, MR -> MagneticResonance, PT -> PositronEmissionTomography,
+        // BMD/CR/DX/IO/MG/PX/RF/RG/XA -> XRay. All five classes share the flattened
+        // ImagingSeries type (see the logical model). The four modality classes allow
+        // hasBodyPosition; plain ImagingSeries does not.
         imagingStudy.series as srcSeries where srcSeries.modality.code = 'MR' and srcSeries.uid.exists() then {
             srcSeries.uid as uid -> imgproc.hasImagingSeries = create('ImagingSeriesReference') as seriesRef,
                 seriesRef.id = ('ImagingSeries/' & %uid),
                 seriesRef.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries' "seriesLinkMR";
             srcSeries -> content.MagneticResonanceImagingSeries = create('ImagingSeries') as tgtSeries then {
-                // Guarded: without this, every MR series produces an empty BodyPosition whose
-                // hasCode satisfies neither branch of code-iri-or-codingSystem. BodyPosition is
-                // also a top-level concept the series links to by id. Its id is derived from the
-                // series uid (one BodyPosition per series), so link and concept match and stay
-                // stable across runs; the BMIP ingestion (Furnace) rejects the whole patient
-                // document when a non-shared concept has no id.
-                srcSeries as bpSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() then {
-                    bpSeries.uid as uid -> tgtSeries.hasBodyPosition = create('ConceptIdReference') as bpRef,
-                        bpRef.id = ('BodyPosition/' & %uid) "bodyPositionLink";
-                    bpSeries.uid as uid -> content.BodyPosition = create('BodyPosition') as tgtBodyPosition,
-                        tgtBodyPosition.id = ('BodyPosition/' & %uid) then {
-                        // SPHN requires hasSourceSystem (1..*) on BodyPosition too; taken from the study.
-                        imagingStudy.meta as m then refSourceSystem(m, tgtBodyPosition) "bodyPositionSourceSystem";
-                        bpSeries -> tgtBodyPosition then bodyPosition(bpSeries, tgtBodyPosition) "bodyPositionCode";
-                    } "bodyPositionConcept";
-                } "bodyPosition";
-                // SPHN requires hasSourceSystem (1..*) on every series; taken from the study.
-                imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystemMR";
-                srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";
-                // One frame per listed instance; frames stay nested in their series.
-                srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesMR";
+                srcSeries then seriesBodyPosition(srcSeries, imagingStudy, content, tgtSeries) "bodyPositionMR";
+                srcSeries then seriesContent(srcSeries, imagingStudy, tgtSeries) "contentMR";
             } "seriesMR";
         } "mapSeriesMR";
-        // Series whose modality is outside the DCM part of SPHN's hasImagingModalityCode union
-        // (e.g. OT, SR, PR) are out of scope and skipped entirely. MR is in the list, so the
-        // MR branch above needs no such filter.
-        imagingStudy.series as srcSeries where srcSeries.modality.code != 'MR' and srcSeries.uid.exists() and srcSeries.modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC') then {
+        imagingStudy.series as srcSeries where srcSeries.modality.code = 'CT' and srcSeries.uid.exists() then {
+            srcSeries.uid as uid -> imgproc.hasImagingSeries = create('ImagingSeriesReference') as seriesRef,
+                seriesRef.id = ('ImagingSeries/' & %uid),
+                seriesRef.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ComputedTomographyImagingSeries' "seriesLinkCT";
+            srcSeries -> content.ComputedTomographyImagingSeries = create('ImagingSeries') as tgtSeries then {
+                srcSeries then seriesBodyPosition(srcSeries, imagingStudy, content, tgtSeries) "bodyPositionCT";
+                srcSeries then seriesContent(srcSeries, imagingStudy, tgtSeries) "contentCT";
+            } "seriesCT";
+        } "mapSeriesCT";
+        imagingStudy.series as srcSeries where srcSeries.modality.code = 'PT' and srcSeries.uid.exists() then {
+            srcSeries.uid as uid -> imgproc.hasImagingSeries = create('ImagingSeriesReference') as seriesRef,
+                seriesRef.id = ('ImagingSeries/' & %uid),
+                seriesRef.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#PositronEmissionTomographyImagingSeries' "seriesLinkPET";
+            srcSeries -> content.PositronEmissionTomographyImagingSeries = create('ImagingSeries') as tgtSeries then {
+                srcSeries then seriesBodyPosition(srcSeries, imagingStudy, content, tgtSeries) "bodyPositionPET";
+                srcSeries then seriesContent(srcSeries, imagingStudy, tgtSeries) "contentPET";
+            } "seriesPET";
+        } "mapSeriesPET";
+        imagingStudy.series as srcSeries where srcSeries.modality.code in ('BMD' | 'CR' | 'DX' | 'IO' | 'MG' | 'PX' | 'RF' | 'RG' | 'XA') and srcSeries.uid.exists() then {
+            srcSeries.uid as uid -> imgproc.hasImagingSeries = create('ImagingSeriesReference') as seriesRef,
+                seriesRef.id = ('ImagingSeries/' & %uid),
+                seriesRef.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#XRayImagingSeries' "seriesLinkXRay";
+            srcSeries -> content.XRayImagingSeries = create('ImagingSeries') as tgtSeries then {
+                srcSeries then seriesBodyPosition(srcSeries, imagingStudy, content, tgtSeries) "bodyPositionXRay";
+                srcSeries then seriesContent(srcSeries, imagingStudy, tgtSeries) "contentXRay";
+            } "seriesXRay";
+        } "mapSeriesXRay";
+        // Every other modality in the DCM part of SPHN's hasImagingModalityCode union (e.g. US)
+        // is a plain ImagingSeries, without BodyPosition. Modalities outside that union (e.g. OT,
+        // SR, PR) are out of scope and skipped entirely.
+        imagingStudy.series as srcSeries where srcSeries.modality.code in ('AR' | 'BDUS' | 'BI' | 'BMD' | 'CFM' | 'CR' | 'CT' | 'DG' | 'DMS' | 'DX' | 'ECG' | 'EEG' | 'EMG' | 'EOG' | 'EPS' | 'ES' | 'GM' | 'HD' | 'IO' | 'IVOCT' | 'IVUS' | 'KER' | 'LEN' | 'LS' | 'MG' | 'MR' | 'NM' | 'OAM' | 'OCT' | 'OP' | 'OPM' | 'OPT' | 'OPTBSV' | 'OPTENF' | 'OPV' | 'OSS' | 'PA' | 'POS' | 'PT' | 'PX' | 'RESP' | 'RF' | 'RG' | 'RTIMAGE' | 'SM' | 'SRF' | 'TG' | 'US' | 'VA' | 'XA' | 'XC')
+            and (srcSeries.modality.code in ('MR' | 'CT' | 'PT' | 'BMD' | 'CR' | 'DX' | 'IO' | 'MG' | 'PX' | 'RF' | 'RG' | 'XA')).not() and srcSeries.uid.exists() then {
             srcSeries.uid as uid -> imgproc.hasImagingSeries = create('ImagingSeriesReference') as seriesRef,
                 seriesRef.id = ('ImagingSeries/' & %uid),
                 seriesRef.target_concept = 'https://biomedit.ch/rdf/sphn-schema/sphn#ImagingSeries' "seriesLink";
             srcSeries -> content.ImagingSeries = create('ImagingSeries') as tgtSeries then {
-                imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystem";
-                srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "defaultSeries";
-                srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "framesDefault";
+                srcSeries then seriesContent(srcSeries, imagingStudy, tgtSeries) "contentDefault";
             } "series";
         } "mapSeriesDefault";
 
@@ -523,6 +536,34 @@ SubjectPseudoIdentifier: not set anywhere in this map. ImagingProcedure, the ser
   BodyPosition are all top-level content concepts, so the connector injects it and rejects
   an explicit one.
 */
+
+// Body shared by every series class: source system, the common series fields and the frames.
+group seriesContent(source srcSeries, source imagingStudy: ImagingStudy, target tgtSeries: ImagingSeries) {
+    // SPHN requires hasSourceSystem (1..*) on every series; taken from the study.
+    imagingStudy.meta as m then refSourceSystem(m, tgtSeries) "seriesSourceSystem";
+    srcSeries -> tgtSeries then imagingSeries(srcSeries, tgtSeries) "commonSeries";
+    // One frame per listed instance; frames stay nested in their series.
+    srcSeries.instance as srcInstance -> tgtSeries.hasImagingFrame = create('ImagingFrame') as tgtFrame then imagingFrame(srcInstance, srcSeries, imagingStudy, tgtFrame) "frames";
+}
+
+// BodyPosition for the four modality series classes (plain ImagingSeries has no
+// hasBodyPosition). Guarded: without the guard, every series produces an empty BodyPosition
+// whose hasCode satisfies neither branch of code-iri-or-codingSystem. BodyPosition is a
+// top-level concept the series links to by id. Its id is derived from the series uid (one
+// BodyPosition per series), so link and concept match and stay stable across runs; the BMIP
+// ingestion (Furnace) rejects the whole patient document when a non-shared concept has no id.
+group seriesBodyPosition(source srcSeries, source imagingStudy: ImagingStudy, target content: Content, target tgtSeries: ImagingSeries) {
+    srcSeries as bpSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() then {
+        bpSeries.uid as uid -> tgtSeries.hasBodyPosition = create('ConceptIdReference') as bpRef,
+            bpRef.id = ('BodyPosition/' & %uid) "bodyPositionLink";
+        bpSeries.uid as uid -> content.BodyPosition = create('BodyPosition') as tgtBodyPosition,
+            tgtBodyPosition.id = ('BodyPosition/' & %uid) then {
+            // SPHN requires hasSourceSystem (1..*) on BodyPosition too; taken from the study.
+            imagingStudy.meta as m then refSourceSystem(m, tgtBodyPosition) "bodyPositionSourceSystem";
+            bpSeries -> tgtBodyPosition then bodyPosition(bpSeries, tgtBodyPosition) "bodyPositionCode";
+        } "bodyPositionConcept";
+    } "bodyPosition";
+}
 
 group imagingSeries(source series, target tgtSeries: ImagingSeries) {
     series.uid as uid -> tgtSeries.id = ('ImagingSeries/' & %uid);
