@@ -96,7 +96,7 @@ RUN set -e && mkdir -p /packages && : > /tmp/ig-deps.yaml && \
     sed -n '/implementationguides:/,/staticLocation/p' /config/application.yaml
 
 USER matchbox
-RUN rm -rf /tmp/fhir2sphn
+#RUN rm -rf /tmp/fhir2sphn
 
 # Compile maps to load all needed components from the Internet
 ENV MAPS_DIR="/home/matchbox/fhir2sphn/maps"
