@@ -95,6 +95,13 @@ Title: "List of SPHN concepts"
 * Age 0..* SU Age "" ""
 * FluidInputOutput 0..* SU FluidInputOutput "" ""
 * ImagingProcedure 0..* SU ImagingProcedure "" ""
+// The connector only reads series and BodyPosition from the top level of content
+// (RML iterators $.content.sphn:<Class>[*]); ImagingProcedure and the MR series only link
+// to them by id. The content key names the SPHN class, so the MR series use the same
+// flattened ImagingSeries type under their own key.
+* ImagingSeries 0..* SU ImagingSeries "" ""
+* MagneticResonanceImagingSeries 0..* SU ImagingSeries "" ""
+* BodyPosition 0..* SU BodyPosition "" ""
 
 
 Logical: Location
@@ -609,8 +616,25 @@ Title: "SPHN Body Position"
 * hasEndDateTime 0..1 SU dateTime "" ""
 * hasSourceSystem 1..* SU Reference(SourceSystem) "" ""
 * hasStartDateTime 0..1 SU dateTime "" ""
-// Nested, so the connector does not inject it: sent as a reference to the root SubjectPseudoIdentifier.
-* hasSubjectPseudoIdentifier 1..1 SU Reference(SubjectPseudoIdentifier) "" ""
+// No hasSubjectPseudoIdentifier: BodyPosition is a top-level content concept, so the
+// connector injects it (its JSON schema has no such property and allows no extra ones).
+
+// Link to a top-level concept by id, sent as {"id": ...}. The pipeline rewrites the id the
+// same way as the target concept's own id, so both must be built identically.
+Logical: ConceptIdReference
+Id: SPHN-ConceptIdReference
+Parent: Concept
+Title: "Link to a top-level SPHN concept by id"
+
+// Link from ImagingProcedure to a top-level series. hasImagingSeries ranges over
+// ImagingSeries and its four modality classes, so the connector requires target_concept on
+// every link (JSON schema oneOf branches all require id + target_concept) and uses it to
+// build the series IRI.
+Logical: ImagingSeriesReference
+Id: SPHN-ImagingSeriesReference
+Parent: Concept
+Title: "Link to a top-level SPHN imaging series"
+* target_concept 1..1 SU url "" ""
 
 Logical: ImagingProcedure
 Id: SPHN-ImagingProcedure
@@ -626,7 +650,7 @@ Title: "SPHN Imaging Procedure"
 * hasIntent 0..1 SU Intent "" ""
 //End of section
 * hasDescription 0..1 SU string "" ""
-* hasImagingSeries 0..* SU ImagingSeries "" ""
+* hasImagingSeries 0..* SU ImagingSeriesReference "" ""
 * hasSubjectAdministrativeSex 0..1 SU AdministrativeSex "" ""
 * hasSubjectAge 0..1 SU Age "" ""
 * hasSubjectBodyHeight 0..1 SU BodyHeight "" ""
@@ -638,23 +662,17 @@ Title: "SPHN Imaging Procedure"
 // (CT, MR, PET, X-Ray). They are five independent owl:Class definitions that each re-list
 // every property in full, and they differ from the base by exactly one addition:
 // 'hasBodyPosition'. Since FML cannot reach a subtype property through a base-typed
-// element, the five are flattened into this one type and the real SPHN class is carried
-// in 'target_concept' (same approach as ReferenceRangeOrValue above).
-// The modality is independently recoverable from hasImagingModalityCode, which each
-// SPHN modality class pins (MR is restricted to dcm:MR / snomed:312250003).
-Invariant: body-position-modality-only
-Description: "hasBodyPosition is only defined on the modality-specific imaging series (CT, MR, PET, X-Ray), not on the base ImagingSeries."
-Severity: #error
-Expression: "hasBodyPosition.empty() or target_concept in ('https://biomedit.ch/rdf/sphn-schema/sphn#ComputedTomographyImagingSeries' | 'https://biomedit.ch/rdf/sphn-schema/sphn#MagneticResonanceImagingSeries' | 'https://biomedit.ch/rdf/sphn-schema/sphn#PositronEmissionTomographyImagingSeries' | 'https://biomedit.ch/rdf/sphn-schema/sphn#XRayImagingSeries')"
-
+// element, the five are flattened into this one type. The real SPHN class is given by the
+// Content key the series is put under (ImagingSeries, MagneticResonanceImagingSeries) and by
+// target_concept on the ImagingProcedure link; the series itself carries no target_concept
+// (the connector's JSON schema does not allow one there). hasBodyPosition is only filled
+// for MR series; the map guarantees that.
 Logical: ImagingSeries
 Id: SPHN-ImagingSeries
 Parent: Concept
 Title: "SPHN Imaging Series"
-* obeys body-position-modality-only
-* target_concept 0..1 SU url "" "" // TEST 2026-11-09: absent on plain ImagingSeries (connector hypothesis)
 * hasAdministrativeCase 0..1 SU AdministrativeCase "" ""
-* hasBodyPosition 0..* SU BodyPosition "" ""
+* hasBodyPosition 0..* SU ConceptIdReference "" ""
 * hasDataFile 0..* SU string "" "" //Change to DataFile Concept
 * hasDescription 0..1 SU string "" ""
 * hasEndDateTime 0..1 SU dateTime "" ""
@@ -665,16 +683,15 @@ Title: "SPHN Imaging Series"
 * hasProtocolName 0..1 SU string "" ""
 * hasSourceSystem  1..* SU Reference(SourceSystem) "" ""
 * hasStartDateTime 0..1 SU dateTime "" ""
-// Nested, so the connector does not inject it (unlike on ImagingProcedure); sent as a
-// reference to the root SubjectPseudoIdentifier.
-* hasSubjectPseudoIdentifier 1..1 SU Reference(SubjectPseudoIdentifier) "" ""
+// No hasSubjectPseudoIdentifier: series are top-level content concepts, so the connector
+// injects it.
 
 // Note: MagneticResonanceImagingSeries, and the CT / PET / X-Ray equivalents, are not
-// modelled separately - see the note above ImagingSeries. Their only distinguishing
-// property, hasBodyPosition, now lives on ImagingSeries and is guarded by target_concept.
+// modelled separately - see the note above ImagingSeries.
 
-// Note: the five SPHN frame classes are flattened the same way into ImagingFrame, with the real
-// class in target_concept. The base ImagingFrame has 9 properties; the CT, MR and X-Ray frames
+// Note: the five SPHN frame classes are flattened the same way into ImagingFrame. Frames stay
+// nested in their series and carry no target_concept: each series class allows exactly one
+// frame class, so the connector derives it from the series. The base ImagingFrame has 9 properties; the CT, MR and X-Ray frames
 // are property-identical to each other (base + hasContrastAgentAdministrationEvent,
 // hasContrastAgentPhase, hasSynchronization); the PET frame is the only real outlier
 // (base + hasSynchronization + hasCode, hasRadiopharmaceuticalAdministrationEvent,
@@ -687,7 +704,6 @@ Logical: ImagingFrame
 Id: SPHN-ImagingFrame
 Parent: Concept
 Title: "SPHN Imaging Frame"
-* target_concept 0..1 SU url "" "" // TEST 2026-11-09: absent on plain ImagingFrame (connector hypothesis)
 * hasAlgorithm 0..* SU DataCompressionAlgorithm "" ""
 * hasAnatomicalProjection 0..1 SU AnatomicalProjection "" ""
 * hasBodySite 0..* SU BodySite "" ""
