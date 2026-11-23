@@ -57,6 +57,9 @@ rm -rf matchbox/matchbox-server/database
 * POST maps and exectute transformation using REST against local matchbox server:
     * See [transform.http](transform.http)
 
+## Large bundles (HTTP 413)
+Matchbox by default rejects any `$transform` request whose `Content-Length` exceeds 100MB. When single patient bundles exceed 100 MB, raising this limit to e.g. `SERVER_UNDERTOW_MAX_HTTP_POST_SIZE: "1GB"` fixes the issue.
+
 
 # Postprocessing
 ```bash
