@@ -1113,9 +1113,8 @@ class TestBodyPositionGuards:
 
     Only the modality-class rules (CT, MR, PET, X-ray) link a BodyPosition (SPHN
     defines hasBodyPosition on the modality series, not on plain ImagingSeries), and
-    it is guarded on the
-    0018,5100 tag being present so that an empty BodyPosition - whose hasCode
-    would satisfy neither branch of code-iri-or-codingSystem - is never emitted.
+    it is guarded on a 0018,5100 value that cm-patientPosition can translate, so
+    that a BodyPosition without hasCode - which SHACL rejects - is never emitted.
     """
 
     def test_mr_series_without_dicom_extension(
@@ -1155,6 +1154,64 @@ class TestBodyPositionGuards:
         assert_path_exists(result, MR_SERIES)
         assert get_path(result, f"{MR_SERIES}.hasBodyPosition") is None
         assert get_path(result, "content.BodyPosition") is None
+
+    @pytest.mark.parametrize("modality", ["MR", "CT"])
+    @pytest.mark.parametrize("position", ["LFP", "HFS FFS", "hfs"])
+    def test_unmapped_patient_position(
+        self, modality, position, transform_bundle, make_bundle, base_patient
+    ):
+        """A Patient Position the concept map cannot translate creates no BodyPosition
+        (and no link): it would have no hasCode, which SHACL rejects."""
+        study = make_imaging_study(
+            modality=modality,
+            series=[make_series(modality=modality, patient_position=position)],
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        series = f"content.{SERIES_CLASS[modality]}[0]"
+        assert_path_exists(result, series)
+        assert get_path(result, f"{series}.hasBodyPosition") is None
+        assert get_path(result, "content.BodyPosition") is None
+
+    def test_patient_position_without_value(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """A Patient Position tag with no value creates no BodyPosition."""
+        extension = make_dicom_extension(PATIENT_POSITION_TAG, "HFS", "PatientPosition")
+        extension["extension"] = [e for e in extension["extension"] if e["url"] != "value"]
+        study = make_imaging_study(series=[make_series(extensions=[extension])])
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        assert_path_exists(result, SERIES)
+        assert get_path(result, f"{SERIES}.hasBodyPosition") is None
+        assert get_path(result, "content.BodyPosition") is None
+
+    def test_mixed_valid_and_unmapped_positions(
+        self, transform_bundle, make_bundle, base_patient
+    ):
+        """Only the series with a translatable position get a BodyPosition."""
+        study = make_imaging_study(
+            series=[
+                make_series(uid="series-ok", modality="CT", patient_position="FFS"),
+                make_series(uid="series-bad", modality="CT", patient_position="LFP"),
+            ]
+        )
+        bundle = make_bundle(base_patient, study)
+
+        result = transform_bundle(bundle)
+
+        ids = [bp["id"] for bp in get_path(result, "content.BodyPosition")]
+        assert ids == ["BodyPosition/series-ok"]
+        linked = [
+            link["id"]
+            for series in get_path(result, "content.ComputedTomographyImagingSeries")
+            for link in series.get("hasBodyPosition", [])
+        ]
+        assert linked == ids
 
     def test_plain_series_with_patient_position(
         self, transform_bundle, make_bundle, base_patient

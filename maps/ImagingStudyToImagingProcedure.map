@@ -547,13 +547,17 @@ group seriesContent(source srcSeries, source imagingStudy: ImagingStudy, target 
 }
 
 // BodyPosition for the four modality series classes (plain ImagingSeries has no
-// hasBodyPosition). Guarded: without the guard, every series produces an empty BodyPosition
-// whose hasCode satisfies neither branch of code-iri-or-codingSystem. BodyPosition is a
+// hasBodyPosition). Guarded on a Patient Position (0018,5100) whose value cm-patientPosition
+// can translate - keep the list in sync with the concept map. Checking only that the tag is
+// present is not enough: an empty or unmapped value would still create a BodyPosition, with no
+// hasCode, which SHACL rejects (hasCode is 1..1). BodyPosition is a
 // top-level concept the series links to by id. Its id is derived from the series uid (one
 // BodyPosition per series), so link and concept match and stay stable across runs; the BMIP
 // ingestion (Furnace) rejects the whole patient document when a non-shared concept has no id.
 group seriesBodyPosition(source srcSeries, source imagingStudy: ImagingStudy, target content: Content, target tgtSeries: ImagingSeries) {
-    srcSeries as bpSeries where extension.where(extension.where(url = 'tag').valueString = '00185100').exists() then {
+    srcSeries as bpSeries where extension.where(url = 'https://research.balgrist.ch/HDR/fhir/StructureDefinition/DICOM'
+        and extension.where(url = 'tag').valueString = '00185100'
+        and extension.where(url = 'value').valueString in ('HFS' | 'FFS' | 'HFP' | 'FFP' | 'HFDR' | 'FFDR' | 'HFDL' | 'FFDL')).exists() then {
         bpSeries.uid as uid -> tgtSeries.hasBodyPosition = create('ConceptIdReference') as bpRef,
             bpRef.id = ('BodyPosition/' & %uid) "bodyPositionLink";
         bpSeries.uid as uid -> content.BodyPosition = create('BodyPosition') as tgtBodyPosition,
