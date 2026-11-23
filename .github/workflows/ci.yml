@@ -8,6 +8,9 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      # Used by every `docker compose` call in this job
+      COMPOSE_FILE: docker/docker-compose.yml:docker/docker-compose.airgapped.yml
     steps:
       - uses: actions/checkout@v4
 
@@ -32,22 +35,49 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Start container 
+      # Simulate an airgapped environment: everything the image needs must be baked
+      # in at build time (above). From here on the container gets no internet access.
+      # Traffic forwarded out of the container's bridge is rejected; host <-> container
+      # traffic (tests on localhost:8080, docker exec) is local and unaffected.
+      - name: Block internet access for the container
         run: |
-          docker compose -f docker/docker-compose.yml up -d 
+          sudo iptables  -I DOCKER-USER -i br-airgapped ! -o br-airgapped -j REJECT
+          sudo ip6tables -I DOCKER-USER -i br-airgapped ! -o br-airgapped -j REJECT || true
+          sudo iptables -L DOCKER-USER -v -n
+
+      - name: Start container (airgapped)
+        run: |
+          docker compose up -d --pull never
           sleep 60
-          docker compose -f docker/docker-compose.yml logs
+          docker compose logs
+
+      - name: Verify container has no internet access
+        run: |
+          # Without this check, a container that already exited would make every
+          # `exec` below fail and wrongly count as "unreachable".
+          if [ -z "$(docker compose ps -q --status running fhir2sphn)" ]; then
+            echo "::error::fhir2sphn container is not running"
+            docker compose ps -a
+            exit 1
+          fi
+          for url in https://packages.fhir.org https://github.com http://1.1.1.1; do
+            if docker compose exec -T fhir2sphn curl -sS --max-time 10 -o /dev/null "$url"; then
+              echo "::error::Container reached $url - airgap is not in effect"
+              exit 1
+            fi
+            echo "OK: $url unreachable"
+          done
 
       - name: Run tests
         run: pytest tests/ --skip-sds -v # SDs have been built when building the container
 
       - name: Dump container logs
         if: always()
-        run: docker compose -f docker/docker-compose.yml logs
+        run: docker compose logs
 
       - name: Stop container
         if: always()
-        run: docker compose -f docker/docker-compose.yml down
+        run: docker compose down
 
   release:
     if: startsWith(github.ref, 'refs/tags/')

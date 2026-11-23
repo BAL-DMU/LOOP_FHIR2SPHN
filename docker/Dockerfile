@@ -1,4 +1,4 @@
-FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.1.13
+FROM europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.1.21
 EXPOSE 8080 
 
 # Alpine:
@@ -73,6 +73,27 @@ WORKDIR /
 
 RUN cp /home/matchbox/fhir2sphn/output/package.tgz /package.tgz
 RUN chown -R matchbox:matchbox /package.tgz
+
+# Air-gap support: the IG Publisher (always the latest, see _updatePublisher.sh) writes
+# dependencies such as hl7.terminology.r4 / hl7.fhir.uv.extensions.r4 into package.tgz.
+# When their versions differ from the ones bundled in matchbox, matchbox tries to download
+# them at startup (HAPI-1301: Unable to locate package ...) and never comes up offline.
+# Pack them from the publisher's package cache into /packages and register them in
+# /config/application.yaml in place of the @@IG_DEPENDENCIES@@ marker (before sphn).
+RUN set -e && mkdir -p /packages && : > /tmp/ig-deps.yaml && \
+    grep -q '@@IG_DEPENDENCIES@@' /config/application.yaml && \
+    for dep in $(tar -xOzf /package.tgz package/package.json | \
+                 jq -r '.dependencies | to_entries[] | select(.key != "hl7.fhir.r4.core") | "\(.key)#\(.value)"'); do \
+      name=${dep%%#*}; ver=${dep#*#}; \
+      tar -czf "/packages/${name}-${ver}.tgz" -C "/home/matchbox/.fhir/packages/${dep}" package; \
+      printf '       %s:\n         name: %s\n         version: %s\n         url: file:/packages/%s-%s.tgz\n' \
+        "$(echo "$name" | tr '.-' '__')" "$name" "$ver" "$name" "$ver" >> /tmp/ig-deps.yaml; \
+    done && \
+    awk '/@@IG_DEPENDENCIES@@/ { while ((getline l < "/tmp/ig-deps.yaml") > 0) print l; next } 1' \
+      /config/application.yaml > /tmp/application.yaml && \
+    mv /tmp/application.yaml /config/application.yaml && rm /tmp/ig-deps.yaml && \
+    chown -R matchbox:matchbox /packages && ls -l /packages && \
+    sed -n '/implementationguides:/,/staticLocation/p' /config/application.yaml
 
 USER matchbox
 RUN rm -rf /tmp/fhir2sphn

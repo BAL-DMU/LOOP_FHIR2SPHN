@@ -61,6 +61,10 @@ hapi:
        #  name: hl7.terminology
        #  version: 6.2.0
        #  url: classpath:/hl7.terminology#6.2.0.tgz
+       # The Docker build replaces the next line with one entry per dependency of
+       # package.tgz (e.g. hl7.terminology.r4, hl7.fhir.uv.extensions.r4), loaded from
+       # local files so matchbox never fetches them online (air-gapped deployments).
+       # @@IG_DEPENDENCIES@@
        sphn:
          name: ch.balgrist.research.fhir2sphn
          version: 0.1.0
